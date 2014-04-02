@@ -1,4 +1,5 @@
 *.pdb
 *.vcxproj
+*.user
 Debug/
 Release/
