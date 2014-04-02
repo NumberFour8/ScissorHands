@@ -190,6 +190,7 @@ __global__ void myKernel(biguint_t a, biguint_t b, biguint_t n,biguint_t c)
 	memset((void*)b_cy,0,NB_DIGITS*sizeof(int));
 
 	Cuda_Mul_mod(c,b_cy,a,b,r,n[threadIdx.x],2047647423);
+	Cuda_Add_mod(c,b_cy,b);
 }
 
 extern "C" cudaError_t testCuda(biguint_t a,biguint_t b,biguint_t c,biguint_t n)

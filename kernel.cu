@@ -16,6 +16,7 @@ void printBigInt(biguint_t B)
 		if (B[i+1] == 0) break;
 		if (i != NB_DIGITS-1) printf(",");
 	}
+	printf("\n");
 }
 
 int main()
