@@ -4,8 +4,33 @@
 #include <stdio.h>
 
 #include "modular.h"
+#include "edwards.h"
 
-__global__ void myKernel(biguint_t a, biguint_t b, biguint_t n,biguint_t c);
-extern "C" cudaError_t testCuda(biguint_t a,biguint_t b,biguint_t c,biguint_t n);
+#define NUM_CURVES 1
+
+// Paralelní metody pro zdvojnásovení a součet bodů v Extended souřadnicích, a = -1
+__global__ void edwardsAdd(ExtendedPoint *P,ExtendedPoint *Q);
+__global__ void edwardsDbl(ExtendedPoint *P);
+
+
+/*
+  Non-adjacent Form
+ */
+struct NAF {
+	char* bits;
+	unsigned int length;
+	unsigned char w;
+};
+
+/*
+ Pomocná struktura pro N, 3*N a inverzi N modulo velikost báze
+*/
+struct h_Aux {
+	biguint_t N,N3;
+	digit_t invN;
+}
+
+// Hlavní výpočetní metoda pro Extended souřadnice
+extern "C" cudaError_t computeExtended(const h_Aux input,h_ExtendedPoint* initPoints,const NAF coeff);
 
 #endif

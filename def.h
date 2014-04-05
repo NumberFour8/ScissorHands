@@ -26,7 +26,8 @@ typedef unsigned int digit_t;
 typedef int carry_t;
 
 #define VOL volatile
-#define MAX_BITS SIZE_DIGIT * NB_DIGITS
+
+#define MAX_BITS SIZE_DIGIT*NB_DIGITS
 #define MAX_BYTES MAX_BITS/8
 
 typedef digit_t VOL biguint_t[NB_DIGITS];
