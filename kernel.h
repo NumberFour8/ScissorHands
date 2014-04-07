@@ -13,7 +13,7 @@ __global__ void edwardsAdd(ExtendedPoint* R,ExtendedPoint *P,ExtendedPoint *Q);
 __global__ void edwardsDbl(ExtendedPoint* R,ExtendedPoint *P);
 
 /*
-  Non-adjacent Form
+  Non-adjacent form struktura
  */
 struct NAF {
 	char* bits;
