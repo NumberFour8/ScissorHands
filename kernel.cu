@@ -194,7 +194,7 @@ int buildFromNAF(NAF N,int start,int end)
 	return ret;
 }
 
-void getPrecomputed(const ExtendedPoint** prec,const int exp,ExtendedPoint** pR)
+void getPrecomputed(ExtendedPoint** prec,const int exp,ExtendedPoint** pR)
 {
 	int k = ((exp > 0 ? exp : -exp)-1)/2;
 	if (exp > 0){
@@ -228,17 +228,17 @@ extern "C" cudaError_t computeExtended(const h_Aux input,h_ExtendedPoint* initPo
     
     // Předpočítat body pro sliding window
     int precompSize = (1 << (coeff.w-2))+1;
-    ExtendedPoint **prec = new ExtendedPoint[precompSize*NUM_CURVES];
+    ExtendedPoint *prec = new ExtendedPoint[precompSize*NUM_CURVES];
     for (int i = 0; i < precompSize;++i){
 	   prec[i] = new ExtendedPoint();
-	   aux_getPointMultiples(prec[i],pts,2*i+1);
+	   aux_getPointMultiples(prec+i,pts,2*i+1);
 	}
     
     // A počítáme pomocí sliding-window
     int i = coeff.length-1,h,s = 0,k = 0,u;
 	while (i >= 0)
 	{
-		if (exp.bits[i] == 0){
+		if (coeff.bits[i] == 0){
 		  edwardsDbl(P,P);
 		  i--;
 		}
@@ -246,13 +246,13 @@ extern "C" cudaError_t computeExtended(const h_Aux input,h_ExtendedPoint* initPo
 			s = i - w + 1;
 			s = s > 0 ? s : 0;
 
-			while (!exp.bits[s]) ++s;
+			while (!coeff.bits[s]) ++s;
 			for (h = 1;h <= i-s+1;++h) square(res);
 
 			u = buildFromNAF(coeff,s,i);
 
-			getPrecomputed(temp,u);
-			multiply(res,temp);
+			//getPrecomputed(temp,u);
+			//multiply(res,temp);
 			counter++;
 			i = s-1;
 		}
