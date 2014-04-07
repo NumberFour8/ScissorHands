@@ -49,18 +49,18 @@ __global__ void edwardsAdd(ExtendedPoint** R, ExtendedPoint **P, ExtendedPoint *
 	// Nakopírování pracovních dat
 	const digit_t idx = blockIdx.x*blockDim.y + threadIdx.y;
 	
-	c_x1[threadIdx.x] = P[idx]->C.X[threadIdx.x];
-	c_y1[threadIdx.x] = P[idx]->C.Y[threadIdx.x];
-	c_z1[threadIdx.x] = P[idx]->C.Z[threadIdx.x];
-	c_t1[threadIdx.x] = P[idx]->C.T[threadIdx.x];
+	c_x1[threadIdx.x] = P[idx]->X[threadIdx.x];
+	c_y1[threadIdx.x] = P[idx]->Y[threadIdx.x];
+	c_z1[threadIdx.x] = P[idx]->Z[threadIdx.x];
+	c_t1[threadIdx.x] = P[idx]->T[threadIdx.x];
 
-	c_x2[threadIdx.x] = Q[idx]->C.X[threadIdx.x];
-	c_y2[threadIdx.x] = Q[idx]->C.Y[threadIdx.x];
-	c_z2[threadIdx.x] = Q[idx]->C.Z[threadIdx.x];
-	c_t2[threadIdx.x] = Q[idx]->C.T[threadIdx.x];
+	c_x2[threadIdx.x] = Q[idx]->X[threadIdx.x];
+	c_y2[threadIdx.x] = Q[idx]->Y[threadIdx.x];
+	c_z2[threadIdx.x] = Q[idx]->Z[threadIdx.x];
+	c_t2[threadIdx.x] = Q[idx]->T[threadIdx.x];
 
 	c_tcy[threadIdx.x] = 0;
-	c_tt0[threadIdx.x] = P[idx]->C.Y[threadIdx.x]; // t0 = Y1
+	c_tt0[threadIdx.x] = P[idx]->Y[threadIdx.x]; // t0 = Y1
 	c_tt1[threadIdx.x] = 0; 
 	_AUX[threadIdx.x] = 0; 
 
@@ -94,10 +94,10 @@ __global__ void edwardsAdd(ExtendedPoint** R, ExtendedPoint **P, ExtendedPoint *
 	MUL_MOD(c_z1,c_z2,c_t2);
 	
 	/////////////////////////////////////////
-	R[idx]->C.X[threadIdx.x] = c_x1[threadIdx.x];
-	R[idx]->C.Y[threadIdx.x] = c_y1[threadIdx.x];
-	R[idx]->C.Z[threadIdx.x] = c_z1[threadIdx.x];
-	R[idx]->C.T[threadIdx.x] = c_t1[threadIdx.x];
+	R[idx]->X[threadIdx.x] = c_x1[threadIdx.x];
+	R[idx]->Y[threadIdx.x] = c_y1[threadIdx.x];
+	R[idx]->Z[threadIdx.x] = c_z1[threadIdx.x];
+	R[idx]->T[threadIdx.x] = c_t1[threadIdx.x];
 }
 
 __global__ void edwardsDbl(ExtendedPoint** R, ExtendedPoint **P)
@@ -133,10 +133,10 @@ __global__ void edwardsDbl(ExtendedPoint** R, ExtendedPoint **P)
 	const digit_t idx = blockIdx.x*blockDim.y + threadIdx.y;
 
 	// Nakopírování pracovních dat	
-	c_x1[threadIdx.x] = P[idx]->C.X[threadIdx.x];
-	c_y1[threadIdx.x] = P[idx]->C.Y[threadIdx.x];
-	c_z1[threadIdx.x] = P[idx]->C.Z[threadIdx.x];
-	c_t1[threadIdx.x] = P[idx]->C.T[threadIdx.x];
+	c_x1[threadIdx.x] = P[idx]->X[threadIdx.x];
+	c_y1[threadIdx.x] = P[idx]->Y[threadIdx.x];
+	c_z1[threadIdx.x] = P[idx]->Z[threadIdx.x];
+	c_t1[threadIdx.x] = P[idx]->T[threadIdx.x];
 
 	c_tcy[threadIdx.x] = 0;
 	c_tt0[threadIdx.x] = 0;
@@ -167,10 +167,10 @@ __global__ void edwardsDbl(ExtendedPoint** R, ExtendedPoint **P)
 	MUL_MOD(c_z1,c_z1,c_tt1);
 	
 	////////////////////////////////////////
-	R[idx]->C.X[threadIdx.x] = c_x1[threadIdx.x];
-	R[idx]->C.Y[threadIdx.x] = c_y1[threadIdx.x];
-	R[idx]->C.Z[threadIdx.x] = c_z1[threadIdx.x];
-	R[idx]->C.T[threadIdx.x] = c_t1[threadIdx.x];
+	R[idx]->X[threadIdx.x] = c_x1[threadIdx.x];
+	R[idx]->Y[threadIdx.x] = c_y1[threadIdx.x];
+	R[idx]->Z[threadIdx.x] = c_z1[threadIdx.x];
+	R[idx]->T[threadIdx.x] = c_t1[threadIdx.x];
 }
 
 void aux_getPointMultiples(ExtendedPoint** R,ExtendedPoint** P,const unsigned int multiple)

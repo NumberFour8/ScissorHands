@@ -60,7 +60,7 @@ void printBigInt(biguint_t B)
 
 NAF::NAF(unsigned char W,mpz_t number) : w(W)
 {
-	size_t sz = mpz_sizeinbase(exp,2);
+	size_t sz = mpz_sizeinbase(number,2);
 	bits = (char*)malloc(sz*8+1);
 	l = 0;
 
@@ -94,7 +94,7 @@ NAF::NAF(unsigned char W,mpz_t number) : w(W)
 int NAF::build(unsigned int start,unsigned int end) const
 {
 	int ret = 0;
-	for (int i = start;i <= end;i++)
+	for (unsigned int i = start;i <= end;i++)
 	{
 		ret += bits[i]*(1 << (i-start));
 	}

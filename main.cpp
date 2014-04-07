@@ -25,12 +25,12 @@ int main()
 	cin >> cf;
 	
 	// Koeficient převést do NAF
-	mpz_init_str(zN,N.c_str(),10);
-	mpz_init_str(zcf,cf.c_str(),10);
-	mpz_init_str(zX,X.c_str(),10);
-	mpz_init_str(zY,Y.c_str(),10);
-	mpz_init_str(zZ,Z.c_str(),10);
-	mpz_init_str(zT,T.c_str(),10);
+	mpz_init_set_str(zN,N.c_str(),10);
+	mpz_init_set_str(zcf,cf.c_str(),10);
+	mpz_init_set_str(zX,X.c_str(),10);
+	mpz_init_set_str(zY,Y.c_str(),10);
+	mpz_init_set_str(zZ,Z.c_str(),10);
+	mpz_init_set_str(zT,T.c_str(),10);
 	
 	NAF coeffNaf(2,zcf);
 	mpz_clear(zcf);
@@ -42,6 +42,10 @@ int main()
 	
 	h_ExtendedPoint pts;
 	pts.fromMPZ(zX,zY,zZ,zT);
+
+	h_Aux ax;
+	mpz_to_biguint(ax.N,zN);
+	// TODO: Přidat výpočet 3N a invN!!!!!
 
 	cudaError_t cudaStatus = computeExtended(ax,&pts,coeffNaf);
     if (cudaStatus != cudaSuccess) {

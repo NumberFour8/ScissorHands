@@ -2,6 +2,7 @@
 #define EDWARDS_H
 
 #include "def.h"
+#include "helpers.h"
 
 // TODO: h_ struktury jako bázové třídy pro GPU třídy
 
