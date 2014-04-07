@@ -9,8 +9,8 @@
 #define NUM_CURVES 1
 
 // Paralelní metody pro zdvojnásovení a součet bodů v Extended souřadnicích, a = -1
-__global__ void edwardsAdd(ExtendedPoint *P,ExtendedPoint *Q);
-__global__ void edwardsDbl(ExtendedPoint *P);
+__global__ void edwardsAdd(ExtendedPoint* R,ExtendedPoint *P,ExtendedPoint *Q);
+__global__ void edwardsDbl(ExtendedPoint* R,ExtendedPoint *P);
 
 
 /*
