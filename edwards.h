@@ -11,7 +11,7 @@ struct h_InvertedPoint {
 };
 
 // Tříd reprezentující bod v Inverted souřadnicích v paměti GPU
-class InvertedPoint : {
+class InvertedPoint {
 public:
 	h_InvertedPoint C;
 	InvertedPoint() 
@@ -50,7 +50,7 @@ struct h_ExtendedPoint {
 };
 
 // Tříd reprezentující bod v Inverted souřadnicích v paměti GPU
-class ExtendedPoint : public CurvePoint {
+class ExtendedPoint  {
 public:
 	h_ExtendedPoint C;
 	ExtendedPoint()
@@ -61,7 +61,7 @@ public:
 		cudaMalloc((void**)&C.T, MAX_BYTES);
 	}
 	
-	void toGPU(const h_InvertedPoint* P)
+	void toGPU(const h_ExtendedPoint* P)
 	{
 		cudaMemcpy((void*)C.X,(void*)P->X, MAX_BYTES, cudaMemcpyHostToDevice);
 		cudaMemcpy((void*)C.Y,(void*)P->Y, MAX_BYTES, cudaMemcpyHostToDevice);

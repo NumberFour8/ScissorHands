@@ -40,7 +40,7 @@ __global__ void edwardsAdd(ExtendedPoint* R, ExtendedPoint *P, ExtendedPoint *Q)
 	VOL digit_t* c_tt0  = temp0[threadIdx.y];   // t0
 	VOL digit_t* c_tt1  = temp1[threadIdx.y];   // t1
 	
-	VOL digit_t* _CARRY = carry[threadIdx.y];  // přenos
+	VOL carry_t* _CARRY = carry[threadIdx.y];  // přenos
 	VOL digit_t* _AUX   = temp2[threadIdx.y];  // pomocná proměnná pro násobení
 	
 	const digit_t _N    = d_N[threadIdx.x];	   // x-tá cifra N
@@ -60,10 +60,10 @@ __global__ void edwardsAdd(ExtendedPoint* R, ExtendedPoint *P, ExtendedPoint *Q)
 	c_z2[threadIdx.x] = Q[idx].C.Z[threadIdx.x];
 	c_t2[threadIdx.x] = Q[idx].C.T[threadIdx.x];
 
-	c_cy[threadIdx.x] = 0;
-	c_t0[threadIdx.x] = P[idx].y[threadIdx.x]; // t0 = Y1
-	c_t1[threadIdx.x] = 0; 
-	c_t2[threadIdx.x] = 0; 
+	c_tcy[threadIdx.x] = 0;
+	c_tt0[threadIdx.x] = P[idx].C.Y[threadIdx.x]; // t0 = Y1
+	c_tt1[threadIdx.x] = 0; 
+	_AUX[threadIdx.x] = 0; 
 
 	// Twisted Edwards Extended (add-2008-hwcd-4), a = -1, independent of d,incomplete
 	/////////////////////////////////////////	
@@ -87,7 +87,7 @@ __global__ void edwardsAdd(ExtendedPoint* R, ExtendedPoint *P, ExtendedPoint *Q)
 	SUB_MOD(c_x2,c_z2,c_z1);
 	
 	SUB_MOD(c_z2,c_tt1,c_tt0);
-	ADD_MOD(c_t2,c_tt1,c_tt2);
+	ADD_MOD(c_t2,c_tt1,c_tt0);
 	
 	MUL_MOD(c_x1,c_y2,c_z2);
 	MUL_MOD(c_y1,c_t2,c_x2);
@@ -124,23 +124,25 @@ __global__ void edwardsDbl(ExtendedPoint*R, ExtendedPoint *P)
 	VOL digit_t* c_tt0  = temp0[threadIdx.y];   // t0
 	VOL digit_t* c_tt1  = temp1[threadIdx.y];   // t1
 	
-	VOL digit_t* _CARRY = carry[threadIdx.y];  // přenos
+	VOL carry_t* _CARRY = carry[threadIdx.y];  // přenos
 	VOL digit_t* _AUX   = temp2[threadIdx.y];  // pomocná proměnná pro násobení
 	
 	const digit_t _N    = d_N[threadIdx.x];	   // x-tá cifra N
 	const digit_t _3N   = d_3N[threadIdx.x];   // x-tá cifra 3*N
 	const digit_t _INVN = d_invN;			   // -N^(-1) mod W
 	
+	const digit_t idx = blockIdx.x*blockDim.y + threadIdx.y;
+
 	// Nakopírování pracovních dat	
 	c_x1[threadIdx.x] = P[idx].C.X[threadIdx.x];
 	c_y1[threadIdx.x] = P[idx].C.Y[threadIdx.x];
 	c_z1[threadIdx.x] = P[idx].C.Z[threadIdx.x];
 	c_t1[threadIdx.x] = P[idx].C.T[threadIdx.x];
 
-	c_cy[threadIdx.x] = 0;
-	c_t0[threadIdx.x] = 0;
-	c_t1[threadIdx.x] = 0; 
-	c_t2[threadIdx.x] = 0; 
+	c_tcy[threadIdx.x] = 0;
+	c_tt0[threadIdx.x] = 0;
+	c_tt1[threadIdx.x] = 0; 
+	_AUX[threadIdx.x]  = 0; 
  
 	// Twisted Edwards Extended (dbl-2008-hwcd-4), a = -1, independent of d,incomplete
 	/////////////////////////////////////////
@@ -233,7 +235,7 @@ extern "C" cudaError_t computeExtended(const h_Aux input,h_ExtendedPoint* initPo
 	}
     
     // A počítáme pomocí sliding-window
-    int i = exp.length-1,h,s = 0,k = 0,u;
+    int i = coeff.length-1,h,s = 0,k = 0,u;
 	while (i >= 0)
 	{
 		if (exp.bits[i] == 0){

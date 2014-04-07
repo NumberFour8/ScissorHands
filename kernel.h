@@ -12,7 +12,6 @@
 __global__ void edwardsAdd(ExtendedPoint* R,ExtendedPoint *P,ExtendedPoint *Q);
 __global__ void edwardsDbl(ExtendedPoint* R,ExtendedPoint *P);
 
-
 /*
   Non-adjacent Form
  */
@@ -28,7 +27,7 @@ struct NAF {
 struct h_Aux {
 	biguint_t N,N3;
 	digit_t invN;
-}
+};
 
 // Hlavní výpočetní metoda pro Extended souřadnice
 extern "C" cudaError_t computeExtended(const h_Aux input,h_ExtendedPoint* initPoints,const NAF coeff);
