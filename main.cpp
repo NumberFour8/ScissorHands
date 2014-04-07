@@ -1,52 +1,49 @@
 #include <iostream>
 #include <stdio.h>
-using namespace std;
+#include <string>
 
 #include "kernel.h"
 
-void printBigInt(biguint_t B)
-{
-	for (int i = 0;i < NB_DIGITS;++i)
-	{
-		printf("%#010x",B[i]);
-		if (B[i+1] == 0) break;
-		if (i != NB_DIGITS-1) printf(",");
-	}
-	printf("\n");
-}
+using namespace std;
 
 int main()
 {
-	// A,B jsou v Montgomeryho reprezentaci, A,B,N v bázi W = 2^32
-	// N = 215714093118538583256769
-	// A = 21799067859837164737
-	// B = 104402829964868711809
-	// -N^(-1) mod W = 2047647423
+	string cf,X,Y,Z,T,N;
+	mpz_t zcf,zX,zY,zZ,zT,zN;
 
-	NAF coeff;
-	memset(&coeff,0,sizeof(NAF));
-	char expand[200] = {1,0,0,1,0,-1,0,0,-1,0,0,-1,0,-1,0,0,-1,0,0,-1,0,1,0,-1,0,-1,0,-1,0,0,1,0,0,0,-1,0,1,0,0,1,0,0,0,1,0,-1,0,1,0,0,0,1,0,0,0,1,0,0,0,0,0,-1,0,0,1,0,-1,0,-1,0,1,0,1,0,0,0,0,-1,0,0,1,0,-1,0,0,0,0,0,-1,0,1,0,0,1,0,1,0,0,0,0,0,0,0,-1,0,0,0,1,0,0,0,0,1,0,-1,0,0,0,1,0,0,-1,0,0,0,1,0,1,0,0,-1,0,-1,0,-1,0,0,0,1,0,0,0,-1,0,-1,0,-1,0,0,0,0,1,0,1,0,0,1,0,0,0,-1,0,0,1,0,-1,0,-1,0,0,1,0,1,0,0,0,-1,0,0,0,0,0,0,0};
-	memcpy((void*)coeff.bits,(void*)expand,200);
-	coeff.l = 200;
-	coeff.w = 2;
-
-	struct h_ExtendedPoint pts = 
-	{ 
-				 {0x0e6c2ef9,0x9e4d4f27,0x0000299e,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000},
-				 {0x47769205,0xdceddf18,0x00002c89,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000},
-				 {0},
-				 {0}
-	};
+	cout << "N = ?" << endl;
+	cin >> N;
+	cout << "X = ? " << endl;
+	cin >> X;
+	cout << "Y = ?" << endl;
+	cin >> Y;
+	cout << "Z = ?" << endl;
+	cin >> Z;
+	cout << "T = ?" << endl;
+	cin >> T;
+	cout << "k = ?" << endl;
+	cin >> cf;
 	
-	struct h_Aux ax = 
-	{
-		 {0x1b8a2ec1,0xe2695510,0x00002dad,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000},
-		 {0x529e8c43,0xa73bff30,0x00008909,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000},
-		 2047647423
-	};
+	// Koeficient převést do NAF
+	mpz_init_str(zN,N.c_str(),10);
+	mpz_init_str(zcf,cf.c_str(),10);
+	mpz_init_str(zX,X.c_str(),10);
+	mpz_init_str(zY,Y.c_str(),10);
+	mpz_init_str(zZ,Z.c_str(),10);
+	mpz_init_str(zT,T.c_str(),10);
+	
+	NAF coeffNaf(2,zcf);
+	mpz_clear(zcf);
+	
+	to_mont_repr(zX,zN);
+	to_mont_repr(zY,zN);
+	to_mont_repr(zZ,zN);
+	to_mont_repr(zT,zN);
+	
+	h_ExtendedPoint pts;
+	pts.fromMPZ(zX,zY,zZ,zT);
 
-
-	cudaError_t cudaStatus = computeExtended(ax,&pts,coeff);
+	cudaError_t cudaStatus = computeExtended(ax,&pts,coeffNaf);
     if (cudaStatus != cudaSuccess) {
         fprintf(stderr, "addWithCuda failed!");
         return 1;
@@ -60,7 +57,11 @@ int main()
         return 1;
     }
     
-	
+	mpz_clear(zX);
+	mpz_clear(zY);
+	mpz_clear(zZ);
+	mpz_clear(zT);
+	mpz_clear(zN);
 
 	char c;
 	cin >> c;

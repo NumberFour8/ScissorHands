@@ -5,6 +5,7 @@
 
 #include "modular.h"
 #include "edwards.h"
+#include "helpers.h"
 
 #define NUM_CURVES 1
 
@@ -12,14 +13,6 @@
 __global__ void edwardsAdd(ExtendedPoint* R,ExtendedPoint *P,ExtendedPoint *Q);
 __global__ void edwardsDbl(ExtendedPoint* R,ExtendedPoint *P);
 
-/*
-  Non-adjacent form struktura
- */
-struct NAF {
-	char* bits;
-	unsigned int l;
-	unsigned char w;
-};
 
 /*
  Pomocná struktura pro N, 3*N a inverzi N modulo velikost báze

@@ -249,7 +249,7 @@ extern "C" cudaError_t computeExtended(const h_Aux input,h_ExtendedPoint* initPo
 			for (h = 1;h <= i-s+1;++h)  
 			  edwardsDbl<<<NUM_CURVES,NB_DIGITS>>>(pts,pts);
 
-			u = buildFromNAF(coeff,s,i);
+			u = coeff.build(s,i);
 
 			//getPrecomputed(temp,u);
 			//multiply(res,temp);
