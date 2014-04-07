@@ -17,7 +17,7 @@ __global__ void edwardsDbl(ExtendedPoint* R,ExtendedPoint *P);
  */
 struct NAF {
 	char* bits;
-	unsigned int length;
+	unsigned int l;
 	unsigned char w;
 };
 

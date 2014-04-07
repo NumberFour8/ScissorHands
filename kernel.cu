@@ -5,8 +5,7 @@ __constant__ __device__ digit_t d_invN;
 __device__ biguint_t d_N;
 __device__ biguint_t d_3N;
 
-
-__global__ void edwardsAdd(ExtendedPoint* R, ExtendedPoint *P, ExtendedPoint *Q)
+__global__ void edwardsAdd(ExtendedPoint** R, ExtendedPoint **P, ExtendedPoint **Q)
 {
 	// Proměnné ve sdílené paměti pro bod P
     __shared__ VOL digit_t x1[NUM_CURVES][NB_DIGITS];
@@ -50,18 +49,18 @@ __global__ void edwardsAdd(ExtendedPoint* R, ExtendedPoint *P, ExtendedPoint *Q)
 	// Nakopírování pracovních dat
 	const digit_t idx = blockIdx.x*blockDim.y + threadIdx.y;
 	
-	c_x1[threadIdx.x] = P[idx].C.X[threadIdx.x];
-	c_y1[threadIdx.x] = P[idx].C.Y[threadIdx.x];
-	c_z1[threadIdx.x] = P[idx].C.Z[threadIdx.x];
-	c_t1[threadIdx.x] = P[idx].C.T[threadIdx.x];
+	c_x1[threadIdx.x] = P[idx]->C.X[threadIdx.x];
+	c_y1[threadIdx.x] = P[idx]->C.Y[threadIdx.x];
+	c_z1[threadIdx.x] = P[idx]->C.Z[threadIdx.x];
+	c_t1[threadIdx.x] = P[idx]->C.T[threadIdx.x];
 
-	c_x2[threadIdx.x] = Q[idx].C.X[threadIdx.x];
-	c_y2[threadIdx.x] = Q[idx].C.Y[threadIdx.x];
-	c_z2[threadIdx.x] = Q[idx].C.Z[threadIdx.x];
-	c_t2[threadIdx.x] = Q[idx].C.T[threadIdx.x];
+	c_x2[threadIdx.x] = Q[idx]->C.X[threadIdx.x];
+	c_y2[threadIdx.x] = Q[idx]->C.Y[threadIdx.x];
+	c_z2[threadIdx.x] = Q[idx]->C.Z[threadIdx.x];
+	c_t2[threadIdx.x] = Q[idx]->C.T[threadIdx.x];
 
 	c_tcy[threadIdx.x] = 0;
-	c_tt0[threadIdx.x] = P[idx].C.Y[threadIdx.x]; // t0 = Y1
+	c_tt0[threadIdx.x] = P[idx]->C.Y[threadIdx.x]; // t0 = Y1
 	c_tt1[threadIdx.x] = 0; 
 	_AUX[threadIdx.x] = 0; 
 
@@ -95,13 +94,13 @@ __global__ void edwardsAdd(ExtendedPoint* R, ExtendedPoint *P, ExtendedPoint *Q)
 	MUL_MOD(c_z1,c_z2,c_t2);
 	
 	/////////////////////////////////////////
-	R[idx].C.X[threadIdx.x] = c_x1[threadIdx.x];
-	R[idx].C.Y[threadIdx.x] = c_y1[threadIdx.x];
-	R[idx].C.Z[threadIdx.x] = c_z1[threadIdx.x];
-	R[idx].C.T[threadIdx.x] = c_t1[threadIdx.x];
+	R[idx]->C.X[threadIdx.x] = c_x1[threadIdx.x];
+	R[idx]->C.Y[threadIdx.x] = c_y1[threadIdx.x];
+	R[idx]->C.Z[threadIdx.x] = c_z1[threadIdx.x];
+	R[idx]->C.T[threadIdx.x] = c_t1[threadIdx.x];
 }
 
-__global__ void edwardsDbl(ExtendedPoint*R, ExtendedPoint *P)
+__global__ void edwardsDbl(ExtendedPoint** R, ExtendedPoint **P)
 {
     // Proměnné ve sdílené paměti pro bod P
     __shared__ VOL digit_t x1[NUM_CURVES][NB_DIGITS];
@@ -134,10 +133,10 @@ __global__ void edwardsDbl(ExtendedPoint*R, ExtendedPoint *P)
 	const digit_t idx = blockIdx.x*blockDim.y + threadIdx.y;
 
 	// Nakopírování pracovních dat	
-	c_x1[threadIdx.x] = P[idx].C.X[threadIdx.x];
-	c_y1[threadIdx.x] = P[idx].C.Y[threadIdx.x];
-	c_z1[threadIdx.x] = P[idx].C.Z[threadIdx.x];
-	c_t1[threadIdx.x] = P[idx].C.T[threadIdx.x];
+	c_x1[threadIdx.x] = P[idx]->C.X[threadIdx.x];
+	c_y1[threadIdx.x] = P[idx]->C.Y[threadIdx.x];
+	c_z1[threadIdx.x] = P[idx]->C.Z[threadIdx.x];
+	c_t1[threadIdx.x] = P[idx]->C.T[threadIdx.x];
 
 	c_tcy[threadIdx.x] = 0;
 	c_tt0[threadIdx.x] = 0;
@@ -168,18 +167,18 @@ __global__ void edwardsDbl(ExtendedPoint*R, ExtendedPoint *P)
 	MUL_MOD(c_z1,c_z1,c_tt1);
 	
 	////////////////////////////////////////
-	R[idx].C.X[threadIdx.x] = c_x1[threadIdx.x];
-	R[idx].C.Y[threadIdx.x] = c_y1[threadIdx.x];
-	R[idx].C.Z[threadIdx.x] = c_z1[threadIdx.x];
-	R[idx].C.T[threadIdx.x] = c_t1[threadIdx.x];
+	R[idx]->C.X[threadIdx.x] = c_x1[threadIdx.x];
+	R[idx]->C.Y[threadIdx.x] = c_y1[threadIdx.x];
+	R[idx]->C.Z[threadIdx.x] = c_z1[threadIdx.x];
+	R[idx]->C.T[threadIdx.x] = c_t1[threadIdx.x];
 }
 
-void aux_getPointMultiples(ExtendedPoint* R,ExtendedPoint *P,const unsigned int multiple)
+void aux_getPointMultiples(ExtendedPoint** R,ExtendedPoint** P,const unsigned int multiple)
 {
-	edwardsDbl<<NUM_CURVES,NB_DIGITS>>(R,P);
+	edwardsDbl<<<NUM_CURVES,NB_DIGITS>>>(R,P);
 	if (multiple == 2) return;
 	for (int i = 3;i <= multiple;++i){
-	  edwardsAdd<<NUM_CURVES,NB_DIGITS>>(R,R,P);
+	  edwardsAdd<<<NUM_CURVES,NB_DIGITS>>>(R,R,P);
 	}
 }
 
@@ -197,7 +196,7 @@ int buildFromNAF(NAF N,int start,int end)
 void getPrecomputed(ExtendedPoint** prec,const int exp,ExtendedPoint** pR)
 {
 	int k = ((exp > 0 ? exp : -exp)-1)/2;
-	if (exp > 0){
+	if (exp > 0)
 	 *pR = prec[k];
 	//else {
 		//mpz_neg(res,precomp[k]);
@@ -220,46 +219,45 @@ extern "C" cudaError_t computeExtended(const h_Aux input,h_ExtendedPoint* initPo
 	cudaMemcpyToSymbol(d_invN,(void*)input.invN, SIZE_DIGIT/8);
 
 	// Nakopírovat výchozí body do paměti GPU
-	ExtendedPoint **pts = new ExtendedPoint[NUM_CURVES];
+	ExtendedPoint **pts = new ExtendedPoint*[NUM_CURVES];
 	for (int i = 0;i < NUM_CURVES;++i){
-	   pts[i] = new ExtendedPoint();
-	   pts[i].toGPU(initPoints[i]);
+	   pts[i] = new ExtendedPoint();			 
+	   pts[i]->toGPU(initPoints+i);
 	}
     
     // Předpočítat body pro sliding window
     int precompSize = (1 << (coeff.w-2))+1;
-    ExtendedPoint *prec = new ExtendedPoint[precompSize*NUM_CURVES];
+    ExtendedPoint **prec = new ExtendedPoint*[precompSize*NUM_CURVES];
     for (int i = 0; i < precompSize;++i){
 	   prec[i] = new ExtendedPoint();
 	   aux_getPointMultiples(prec+i,pts,2*i+1);
 	}
     
     // A počítáme pomocí sliding-window
-    int i = coeff.length-1,h,s = 0,k = 0,u;
+    int i = coeff.l-1,h,s = 0,k = 0,u;
 	while (i >= 0)
 	{
 		if (coeff.bits[i] == 0){
-		  edwardsDbl(P,P);
+		  edwardsDbl<<<NUM_CURVES,NB_DIGITS>>>(pts,pts);
 		  i--;
 		}
 		else {
-			s = i - w + 1;
+			s = i - coeff.w + 1;
 			s = s > 0 ? s : 0;
 
 			while (!coeff.bits[s]) ++s;
-			for (h = 1;h <= i-s+1;++h) square(res);
+			for (h = 1;h <= i-s+1;++h)  
+			  edwardsDbl<<<NUM_CURVES,NB_DIGITS>>>(pts,pts);
 
 			u = buildFromNAF(coeff,s,i);
 
 			//getPrecomputed(temp,u);
 			//multiply(res,temp);
-			counter++;
+	
 			i = s-1;
 		}
 	}
-    
-        
-    
+         
     // Zkontroluj chyby
     cudaStatus = cudaGetLastError();
     if (cudaStatus != cudaSuccess)
@@ -272,7 +270,7 @@ extern "C" cudaError_t computeExtended(const h_Aux input,h_ExtendedPoint* initPo
  
     // Zkopírovat data zpět do počítače a uvolnit paměť
     for (int i = 0;i < NUM_CURVES;++i){
-      pts[i].toHost(initPoints+i);
+      pts[i]->toHost(initPoints+i);
       delete pts[i];
     }
     delete[] pts;

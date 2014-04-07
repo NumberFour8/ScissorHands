@@ -46,7 +46,7 @@ public:
 
 // Struktura pro bod v Extended souřadnicích v paměti počítače
 struct h_ExtendedPoint {
-	bigint_t X,Y,Z,T;
+	biguint_t X,Y,Z,T;
 };
 
 // Tříd reprezentující bod v Inverted souřadnicích v paměti GPU
