@@ -11,15 +11,26 @@ int main()
 	string cf,X,Y,N;
 	mpz_t zcf,zX,zY,zN;
 
-	cout << "N = ?" << endl;
-	cin >> N;
-	cout << "X = ? " << endl;
-	cin >> X;
-	cout << "Y = ?" << endl;
-	cin >> Y;
+	ifstream fp;
+	fp.open("C:\\Users\\Luc\\Desktop\\edwards.txt");
+
+	fp >> N;
+	cout << "N = " << N << endl;
+	fp >> X;
+	cout << "X = " << X << endl;
+	fp >> Y;
+	cout << "Y = " << Y << endl;
+	fp >> k;
+	cout << "k = " << k << endl;
+	cout << "a = -1" << endl;
+	fp.close();
 	
-	cout << "k = ?" << endl;
-	cin >> cf;
+	cout << "Is this okay ?" << endl;
+	char c;
+	cin >> c;
+	if (c == 'n') return 0;
+	
+	////////////////////////////////////////////////////////////
 	
 	mpz_init_set_str(zN,N.c_str(),10);
 	mpz_init_set_str(zcf,cf.c_str(),10);
@@ -65,7 +76,6 @@ int main()
 	mpz_clears(zX,zY,zN);
 	mpz_clears(z3N,zInvW,zInvN);
 
-	char c;
 	cin >> c;
     return 0;
 }
