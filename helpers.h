@@ -48,8 +48,8 @@ inline void gpuAssert(cudaError_t code, char *file, int line, bool abort=true)
 #define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 
 #define cuda_Malloc(A,B) gpuErrchk(cudaMalloc(A,B))
-#define cuda_Memcpy(A,B,C,D) gpuErrchk(A,B,C,D)
-#define cuda_Free(A) gpuErrchk(A)
+#define cuda_Memcpy(A,B,C,D) gpuErrchk(cudaMemcpy(A,B,C,D))
+#define cuda_Free(A) gpuErrchk(cudaFree(A))
 #define cuda_MemcpyToSymbol(A,B,C) gpuErrchk(cudaMemcpyToSymbol(A,B,C))
 
 #endif

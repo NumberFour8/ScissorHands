@@ -209,7 +209,7 @@ cudaError_t computeExtended(const h_Aux input,h_ExtendedPoint* initPoints,const 
 	pExtendedPoint *pts  = new pExtendedPoint[NUM_CURVES];
 	pExtendedPoint *prec = new pExtendedPoint[precompSize*NUM_CURVES];
 	
-	gpuErrChk(cudaSetDevice(0));
+	gpuErrchk(cudaSetDevice(0));
 
 	// Nakopírovat výchozí body do paměti GPU
 	for (int i = 0;i < NUM_CURVES;++i){
