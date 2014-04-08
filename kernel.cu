@@ -177,7 +177,7 @@ void aux_getPointMultiples(ExtendedPoint** R,ExtendedPoint** P,const unsigned in
 {
 	edwardsDbl<<<NUM_CURVES,NB_DIGITS>>>(R,P);
 	if (multiple == 2) return;
-	for (int i = 3;i <= multiple;++i){
+	for (unsigned int i = 3;i <= multiple;++i){
 	  edwardsAdd<<<NUM_CURVES,NB_DIGITS>>>(R,R,P);
 	}
 }

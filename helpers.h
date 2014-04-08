@@ -4,6 +4,15 @@
 #include "def.h"
 
 /*
+   Struktura obsahující výsledek pøevodu z Extended souøadnic
+*/
+struct ExtResult {
+	bool factorFound;
+	mpz_t factor;
+};
+
+
+/*
   Non-adjacent form
  */
 class NAF {

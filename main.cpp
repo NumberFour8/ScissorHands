@@ -8,8 +8,8 @@ using namespace std;
 
 int main()
 {
-	string cf,X,Y,Z,T,N;
-	mpz_t zcf,zX,zY,zZ,zT,zN;
+	string cf,X,Y,N;
+	mpz_t zcf,zX,zY,zN;
 
 	cout << "N = ?" << endl;
 	cin >> N;
@@ -17,10 +17,7 @@ int main()
 	cin >> X;
 	cout << "Y = ?" << endl;
 	cin >> Y;
-	cout << "Z = ?" << endl;
-	cin >> Z;
-	cout << "T = ?" << endl;
-	cin >> T;
+	
 	cout << "k = ?" << endl;
 	cin >> cf;
 	
@@ -28,23 +25,28 @@ int main()
 	mpz_init_set_str(zcf,cf.c_str(),10);
 	mpz_init_set_str(zX,X.c_str(),10);
 	mpz_init_set_str(zY,Y.c_str(),10);
-	mpz_init_set_str(zZ,Z.c_str(),10);
-	mpz_init_set_str(zT,T.c_str(),10);
 	
+	// Koefcient v NAF rozvoji, do kterého se chceme dopočítat
 	NAF coeffNaf(2,zcf);
 	mpz_clear(zcf);
-	
-	to_mont_repr(zX,zN);
-	to_mont_repr(zY,zN);
-	to_mont_repr(zZ,zN);
-	to_mont_repr(zT,zN);
-	
+		
 	h_ExtendedPoint pts;
-	pts.fromMPZ(zX,zY,zZ,zT);
+	pts.fromAffine(zX,zY,zN);
 
+	// Spočítáme W = 2^32, 3*N, -N^(-1) mod W a W^(-1) mod N
+	mpz_t z3N,zInvW,zInvN;
+	mpz_inits(z3N,zInvW,zInvN);
+	mpz_mul_ui(z3N,zN,3);
+	mpz_ui_pow_ui (zInvW, 2, SIZE_DIGIT); 
+    mpz_invert (zInvN, zN, zInvW);
+    mpz_sub (zInvN, zInvW, zInvN);
+	mpz_invert (zInvW, zInvW, zN);
+
+	// Pomocná struktura
 	h_Aux ax;
 	mpz_to_biguint(ax.N,zN);
-	// TODO: Přidat výpočet 3N a invN!!!!!
+	mpz_to_biguint(ax.N3,z3N);
+	ax.invN = (digit_t)mpz_get_ui(zInvN);
 
 	cudaError_t cudaStatus = computeExtended(ax,&pts,coeffNaf);
     if (cudaStatus != cudaSuccess) {
@@ -60,8 +62,9 @@ int main()
         return 1;
     }
     
-	mpz_clears(zX,zY,zZ,zT,zN);
-	
+	mpz_clears(zX,zY,zN);
+	mpz_clears(z3N,zInvW,zInvN);
+
 	char c;
 	cin >> c;
     return 0;

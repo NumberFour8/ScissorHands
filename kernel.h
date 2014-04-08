@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 #include "modular.h"
-#include "edwards.h"
+#include "coords.h"
 #include "helpers.h"
 
 #define NUM_CURVES 1

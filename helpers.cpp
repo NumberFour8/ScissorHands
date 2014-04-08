@@ -58,6 +58,7 @@ void printBigInt(biguint_t B)
 	printf("\n");
 }
 
+
 NAF::NAF(unsigned char W,mpz_t number) : w(W)
 {
 	size_t sz = mpz_sizeinbase(number,2);
