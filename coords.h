@@ -36,6 +36,15 @@ private:
 
 public:	
 	biguint_t X,Y,Z,T;
+
+	h_ExtendedPoint()
+	{
+		memset((void*)X,0,MAX_BYTES);
+		memset((void*)Y,0,MAX_BYTES);
+		memset((void*)Z,0,MAX_BYTES);
+		memset((void*)T,0,MAX_BYTES);
+	}
+		
 	
 	// Transformace z afinních souřadnic do Extended souřadnic v Montgomeryho reprezentaci
 	void fromAffine(mpz_t x,mpz_t y,mpz_t N)
@@ -102,9 +111,11 @@ public:
 // Třída reprezentující bod v Extended souřadnicích v paměti GPU
 class ExtendedPoint  {
 public:
-	biguint_t X,Y,Z,T;
+	void* X,*Y,*Z,*T;	
+
 	ExtendedPoint()
 	{
+		X = Y = Z = T = NULL; 
 		cuda_Malloc((void**)&X, MAX_BYTES);
 		cuda_Malloc((void**)&Y, MAX_BYTES);
 		cuda_Malloc((void**)&Z, MAX_BYTES);
@@ -113,26 +124,27 @@ public:
 	
 	void toGPU(const h_ExtendedPoint* P)
 	{
-		cuda_Memcpy((void*)X,(void*)P->X, MAX_BYTES, cudaMemcpyHostToDevice);
-		cuda_Memcpy((void*)Y,(void*)P->Y, MAX_BYTES, cudaMemcpyHostToDevice);
-		cuda_Memcpy((void*)Z,(void*)P->Z, MAX_BYTES, cudaMemcpyHostToDevice);
-		cuda_Memcpy((void*)T,(void*)P->T, MAX_BYTES, cudaMemcpyHostToDevice);
+		cuda_Memcpy(X,(void*)P->X, MAX_BYTES, cudaMemcpyHostToDevice);
+		cuda_Memcpy(Y,(void*)P->Y, MAX_BYTES, cudaMemcpyHostToDevice);
+		cuda_Memcpy(Z,(void*)P->Z, MAX_BYTES, cudaMemcpyHostToDevice);
+		cuda_Memcpy(T,(void*)P->T, MAX_BYTES, cudaMemcpyHostToDevice);
+
 	}
 	
 	void toHost(h_ExtendedPoint* P) const 
 	{
-		cuda_Memcpy((void*)P->X,(void*)X, MAX_BYTES, cudaMemcpyDeviceToHost);
-		cuda_Memcpy((void*)P->Y,(void*)Y, MAX_BYTES, cudaMemcpyDeviceToHost);
-		cuda_Memcpy((void*)P->Z,(void*)Z, MAX_BYTES, cudaMemcpyDeviceToHost);
-		cuda_Memcpy((void*)P->T,(void*)T, MAX_BYTES, cudaMemcpyDeviceToHost);
+		cuda_Memcpy((void*)P->X,X, MAX_BYTES, cudaMemcpyDeviceToHost);
+		cuda_Memcpy((void*)P->Y,Y, MAX_BYTES, cudaMemcpyDeviceToHost);
+		cuda_Memcpy((void*)P->Z,Z, MAX_BYTES, cudaMemcpyDeviceToHost);
+		cuda_Memcpy((void*)P->T,T, MAX_BYTES, cudaMemcpyDeviceToHost);
 	}
 	
 	virtual ~ExtendedPoint()
 	{
-		cuda_Free((void*)X);
-		cuda_Free((void*)Y);
-		cuda_Free((void*)Z);
-		cuda_Free((void*)T);
+		cuda_Free(X);
+		cuda_Free(Y);
+		cuda_Free(Z);
+		cuda_Free(T);
 	}
 };
 

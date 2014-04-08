@@ -1,9 +1,9 @@
 #include "kernel.h"
 
 // Globální proměnné
-__constant__ __device__ digit_t d_invN;
-__device__ biguint_t d_N;
-__device__ biguint_t d_3N;
+__device__ void* d_invN;
+__device__ void* d_N;
+__device__ void* d_3N;
 
 __global__ void edwardsAdd(ExtendedPoint** R, ExtendedPoint **P, ExtendedPoint **Q)
 {
@@ -42,25 +42,39 @@ __global__ void edwardsAdd(ExtendedPoint** R, ExtendedPoint **P, ExtendedPoint *
 	VOL carry_t* _CARRY = carry[threadIdx.y];  // přenos
 	VOL digit_t* _AUX   = temp2[threadIdx.y];  // pomocná proměnná pro násobení
 	
-	const digit_t _N    = d_N[threadIdx.x];	   // x-tá cifra N
-	const digit_t _3N   = d_3N[threadIdx.x];   // x-tá cifra 3*N
-	const digit_t _INVN = d_invN;			   // -N^(-1) mod W
+	VOL digit_t* dd_N = (digit_t*)d_N;
+	VOL digit_t* dd_3N = (digit_t*)d_3N;
+
+	const digit_t _N    = dd_N[threadIdx.x];	   // x-tá cifra N
+	const digit_t _3N   = dd_3N[threadIdx.x];   // x-tá cifra 3*N
+	const digit_t _INVN = *(digit_t*)d_invN;			   // -N^(-1) mod W
 	
 	// Nakopírování pracovních dat
 	const digit_t idx = blockIdx.x*blockDim.y + threadIdx.y;
 	
-	c_x1[threadIdx.x] = P[idx]->X[threadIdx.x];
-	c_y1[threadIdx.x] = P[idx]->Y[threadIdx.x];
-	c_z1[threadIdx.x] = P[idx]->Z[threadIdx.x];
-	c_t1[threadIdx.x] = P[idx]->T[threadIdx.x];
+	VOL digit_t* Px = (unsigned int*)P[idx]->X;
+	VOL digit_t* Py = (unsigned int*)P[idx]->Y;
+	VOL digit_t* Pz = (unsigned int*)P[idx]->Z;
+	VOL digit_t* Pt = (unsigned int*)P[idx]->T;
 
-	c_x2[threadIdx.x] = Q[idx]->X[threadIdx.x];
-	c_y2[threadIdx.x] = Q[idx]->Y[threadIdx.x];
-	c_z2[threadIdx.x] = Q[idx]->Z[threadIdx.x];
-	c_t2[threadIdx.x] = Q[idx]->T[threadIdx.x];
+	c_x1[threadIdx.x] = Px[threadIdx.x];
+	c_y1[threadIdx.x] = Py[threadIdx.x];
+	c_z1[threadIdx.x] =	Pz[threadIdx.x];
+	c_t1[threadIdx.x] = Pt[threadIdx.x];
+
+	c_tt0[threadIdx.x] = Py[threadIdx.x]; // t0 = Y1
+
+	Px = (unsigned int*)Q[idx]->X;
+	Py = (unsigned int*)Q[idx]->Y;
+	Pz = (unsigned int*)Q[idx]->Z;
+	Pt = (unsigned int*)Q[idx]->T;
+
+	c_x2[threadIdx.x] = Px[threadIdx.x];
+	c_y2[threadIdx.x] = Py[threadIdx.x];
+	c_z2[threadIdx.x] = Pz[threadIdx.x];
+	c_t2[threadIdx.x] = Pt[threadIdx.x];
 
 	c_tcy[threadIdx.x] = 0;
-	c_tt0[threadIdx.x] = P[idx]->Y[threadIdx.x]; // t0 = Y1
 	c_tt1[threadIdx.x] = 0; 
 	_AUX[threadIdx.x] = 0; 
 
@@ -94,10 +108,16 @@ __global__ void edwardsAdd(ExtendedPoint** R, ExtendedPoint **P, ExtendedPoint *
 	MUL_MOD(c_z1,c_z2,c_t2);
 	
 	/////////////////////////////////////////
-	R[idx]->X[threadIdx.x] = c_x1[threadIdx.x];
-	R[idx]->Y[threadIdx.x] = c_y1[threadIdx.x];
-	R[idx]->Z[threadIdx.x] = c_z1[threadIdx.x];
-	R[idx]->T[threadIdx.x] = c_t1[threadIdx.x];
+
+	Px = (unsigned int*)R[idx]->X;
+	Py = (unsigned int*)R[idx]->Y;
+	Pz = (unsigned int*)R[idx]->Z;
+	Pt = (unsigned int*)R[idx]->T;
+
+	Px[threadIdx.x] = c_x1[threadIdx.x];
+	Py[threadIdx.x] = c_y1[threadIdx.x];
+	Pz[threadIdx.x] = c_z1[threadIdx.x];
+	Pt[threadIdx.x] = c_t1[threadIdx.x];
 }
 
 __global__ void edwardsDbl(ExtendedPoint** R, ExtendedPoint **P)
@@ -126,17 +146,25 @@ __global__ void edwardsDbl(ExtendedPoint** R, ExtendedPoint **P)
 	VOL carry_t* _CARRY = carry[threadIdx.y];  // přenos
 	VOL digit_t* _AUX   = temp2[threadIdx.y];  // pomocná proměnná pro násobení
 	
-	const digit_t _N    = d_N[threadIdx.x];	   // x-tá cifra N
-	const digit_t _3N   = d_3N[threadIdx.x];   // x-tá cifra 3*N
-	const digit_t _INVN = d_invN;			   // -N^(-1) mod W
+	VOL digit_t* dd_N = (digit_t*)d_N;
+	VOL digit_t* dd_3N = (digit_t*)d_3N;
+
+	const digit_t _N    = dd_N[threadIdx.x];	   // x-tá cifra N
+	const digit_t _3N   = dd_3N[threadIdx.x];   // x-tá cifra 3*N
+	const digit_t _INVN = *(digit_t*)d_invN;			   // -N^(-1) mod W
 	
 	const digit_t idx = blockIdx.x*blockDim.y + threadIdx.y;
 
+	VOL digit_t* Px = (unsigned int*)P[idx]->X;
+	VOL digit_t* Py = (unsigned int*)P[idx]->Y;
+	VOL digit_t* Pz = (unsigned int*)P[idx]->Z;
+	VOL digit_t* Pt = (unsigned int*)P[idx]->T;
+
 	// Nakopírování pracovních dat	
-	c_x1[threadIdx.x] = P[idx]->X[threadIdx.x];
-	c_y1[threadIdx.x] = P[idx]->Y[threadIdx.x];
-	c_z1[threadIdx.x] = P[idx]->Z[threadIdx.x];
-	c_t1[threadIdx.x] = P[idx]->T[threadIdx.x];
+	c_x1[threadIdx.x] = Px[threadIdx.x];
+	c_y1[threadIdx.x] = Px[threadIdx.x];
+	c_z1[threadIdx.x] = Px[threadIdx.x];
+	c_t1[threadIdx.x] = Px[threadIdx.x];
 
 	c_tcy[threadIdx.x] = 0;
 	c_tt0[threadIdx.x] = 0;
@@ -167,10 +195,16 @@ __global__ void edwardsDbl(ExtendedPoint** R, ExtendedPoint **P)
 	MUL_MOD(c_z1,c_z1,c_tt1);
 	
 	////////////////////////////////////////
-	R[idx]->X[threadIdx.x] = c_x1[threadIdx.x];
-	R[idx]->Y[threadIdx.x] = c_y1[threadIdx.x];
-	R[idx]->Z[threadIdx.x] = c_z1[threadIdx.x];
-	R[idx]->T[threadIdx.x] = c_t1[threadIdx.x];
+
+	Px = (unsigned int*)R[idx]->X;
+	Py = (unsigned int*)R[idx]->Y;
+	Pz = (unsigned int*)R[idx]->Z;
+	Pt = (unsigned int*)R[idx]->T;
+
+	Px[threadIdx.x] = c_x1[threadIdx.x];
+	Py[threadIdx.x] = c_y1[threadIdx.x];
+	Pz[threadIdx.x] = c_z1[threadIdx.x];
+	Pt[threadIdx.x] = c_t1[threadIdx.x];
 }
 
 void aux_getPointMultiples(ExtendedPoint** R,ExtendedPoint** P,const unsigned int multiple)
@@ -217,16 +251,20 @@ cudaError_t computeExtended(const h_Aux input,h_ExtendedPoint* initPoints,const 
 	   pts[i]->toGPU(initPoints+i);
 	}
     
-    // Předpočítat body pro sliding window
+	// Konstanty do konstantní paměti
+	cuda_Malloc(&d_N,MAX_BYTES);
+	cuda_Malloc(&d_3N,MAX_BYTES);
+	cuda_Malloc(&d_invN,MAX_BYTES);
+
+	cuda_Memcpy(d_N,(void*)input.N,MAX_BYTES,cudaMemcpyHostToDevice);
+	cuda_Memcpy(d_3N,(void*)input.N3,MAX_BYTES,cudaMemcpyHostToDevice);
+	cuda_Memcpy(d_invN,(void*)&input.invN,SIZE_DIGIT/8,cudaMemcpyHostToDevice);
+	
+	// Předpočítat body pro sliding window
     for (int i = 0; i < precompSize;++i){
 	   prec[i] = new ExtendedPoint();
 	   aux_getPointMultiples(prec+i,pts,2*i+1);
 	}
-
-	// Konstanty do konstantní paměti
-	cuda_MemcpyToSymbol(d_N,   (void*)input.N, MAX_BYTES);
-	cuda_MemcpyToSymbol(d_3N,  (void*)input.N3,MAX_BYTES);
-	cuda_MemcpyToSymbol(d_invN,(void*)input.invN, SIZE_DIGIT/8);
 
     // A počítáme pomocí sliding-window
     int i = coeff.l-1,h,s = 0,k = 0,u;
@@ -263,6 +301,10 @@ cudaError_t computeExtended(const h_Aux input,h_ExtendedPoint* initPoints,const 
     if (cudaStatus != cudaSuccess)
 	  fprintf(stderr, "Launch failed: %s\n", cudaGetErrorString(cudaStatus));
  
+	cuda_Free(d_N);
+	cuda_Free(d_3N);
+	cuda_Free(d_invN);
+
     // Zkopírovat data zpět do počítače a uvolnit paměť
     for (int i = 0;i < NUM_CURVES;++i){
       pts[i]->toHost(initPoints+i);

@@ -58,6 +58,8 @@ int main()
 
 	// Pomocná struktura
 	h_Aux ax;
+	memset(&ax,0,sizeof(h_Aux));
+
 	mpz_to_biguint(ax.N,zN);
 	mpz_to_biguint(ax.N3,z3N);
 	ax.invN = (digit_t)mpz_get_ui(zInvN);
