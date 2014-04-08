@@ -136,4 +136,6 @@ public:
 	}
 };
 
+typedef ExtendedPoint* pExtendedPoint;
+
 #endif
