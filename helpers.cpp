@@ -16,7 +16,7 @@ void mpz_to_biguint (biguint_t a, mpz_t b)
 {
   for (int i = 0;i < NB_DIGITS;i++)
   {
-	#if mp_bits_per_limb == 32
+	#if LIMB_BITS == 32
 		a[i] = mpz_getlimbn(b, i);  
 	#else 
 		if (i%2 == 0)

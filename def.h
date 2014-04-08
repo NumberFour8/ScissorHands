@@ -10,10 +10,14 @@
 #ifndef _MSC_VER
 	#include <unistd.h>
 	#include <sys/resource.h>
+	#include <gmp.h>
 	#define ASM asm __volatile__
+	#define LIMB_BITS GMP_NUMB_BITS
 #else
 	#include <windows.h>
+	#include <mpir.h>
 	#define ASM asm volatile
+	#define LIMP_BITS mp_bits_per_limb
 #endif
 
 #include "cuda_runtime.h"

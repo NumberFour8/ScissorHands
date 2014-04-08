@@ -24,7 +24,6 @@ int main()
 	cout << "k = ?" << endl;
 	cin >> cf;
 	
-	// Koeficient převést do NAF
 	mpz_init_set_str(zN,N.c_str(),10);
 	mpz_init_set_str(zcf,cf.c_str(),10);
 	mpz_init_set_str(zX,X.c_str(),10);
@@ -61,12 +60,8 @@ int main()
         return 1;
     }
     
-	mpz_clear(zX);
-	mpz_clear(zY);
-	mpz_clear(zZ);
-	mpz_clear(zT);
-	mpz_clear(zN);
-
+	mpz_clears(zX,zY,zZ,zT,zN);
+	
 	char c;
 	cin >> c;
     return 0;
