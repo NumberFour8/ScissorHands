@@ -55,7 +55,7 @@ public:
 		mpz_to_biguint(Z,z);
 		mpz_to_biguint(T,t);
 
-		mpz_clears(z,t);
+		mpz_clear(t);
 	}
 
 	
