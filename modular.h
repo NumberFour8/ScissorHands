@@ -58,6 +58,9 @@ __device__ void Cuda_Square_mod(biguint_t mul, bigint_t cy, const biguint_t A, b
 
 // Zjednodušující makra pro modulární aritmetiku
 
+// A = B
+#define EQL_MOD(A,B)   A[threadIdx.x] = B[threadIdx.x]
+
 // C = A+B
 #define ADD_MOD(C,A,B) Cuda_Add_mod(C,_CARRY,A,B)
 
@@ -65,7 +68,7 @@ __device__ void Cuda_Square_mod(biguint_t mul, bigint_t cy, const biguint_t A, b
 #define MUL_MOD(C,A,B) Cuda_Mul_mod(C,_CARRY,A,B,_AUX,_N,_INVN) 
 
 // C = A-B
-#define SUB_MOD(C,A,B) C[threadIdx.x] = A[threadIdx.x]; \
+#define SUB_MOD(C,A,B) EQL_MOD(C,A); \
 					   Cuda_Sub_mod(C,_CARRY,B,_3N)
 
 // C = C-B
