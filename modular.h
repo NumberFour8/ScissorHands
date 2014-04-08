@@ -32,8 +32,9 @@ __device__ void Cuda_Dbl_mod(biguint_t r, biguint_t a);
 /* Compute r <- A*b 
    Input: 0 < b < 2^SIZE_DIGIT, 0 <= A < 6*N  
    Ouput: 0 <= r < 7*N 
-*/ 
+ 
 __device__ void Cuda_Mulint_mod(biguint_t r, bigint_t cy, biguint_t A, digit_t b, const digit_t Nthdx,const digit_t invN);
+*/
 
 /* Compute r <- A*B 
    Input: 0 <= A, B < 6*N 
@@ -57,6 +58,9 @@ __device__ void Cuda_Square_mod(biguint_t mul, bigint_t cy, const biguint_t A, b
 
 // Zjednodušující makra pro modulární aritmetiku
 
+// A = B
+#define EQL_MOD(A,B)   A[threadIdx.x] = B[threadIdx.x]
+
 // C = A+B
 #define ADD_MOD(C,A,B) Cuda_Add_mod(C,_CARRY,A,B)
 
@@ -64,7 +68,7 @@ __device__ void Cuda_Square_mod(biguint_t mul, bigint_t cy, const biguint_t A, b
 #define MUL_MOD(C,A,B) Cuda_Mul_mod(C,_CARRY,A,B,_AUX,_N,_INVN) 
 
 // C = A-B
-#define SUB_MOD(C,A,B) C[threadIdx.x] = A[threadIdx.x]; \
+#define SUB_MOD(C,A,B) EQL_MOD(C,A); \
 					   Cuda_Sub_mod(C,_CARRY,B,_3N)
 
 // C = C-B
