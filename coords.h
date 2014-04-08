@@ -105,34 +105,34 @@ public:
 	biguint_t X,Y,Z,T;
 	ExtendedPoint()
 	{
-		cudaMalloc((void**)&X, MAX_BYTES);
-		cudaMalloc((void**)&Y, MAX_BYTES);
-		cudaMalloc((void**)&Z, MAX_BYTES);
-		cudaMalloc((void**)&T, MAX_BYTES);
+		cuda_Malloc((void**)&X, MAX_BYTES);
+		cuda_Malloc((void**)&Y, MAX_BYTES);
+		cuda_Malloc((void**)&Z, MAX_BYTES);
+		cuda_Malloc((void**)&T, MAX_BYTES);
 	}
 	
 	void toGPU(const h_ExtendedPoint* P)
 	{
-		cudaMemcpy((void*)X,(void*)P->X, MAX_BYTES, cudaMemcpyHostToDevice);
-		cudaMemcpy((void*)Y,(void*)P->Y, MAX_BYTES, cudaMemcpyHostToDevice);
-		cudaMemcpy((void*)Z,(void*)P->Z, MAX_BYTES, cudaMemcpyHostToDevice);
-		cudaMemcpy((void*)T,(void*)P->T, MAX_BYTES, cudaMemcpyHostToDevice);
+		cuda_Memcpy((void*)X,(void*)P->X, MAX_BYTES, cudaMemcpyHostToDevice);
+		cuda_Memcpy((void*)Y,(void*)P->Y, MAX_BYTES, cudaMemcpyHostToDevice);
+		cuda_Memcpy((void*)Z,(void*)P->Z, MAX_BYTES, cudaMemcpyHostToDevice);
+		cuda_Memcpy((void*)T,(void*)P->T, MAX_BYTES, cudaMemcpyHostToDevice);
 	}
 	
 	void toHost(h_ExtendedPoint* P) const 
 	{
-		cudaMemcpy((void*)P->X,(void*)X, MAX_BYTES, cudaMemcpyDeviceToHost);
-		cudaMemcpy((void*)P->Y,(void*)Y, MAX_BYTES, cudaMemcpyDeviceToHost);
-		cudaMemcpy((void*)P->Z,(void*)Z, MAX_BYTES, cudaMemcpyDeviceToHost);
-		cudaMemcpy((void*)P->T,(void*)T, MAX_BYTES, cudaMemcpyDeviceToHost);
+		cuda_Memcpy((void*)P->X,(void*)X, MAX_BYTES, cudaMemcpyDeviceToHost);
+		cuda_Memcpy((void*)P->Y,(void*)Y, MAX_BYTES, cudaMemcpyDeviceToHost);
+		cuda_Memcpy((void*)P->Z,(void*)Z, MAX_BYTES, cudaMemcpyDeviceToHost);
+		cuda_Memcpy((void*)P->T,(void*)T, MAX_BYTES, cudaMemcpyDeviceToHost);
 	}
 	
 	virtual ~ExtendedPoint()
 	{
-		cudaFree((void*)X);
-		cudaFree((void*)Y);
-		cudaFree((void*)Z);
-		cudaFree((void*)T);
+		cuda_Free((void*)X);
+		cuda_Free((void*)Y);
+		cuda_Free((void*)Z);
+		cuda_Free((void*)T);
 	}
 };
 

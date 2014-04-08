@@ -23,6 +23,6 @@ struct h_Aux {
 };
 
 // Hlavní výpočetní metoda pro Extended souřadnice
-extern "C" cudaError_t computeExtended(const h_Aux input,h_ExtendedPoint* initPoints,const NAF coeff);
+cudaError_t computeExtended(const h_Aux input,h_ExtendedPoint* initPoints,const NAF coeff);
 
 #endif

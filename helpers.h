@@ -11,7 +11,6 @@ struct ExtResult {
 	mpz_t factor;
 };
 
-
 /*
   Non-adjacent form
  */
@@ -34,5 +33,23 @@ void biguint_to_mpz (mpz_t a, biguint_t b);
 
 void printmpz(const char* format,mpz_t number);
 void printBigUInt(biguint_t B);
+
+
+// Pomocná makra na zachycení chyb v CUDA
+inline void gpuAssert(cudaError_t code, char *file, int line, bool abort=true)
+{
+   if (code != cudaSuccess) 
+   {
+      fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+      if (abort) exit(code);
+   }
+}
+
+#define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
+
+#define cuda_Malloc(A,B) gpuErrchk(cudaMalloc(A,B))
+#define cuda_Memcpy(A,B,C,D) gpuErrchk(A,B,C,D)
+#define cuda_Free(A) gpuErrchk(A)
+#define cuda_MemcpyToSymbol(A,B,C) gpuErrchk(cudaMemcpyToSymbol(A,B,C))
 
 #endif
