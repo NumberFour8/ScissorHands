@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include <stdio.h>
 #include <string>
 
@@ -20,8 +21,8 @@ int main()
 	cout << "X = " << X << endl;
 	fp >> Y;
 	cout << "Y = " << Y << endl;
-	fp >> k;
-	cout << "k = " << k << endl;
+	fp >> cf;
+	cout << "k = " << cf << endl;
 	cout << "a = -1" << endl;
 	fp.close();
 	
@@ -46,10 +47,12 @@ int main()
 
 	// Spočítáme W = 2^32, 3*N, -N^(-1) mod W a W^(-1) mod N
 	mpz_t z3N,zInvW,zInvN;
-	mpz_inits(z3N,zInvW,zInvN);
+	mpz_init(z3N);
 	mpz_mul_ui(z3N,zN,3);
+	mpz_init(zInvW);
 	mpz_ui_pow_ui (zInvW, 2, SIZE_DIGIT); 
-    mpz_invert (zInvN, zN, zInvW);
+    mpz_init(zInvN);	
+	mpz_invert (zInvN, zN, zInvW);
     mpz_sub (zInvN, zInvW, zInvN);
 	mpz_invert (zInvW, zInvW, zN);
 
