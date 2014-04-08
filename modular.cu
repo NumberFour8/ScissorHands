@@ -124,7 +124,7 @@ __device__ void Cuda_Dbl_mod
 /* Compute r <- A*b */ 
 /* Input: 0 < b < 2^SIZE_DIGIT, 0 <= A < 6*N */ 
 /* Ouput: 0 <= r < 7*N */ 
-__device__ void Cuda_Mulint_mod
+/*__device__ void Cuda_Mulint_mod
 (biguint_t r, bigint_t cy, biguint_t A, digit_t b, const digit_t Nthdx,const digit_t invN)
 {
   digit_t t;
@@ -141,13 +141,14 @@ __device__ void Cuda_Mulint_mod
   __madc_hi_cc(reg_hi,t,Nthdx);
   __addcy(reg_cy);
 
-  /* make one round of normalize + a right shift at the same time */
+  // make one round of normalize + a right shift at the same time 
   __add_cc(r[threadIdx.x],r[thp1],reg_hi);
   __addc_cc(r[thp1],r[thp1],reg_cy);
   __addcy(cy[thp1]); 
 
   Cuda_Fully_Normalize(r,cy); 
 }
+*/
 
 /* Compute r <- A*B */ 
 /* Input: 0 <= A, B < 6*N */

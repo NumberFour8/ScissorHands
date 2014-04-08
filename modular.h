@@ -32,8 +32,9 @@ __device__ void Cuda_Dbl_mod(biguint_t r, biguint_t a);
 /* Compute r <- A*b 
    Input: 0 < b < 2^SIZE_DIGIT, 0 <= A < 6*N  
    Ouput: 0 <= r < 7*N 
-*/ 
+ 
 __device__ void Cuda_Mulint_mod(biguint_t r, bigint_t cy, biguint_t A, digit_t b, const digit_t Nthdx,const digit_t invN);
+*/
 
 /* Compute r <- A*B 
    Input: 0 <= A, B < 6*N 
