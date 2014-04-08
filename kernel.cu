@@ -205,34 +205,35 @@ void getPrecomputed(ExtendedPoint** prec,const int exp,ExtendedPoint** pR)
 
 cudaError_t computeExtended(const h_Aux input,h_ExtendedPoint* initPoints,const NAF coeff)
 {
-	cudaError_t cudaStatus;
+	cudaError_t cudaStatus; 
     
-    cudaStatus = cudaSetDevice(0);
+	int precompSize = (1 << (coeff.w-2))+1;
+	pExtendedPoint *pts  = new pExtendedPoint[NUM_CURVES];
+	pExtendedPoint *prec = new pExtendedPoint[precompSize*NUM_CURVES];
+	
+	cudaStatus = cudaSetDevice(0);
     if (cudaStatus != cudaSuccess) {
         fprintf(stderr, "cudaSetDevice failed!  Do you have a CUDA-capable GPU installed?");
 		return cudaStatus;
     }
 
-	// Konstanty do konstantní paměti
-	cudaMemcpyToSymbol(d_N,   (void*)input.N, MAX_BYTES);
-	cudaMemcpyToSymbol(d_3N,  (void*)input.N3,MAX_BYTES);
-	cudaMemcpyToSymbol(d_invN,(void*)input.invN, SIZE_DIGIT/8);
-
 	// Nakopírovat výchozí body do paměti GPU
-	pExtendedPoint *pts = new pExtendedPoint[NUM_CURVES];
 	for (int i = 0;i < NUM_CURVES;++i){
 	   pts[i] = new ExtendedPoint();			 
 	   pts[i]->toGPU(initPoints+i);
 	}
     
     // Předpočítat body pro sliding window
-    int precompSize = (1 << (coeff.w-2))+1;
-    pExtendedPoint *prec = new pExtendedPoint[precompSize*NUM_CURVES];
     for (int i = 0; i < precompSize;++i){
 	   prec[i] = new ExtendedPoint();
 	   aux_getPointMultiples(prec+i,pts,2*i+1);
 	}
-    
+
+	// Konstanty do konstantní paměti
+	cudaMemcpyToSymbol(d_N,   (void*)input.N, MAX_BYTES);
+	cudaMemcpyToSymbol(d_3N,  (void*)input.N3,MAX_BYTES);
+	cudaMemcpyToSymbol(d_invN,(void*)input.invN, SIZE_DIGIT/8);
+
     // A počítáme pomocí sliding-window
     int i = coeff.l-1,h,s = 0,k = 0,u;
 	while (i >= 0)
