@@ -7,11 +7,8 @@
 #include "coords.h"
 #include "helpers.h"
 
-#define NUM_CURVES 1
-
-// Paralelní metody pro zdvojnásovení a součet bodů v Extended souřadnicích, a = -1
-__global__ void edwardsAdd(ExtendedPoint* R,ExtendedPoint *P,ExtendedPoint *Q);
-__global__ void edwardsDbl(ExtendedPoint* R,ExtendedPoint *P);
+#define NUM_BLOCKS 1
+#define CURVES_PER_BLOCK 1
 
 
 /*
