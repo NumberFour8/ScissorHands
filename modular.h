@@ -81,6 +81,6 @@ __device__ void Cuda_Square_mod(biguint_t mul, bigint_t cy, const biguint_t A, b
 #define NEG_MOD(A,B)   SUB_MOD(A,_N,B)
 
 // A = B^2
-#define SQR_MOD(A,B)   Cuda_Square_mod(B,_CARRY,A,_AUX,_N,_INVN)
+#define SQR_MOD(A,B)   Cuda_Mul_mod (A, _CARRY, B, B, _AUX, _N, _INVN)
 
 #endif

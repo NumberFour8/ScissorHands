@@ -32,7 +32,7 @@ void mpz_to_biguint (biguint_t a, mpz_t b);
 void biguint_to_mpz (mpz_t a, biguint_t b);
 
 void printmpz(const char* format,mpz_t number);
-void printBigUInt(biguint_t B);
+void printBigInt(const char* tag,biguint_t B);
 
 
 // Pomocná makra na zachycení chyb v CUDA
@@ -50,6 +50,6 @@ inline void gpuAssert(cudaError_t code, char *file, int line, bool abort=true)
 #define cuda_Malloc(A,B) gpuErrchk(cudaMalloc(A,B))
 #define cuda_Memcpy(A,B,C,D) gpuErrchk(cudaMemcpy(A,B,C,D))
 #define cuda_Free(A) gpuErrchk(cudaFree(A))
-#define cuda_MemcpyToSymbol(A,B,C) gpuErrchk(cudaMemcpyToSymbol(A,B,C))
+#define cuda_MemcpyToSymbol(A,B,C) gpuErrchk(cudaMemcpyToSymbol(A,B,C,cudaMemcpyHostToDevice))
 
 #endif

@@ -14,12 +14,13 @@
 /*
  Pomocná struktura pro N, 3*N a inverzi N modulo velikost báze
 */
-struct h_Aux {
-	biguint_t N,N3;
+struct Aux {
+	biguint_t N;
+	biguint_t N3;
 	digit_t invN;
 };
 
 // Hlavní výpočetní metoda pro Extended souřadnice
-cudaError_t computeExtended(const h_Aux input,h_ExtendedPoint* initPoints,const NAF coeff);
+cudaError_t computeExtended(const Aux h_Input,h_ExtendedPoint* initPoints,const NAF coeff);
 
 #endif

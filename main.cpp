@@ -57,8 +57,8 @@ int main()
 	mpz_invert (zInvW, zInvW, zN);
 
 	// Pomocná struktura
-	h_Aux ax;
-	memset(&ax,0,sizeof(h_Aux));
+	Aux ax;
+	memset(&ax,0,sizeof(Aux));
 
 	mpz_to_biguint(ax.N,zN);
 	mpz_to_biguint(ax.N3,z3N);
@@ -70,16 +70,19 @@ int main()
         return 1;
     }
 
-    // cudaDeviceReset must be called before exiting in order for profiling and
-    // tracing tools such as Nsight and Visual Profiler to show complete traces.
-    cudaStatus = cudaDeviceReset();
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "cudaDeviceReset failed!");
-        return 1;
-    }
+	cout << endl;
+
+	printBigInt("X2: ",pts.X);
+	printBigInt("Y2: ",pts.Y);
+	printBigInt("Z2: ",pts.Z);
+	printBigInt("T2: ",pts.T);
     
-	mpz_clears(zX,zY,zN);
-	mpz_clears(z3N,zInvW,zInvN);
+	mpz_clear(zX);
+	mpz_clear(zY);
+	
+	mpz_clear(z3N);
+	mpz_clear(zInvW);
+	mpz_clear(zInvN);
 
 	cin >> c;
     return 0;

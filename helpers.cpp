@@ -16,7 +16,7 @@ void mpz_to_biguint (biguint_t a, mpz_t b)
 {
   for (int i = 0;i < NB_DIGITS;i++)
   {
-	#if LIMB_BITS == 32
+	#if GMP_NUMB_BITS == 32
 		a[i] = mpz_getlimbn(b, i);  
 	#else 
 		if (i%2 == 0)
@@ -47,15 +47,17 @@ void printmpz(const char* format,mpz_t number)
 	printf(format,mpz_get_str((char*)out,10,number));
 }
 
-void printBigInt(biguint_t B)
+void printBigInt(const char* tag,biguint_t B)
 {
+	printf("%s: {",tag);
 	for (int i = 0;i < NB_DIGITS;++i)
 	{
 		printf("%#010x",B[i]);
+		//printf("%u",B[i]);
 		if (B[i+1] == 0) break;
 		if (i != NB_DIGITS-1) printf(",");
 	}
-	printf("\n");
+	printf("}\n");
 }
 
 
