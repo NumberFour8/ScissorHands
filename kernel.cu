@@ -333,7 +333,7 @@ cudaError_t compute(const Aux h_input,const ExtendedPoint* neutral,ExtendedPoint
 	
 	// Počáteční body
 	VOL digit_t* iter = (digit_t*)swPc;
-	printf("1P are at %x\n",(digit_t)iter);
+	//printf("1P are at %x\n",(digit_t)iter);
 	for (int i = 0;i < NUM_CURVES;i++){
 	   cuda_Memcpy((void*)(iter+0*NB_DIGITS),(void*)initPoints[i].X,MAX_BYTES,cudaMemcpyHostToDevice);
 	   cuda_Memcpy((void*)(iter+1*NB_DIGITS),(void*)initPoints[i].Y,MAX_BYTES,cudaMemcpyHostToDevice);
