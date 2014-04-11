@@ -108,6 +108,7 @@ __global__ void edwardsAdd(void* R, void *P, void *Q,void* aux)
 	*(Rd+threadIdx.x+2*NB_DIGITS) = c_z1[threadIdx.x];  // dalších 32 k souřadnici Z
 	*(Rd+threadIdx.x+3*NB_DIGITS) = c_t1[threadIdx.x];  // ... a poslední k souřadnici T
 
+	__syncthreads();
 }
 
 __global__ void edwardsDbl(void* R,void* P,void* aux)
@@ -190,6 +191,8 @@ __global__ void edwardsDbl(void* R,void* P,void* aux)
 	*(Rd+threadIdx.x+1*NB_DIGITS) = c_y1[threadIdx.x];  // dalších 32 cifer patří k Y
 	*(Rd+threadIdx.x+2*NB_DIGITS) = c_z1[threadIdx.x];  // dalších 32 k souřadnici Z
 	*(Rd+threadIdx.x+3*NB_DIGITS) = c_t1[threadIdx.x];  // ... a poslední k souřadnici T
+
+	__syncthreads();
 }
 
 
@@ -216,7 +219,8 @@ void getPrecomputed(** prec,const int exp,ExtendedPoint** pR)
 
 cudaError_t computeExtended(const Aux h_input,h_ExtendedPoint* initPoints,const NAF coeff)
 {
-	const int PRECOMP_SZ = (1 << (coeff.w-2))+1;		// Počet bodů, které je nutné předpočítat
+	const int WINDOW_SZ	 = 4;							// Velikost okna
+	const int PRECOMP_SZ = (1 << (WINDOW_SZ-2))+1;		// Počet bodů, které je nutné předpočítat
 	const int NUM_CURVES = CURVES_PER_BLOCK*NUM_BLOCKS; // initPoints má tolik prvků
 	
 
@@ -246,13 +250,41 @@ cudaError_t computeExtended(const Aux h_input,h_ExtendedPoint* initPoints,const 
 	printBigInt("T",initPoints[0].T);
 
 	// Další předpočítané body
-	
 	dim3 threadsPerBlock(NB_DIGITS,CURVES_PER_BLOCK);
 	edwardsDbl<<<NUM_BLOCKS,threadsPerBlock>>> ((void*)swQw,(void*)swPc,(void*)swAx);
-	edwardsAdd<<<NUM_BLOCKS,threadsPerBlock>>> ((void*)swQw,(void*)swQw,(void*)swPc,(void*)swAx);
+	for (int i = 1; i < PRECOMP_SZ;++i){ // Tady už je iter nastavené na pozici prvních lichých mocnin
+		edwardsAdd<<<NUM_BLOCKS,threadsPerBlock>>> ((void*)iter,(void*)swQw,(void*)swPc,(void*)swAx); 
+		edwardsAdd<<<NUM_BLOCKS,threadsPerBlock>>> ((void*)swQw,(void*)iter,(void*)swPc,(void*)swAx);
+		iter += NUM_CURVES*4*NB_DIGITS;
+	} 
 	
-	// Provést výpočet
+	// Provést výpočet (Sliding window)
+	digit_t* base = (digit_t*)swPc;
+	for (int i = coeff.l-1,u,s;i >= 0;i = s-1)
+	{
+		if (coeff.bits[i] == 0){
+		  edwardsDbl<<<NUM_BLOCKS,threadsPerBlock>>>((void*)swQ,swQ);
+		  --i;
+		}
+		else {
+			s = i - WINDOW_SZ + 1;
+			s = s > 0 ? s : 0;
 
+			while (!coeff.bits[s]) ++s;
+			for (int h = 1;h <= i-s+1;++h)  
+			  edwardsDbl<<<NUM_BLOCKS,threadsPerBlock>>>((void*)swQ,swQ);
+
+			u = coeff.build(s,i);
+			if (u > 0){
+			  iter = swPc+((u-1)/2);
+			  edwardsAdd<<<NUM_BLOCKS,threadsPerBlock>>>((void*)swQ,(void*)swQ,(void*)iter);
+			}
+			else { 
+			  iter = swPc+((u-1)/2);
+			  edwardsSub<<<NUM_BLOCKS,threadsPerBlock>>>((void*)swQ,(void*)swQ,(void*)iter); 
+			} 
+		}
+	}
 
 	// Nakopírovat výsledky zpátky do paměti počítače
 	iter = (digit_t*)swQw;
@@ -263,36 +295,6 @@ cudaError_t computeExtended(const Aux h_input,h_ExtendedPoint* initPoints,const 
 	   cuda_Memcpy((void*)initPoints[i].T,(void*)(iter+3*NB_DIGITS),MAX_BYTES,cudaMemcpyDeviceToHost);
 	   iter += 4*NB_DIGITS;	
 	}
-
-	/*
-	for (int i = 0;i < PRECOMP_SZ;i++)
-
-
-
-    // A počítáme pomocí sliding-window
-    int i = coeff.l-1,h,s = 0,k = 0,u;
-	while (i >= 0)
-	{
-		if (coeff.bits[i] == 0){
-		  edwardsDbl<<<NUM_CURVES,NB_DIGITS>>>(pts,pts);
-		  i--;
-		}
-		else {
-			s = i - coeff.w + 1;
-			s = s > 0 ? s : 0;
-
-			while (!coeff.bits[s]) ++s;
-			for (h = 1;h <= i-s+1;++h)  
-			  edwardsDbl<<<NUM_CURVES,NB_DIGITS>>>(pts,pts);
-
-			u = coeff.build(s,i);
-
-			//getPrecomputed(temp,u);
-			//multiply(res,temp);
-	
-			i = s-1;
-		}
-	}*/
  
     // Zkontroluj chyby
     cudaError_t cudaStatus = cudaGetLastError();
