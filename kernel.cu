@@ -165,38 +165,26 @@ __global__ void edwardsSub(void* R, void *P, void *Q,void* aux)
 	c_z1[threadIdx.x] = *(Pd+threadIdx.x+2*NB_DIGITS); // dalších 32 k souřadnici Z
 	c_t1[threadIdx.x] = *(Pd+threadIdx.x+3*NB_DIGITS); // ... a poslední k souřadnici T
 
-	c_x2[threadIdx.x] = ax->N[threadIdx.x];
-	c_t2[threadIdx.x] = ax->N[threadIdx.x];
-
+	c_x2[threadIdx.x] = *(Qd+threadIdx.x+0*NB_DIGITS); // prvních 32 cifer patří k X
 	c_y2[threadIdx.x] = *(Qd+threadIdx.x+1*NB_DIGITS); // dalších 32 cifer patří k Y
 	c_z2[threadIdx.x] = *(Qd+threadIdx.x+2*NB_DIGITS); // dalších 32 k souřadnici Z
+	c_t2[threadIdx.x] = *(Qd+threadIdx.x+3*NB_DIGITS); // ... a poslední k souřadnici T
 
 	c_tcy[threadIdx.x] = 0;
-	c_tt0[threadIdx.x] = *(Qd+threadIdx.x+0*NB_DIGITS);
-	c_tt1[threadIdx.x] = *(Qd+threadIdx.x+3*NB_DIGITS); 
-	_AUX[threadIdx.x]  = 0; 
-
-	// Potřebujeme vyrobit -X a -T pro bod Q
-	SUE_MOD(c_x2,c_tt0); // X = N-X
-	SUE_MOD(c_t2,c_tt1); // T = N-T
-
 	c_tt0[threadIdx.x] = 0;
 	c_tt1[threadIdx.x] = 0; 
+	_AUX[threadIdx.x]  = 0; 
 
 	// Twisted Edwards Extended (add-2008-hwcd-4), a = -1, independent of d,incomplete
 	/////////////////////////////////////////	
 	
 	SUB_MOD(c_tt0,c_y1,c_x1);
-	ADD_MOD(c_tt1,c_y2,c_x2);
+	SUB_MOD(c_tt1,c_y2,c_x2);
 	
 	MUL_MOD(c_tt0,c_tt0,c_tt1);
 	ADD_MOD(c_tt1,c_y1,c_x1);
 	
-	_CARRY[threadIdx.x] = 0;
-	SUB_MOD(c_x1,c_y2,c_x2);
-	//EQL_MOD(c_x1,c_y2);
-	//SUE_MOD(c_x1,c_x2);
-
+	ADD_MOD(c_x1,c_y2,c_x2);
 	MUL_MOD(c_tt1,c_tt1,c_x1);
 	
 	DBL_MOD(c_z2);
@@ -205,8 +193,8 @@ __global__ void edwardsSub(void* R, void *P, void *Q,void* aux)
 	MUL_MOD(c_z1,c_z1,c_t2);
 	MUL_MOD(c_z2,c_z2,c_t1);
 	
-	ADD_MOD(c_y2,c_z2,c_z1);
-	SUB_MOD(c_x2,c_z2,c_z1);
+	SUB_MOD(c_y2,c_z2,c_z1);
+	ADD_MOD(c_x2,c_z2,c_z1);
 	
 	SUB_MOD(c_z2,c_tt1,c_tt0);
 	ADD_MOD(c_t2,c_tt1,c_tt0);
@@ -355,11 +343,6 @@ cudaError_t compute(const Aux h_input,const ExtendedPoint* neutral,ExtendedPoint
 	   cuda_Memcpy((void*)(iter+3*NB_DIGITS),(void*)initPoints[i].T,MAX_BYTES,cudaMemcpyHostToDevice);
 	   iter += 4*NB_DIGITS;	
 	}
-
-	printBigInt("X",initPoints[0].X);
-	printBigInt("Y",initPoints[0].Y);
-	printBigInt("Z",initPoints[0].Z);
-	printBigInt("T",initPoints[0].T);
 
 	// Další předpočítané body
 	dim3 threadsPerBlock(NB_DIGITS,CURVES_PER_BLOCK);
