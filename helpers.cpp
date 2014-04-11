@@ -53,11 +53,19 @@ void printBigInt(const char* tag,biguint_t B)
 	for (int i = 0;i < NB_DIGITS;++i)
 	{
 		printf("%#010x",B[i]);
-		//printf("%u",B[i]);
 		if (B[i+1] == 0) break;
 		if (i != NB_DIGITS-1) printf(",");
 	}
 	printf("}\n");
+}
+
+void lcmToN(mpz_t res,const unsigned int n)
+{
+	mpz_set_ui(res,1);
+	for (unsigned int i = 2;i <= n;++i)
+	{
+		mpz_lcm_ui(res,res,i);
+	}
 }
 
 
@@ -103,6 +111,16 @@ int NAF::build(unsigned int start,unsigned int end) const
 	}
 
 	return ret;
+}
+
+void NAF::print()
+{
+	printf("NAF%d: ",(int)w);
+	for (int i = l-1;i >= 0;--i)
+	{
+		printf("%d",(int)bits[i]);
+	}
+	printf("\n");
 }
 
 NAF::~NAF()

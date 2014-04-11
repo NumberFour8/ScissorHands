@@ -22,7 +22,7 @@ int main()
 	fp >> Y;
 	cout << "Y = " << Y << endl;
 	fp >> cf;
-	cout << "k = " << cf << endl;
+	cout << "B = " << cf << endl;
 	cout << "a = -1" << endl;
 	fp.close();
 	
@@ -34,12 +34,15 @@ int main()
 	////////////////////////////////////////////////////////////
 	
 	mpz_init_set_str(zN,N.c_str(),10);
-	mpz_init_set_str(zcf,cf.c_str(),10);
 	mpz_init_set_str(zX,X.c_str(),10);
 	mpz_init_set_str(zY,Y.c_str(),10);
 	
 	// Koefcient v NAF rozvoji, do kterého se chceme dopočítat
+	mpz_init(zcf);
+	lcmToN(zcf,(unsigned int)std::stoul(cf));
+
 	NAF coeffNaf(2,zcf);
+	//coeffNaf.print();
 	mpz_clear(zcf);
 		
 	h_ExtendedPoint pts;
@@ -72,14 +75,17 @@ int main()
 
 	cout << endl;
 
-	printBigInt("X2: ",pts.X);
-	printBigInt("Y2: ",pts.Y);
-	printBigInt("Z2: ",pts.Z);
-	printBigInt("T2: ",pts.T);
+	
+	ExtResult res;
+	if (pts.toAffine(zX,zY,zN,zInvW,&res)){
+		printmpz("(%s,",zX);
+		printmpz("%s)\n",zY);
+	}
     
 	mpz_clear(zX);
 	mpz_clear(zY);
 	
+	mpz_clear(zN);
 	mpz_clear(z3N);
 	mpz_clear(zInvW);
 	mpz_clear(zInvN);

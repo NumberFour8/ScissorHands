@@ -16,7 +16,8 @@ private:
 		 bool ret = false;
 		 
 		 mpz_t b,r;
-		 mpz_inits(b,r);
+		 mpz_init(b);
+		 mpz_init(r);
          
 		 mpz_gcdext(r,invx,b,x,N);
          if (mpz_cmp_ui(r,1) == 0){
@@ -30,7 +31,8 @@ private:
 		 }
 		 else mpz_set(invx,r);
 
-		 mpz_clears(b,r);
+		 mpz_clear(b);
+		 mpz_clear(r);
 		 return ret;
      }
 
@@ -75,14 +77,15 @@ public:
 	bool toAffine(mpz_t x,mpz_t y,mpz_t N,mpz_t invB,ExtResult* pRes)
 	{
 		mpz_t z,f;
-		mpz_inits(z,f);
+		mpz_init(z);
+		mpz_init(f);
 
 		pRes->factorFound = false;
 		mpz_set_ui(pRes->factor,0);
 
 		biguint_to_mpz(x,X);
 		biguint_to_mpz(y,Y);
-		biguint_to_mpz(z,X);
+		biguint_to_mpz(z,Z);
 
 		from_mont_repr(x,N,invB);
 		from_mont_repr(y,N,invB);
@@ -101,7 +104,8 @@ public:
 			mpz_mod(x,x,N);
 			mpz_mod(y,y,N);
 
-			mpz_clears(z,f);
+			mpz_clear(z);
+			mpz_clear(f);
 			return true;
 		}
 

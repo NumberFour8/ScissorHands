@@ -6,9 +6,15 @@
 /*
    Struktura obsahující výsledek pøevodu z Extended souøadnic
 */
-struct ExtResult {
+class ExtResult {
+public:
 	bool factorFound;
 	mpz_t factor;
+
+	ExtResult() : factorFound(false)
+	{ mpz_init_set_ui(factor,0); }
+	~ExtResult()
+	{ mpz_clear(factor); }
 };
 
 /*
@@ -22,6 +28,7 @@ public:
 	NAF(unsigned char w,mpz_t number);
 	virtual ~NAF();
 	
+	void print();
 	int build(unsigned int start,unsigned int end) const;
 };
 
@@ -34,6 +41,7 @@ void biguint_to_mpz (mpz_t a, biguint_t b);
 void printmpz(const char* format,mpz_t number);
 void printBigInt(const char* tag,biguint_t B);
 
+void lcmToN(mpz_t res,const unsigned int n);
 
 // Pomocná makra na zachycení chyb v CUDA
 inline void gpuAssert(cudaError_t code, char *file, int line, bool abort=true)
