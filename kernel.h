@@ -20,7 +20,7 @@ struct Aux {
 	digit_t invN;
 };
 
-// Hlavní výpočetní metoda pro Extended souřadnice
-cudaError_t computeExtended(const Aux h_Input,h_ExtendedPoint* initPoints,const NAF coeff);
+// Hlavní výpočetní metoda 
+cudaError_t compute(const Aux h_input,const ExtendedPoint* neutral,ExtendedPoint* initPoints,const NAF coeff);
 
 #endif

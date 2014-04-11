@@ -45,8 +45,11 @@ int main()
 	//coeffNaf.print();
 	mpz_clear(zcf);
 		
-	h_ExtendedPoint pts;
+	ExtendedPoint pts;
 	pts.fromAffine(zX,zY,zN);
+
+	ExtendedPoint neutral;
+	pts.infinity(zN);
 
 	// Spočítáme W = 2^32, 3*N, -N^(-1) mod W a W^(-1) mod N
 	mpz_t z3N,zInvW,zInvN;
@@ -67,7 +70,7 @@ int main()
 	mpz_to_biguint(ax.N3,z3N);
 	ax.invN = (digit_t)mpz_get_ui(zInvN);
 
-	cudaError_t cudaStatus = computeExtended(ax,&pts,coeffNaf);
+	cudaError_t cudaStatus = compute(ax,&neutral,&pts,coeffNaf);
     if (cudaStatus != cudaSuccess) {
         fprintf(stderr, "addWithCuda failed!");
         return 1;

@@ -5,7 +5,7 @@
 #include "helpers.h"
 
 // Třída pro bod v Extended souřadnicích v paměti počítače
-class h_ExtendedPoint {
+class ExtendedPoint {
 private:
 	/*	
 		Vrací true, je-li v invx platný inverzní prvek k x v okruhu modulo N
@@ -39,7 +39,7 @@ private:
 public:	
 	biguint_t X,Y,Z,T;
 
-	h_ExtendedPoint()
+	ExtendedPoint()
 	{
 		memset((void*)X,0,MAX_BYTES);
 		memset((void*)Y,0,MAX_BYTES);
@@ -47,7 +47,19 @@ public:
 		memset((void*)T,0,MAX_BYTES);
 	}
 		
-	
+	// Nastaví na neutrální prvek na Edwardsově křivce
+	void infinity(mpz_t N)
+	{
+		mpz_t x,y;
+		mpz_init_set_ui(x,0);
+		mpz_init_set_ui(y,1);
+
+		fromAffine(x,y,N);
+		mpz_clear(x);
+		mpz_clear(y);
+	}
+
+
 	// Transformace z afinních souřadnic do Extended souřadnic v Montgomeryho reprezentaci
 	void fromAffine(mpz_t x,mpz_t y,mpz_t N)
 	{
