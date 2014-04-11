@@ -39,6 +39,7 @@ int main()
 	
 	// Koefcient v NAF rozvoji, do kterého se chceme dopočítat
 	mpz_init(zcf);
+	//mpz_set_ui(zcf,90);
 	lcmToN(zcf,(unsigned int)std::stoul(cf));
 
 	NAF coeffNaf(2,zcf);
@@ -49,7 +50,7 @@ int main()
 	pts.fromAffine(zX,zY,zN);
 
 	ExtendedPoint neutral;
-	pts.infinity(zN);
+	neutral.infinity(zN);
 
 	// Spočítáme W = 2^32, 3*N, -N^(-1) mod W a W^(-1) mod N
 	mpz_t z3N,zInvW,zInvN;
@@ -83,6 +84,9 @@ int main()
 	if (pts.toAffine(zX,zY,zN,zInvW,&res)){
 		printmpz("(%s,",zX);
 		printmpz("%s)\n",zY);
+	}
+	else {
+		printmpz("Factor: %s",res.factor);
 	}
     
 	mpz_clear(zX);

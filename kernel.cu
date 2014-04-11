@@ -172,7 +172,7 @@ __global__ void edwardsSub(void* R, void *P, void *Q,void* aux)
 	c_z2[threadIdx.x] = *(Qd+threadIdx.x+2*NB_DIGITS); // dalších 32 k souřadnici Z
 
 	c_tcy[threadIdx.x] = 0;
-	c_tt0[threadIdx.x] = *(Qd+threadIdx.x+0*NB_DIGITS);;
+	c_tt0[threadIdx.x] = *(Qd+threadIdx.x+0*NB_DIGITS);
 	c_tt1[threadIdx.x] = *(Qd+threadIdx.x+3*NB_DIGITS); 
 	_AUX[threadIdx.x]  = 0; 
 
@@ -336,6 +336,9 @@ cudaError_t compute(const Aux h_input,const ExtendedPoint* neutral,ExtendedPoint
 	cuda_Malloc((void**)&swQw,NUM_CURVES*4*MAX_BYTES);			  // Pomocný bod
 	cuda_Malloc((void**)&swAx,sizeof(Aux));						  // Pomocná struktura
 	
+	printf("swPc: %x\n",(digit_t)swPc);
+	printf("swQw: %x\n",(digit_t)swQw);
+
 	// Pomocná struktura
 	cuda_Memcpy(swAx,(void*)&h_input,sizeof(Aux),cudaMemcpyHostToDevice);
 	
@@ -362,16 +365,18 @@ cudaError_t compute(const Aux h_input,const ExtendedPoint* neutral,ExtendedPoint
 		edwardsAdd<<<NUM_BLOCKS,threadsPerBlock>>> ((void*)swQw,(void*)iter,(void*)swPc,(void*)swAx);
 		iter += NUM_CURVES*4*NB_DIGITS;
 	} 
-	
+
+	edwardsSub<<<NUM_BLOCKS,threadsPerBlock>>>(swQw,swQw,swPc,swAx);
+
 	// Do swQw nakopírovat neutrální prvek
-	iter = (digit_t*)swQw;
+	/*iter = (digit_t*)swQw;
 	cuda_Memcpy((void*)(iter+0*NB_DIGITS),(void*)neutral->X,MAX_BYTES,cudaMemcpyHostToDevice);
 	cuda_Memcpy((void*)(iter+1*NB_DIGITS),(void*)neutral->Y,MAX_BYTES,cudaMemcpyHostToDevice);
 	cuda_Memcpy((void*)(iter+2*NB_DIGITS),(void*)neutral->Z,MAX_BYTES,cudaMemcpyHostToDevice);
 	cuda_Memcpy((void*)(iter+3*NB_DIGITS),(void*)neutral->T,MAX_BYTES,cudaMemcpyHostToDevice);
-
+	*/
 	// Provést výpočet (sliding window)
-	for (int i = coeff.l-1,u,s;i >= 0;i = s-1)
+	/*for (int i = coeff.l-1,u,s;i >= 0;i = s-1)
 	{
 		if (coeff.bits[i] == 0){
 		  edwardsDbl<<<NUM_BLOCKS,threadsPerBlock>>>(swQw,swQw,swAx);
@@ -395,7 +400,7 @@ cudaError_t compute(const Aux h_input,const ExtendedPoint* neutral,ExtendedPoint
 			  edwardsSub<<<NUM_BLOCKS,threadsPerBlock>>>(swQw,swQw,(void*)iter,swAx); 
 			} 
 		}
-	}
+	}*/
 
 	// Nakopírovat výsledky zpátky do paměti počítače
 	iter = (digit_t*)swQw;

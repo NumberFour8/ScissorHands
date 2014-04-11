@@ -107,7 +107,8 @@ public:
 			pRes->factorFound = (mpz_cmp_ui(f,0) != 0);
 			mpz_set(pRes->factor,f);
 			
-			mpz_clears(z,f);
+			mpz_clear(z);
+			mpz_clear(f);
 			return false;
 		}
 		else {
