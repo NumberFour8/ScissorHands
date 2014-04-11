@@ -192,7 +192,11 @@ __global__ void edwardsSub(void* R, void *P, void *Q,void* aux)
 	MUL_MOD(c_tt0,c_tt0,c_tt1);
 	ADD_MOD(c_tt1,c_y1,c_x1);
 	
+	_CARRY[threadIdx.x] = 0;
 	SUB_MOD(c_x1,c_y2,c_x2);
+	//EQL_MOD(c_x1,c_y2);
+	//SUE_MOD(c_x1,c_x2);
+
 	MUL_MOD(c_tt1,c_tt1,c_x1);
 	
 	DBL_MOD(c_z2);
