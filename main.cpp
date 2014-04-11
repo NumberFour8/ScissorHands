@@ -23,7 +23,7 @@ int main()
 	cout << "Y = " << Y << endl;
 	fp >> cf;
 	cout << "B = " << cf << endl;
-	cout << "a = -1" << endl;
+	cout << "a = -1" << endl << endl;
 	fp.close();
 	
 	cout << "Is this okay ?" << endl;
@@ -39,8 +39,11 @@ int main()
 	
 	// Koefcient v NAF rozvoji, do kterého se chceme dopočítat
 	mpz_init(zcf);
-	//mpz_set_ui(zcf,90);
+	//mpz_set_ui(zcf,(unsigned int)std::stoul(cf));
 	lcmToN(zcf,(unsigned int)std::stoul(cf));
+
+	cout << "lcm(1,2,..." << cf << ") = ";
+	printmpz("%s\n",zcf);
 
 	NAF coeffNaf(2,zcf);
 	//coeffNaf.print();

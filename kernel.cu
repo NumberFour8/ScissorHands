@@ -328,14 +328,12 @@ cudaError_t compute(const Aux h_input,const ExtendedPoint* neutral,ExtendedPoint
 	cuda_Malloc((void**)&swQw,NUM_CURVES*4*MAX_BYTES);			  // Pomocný bod
 	cuda_Malloc((void**)&swAx,sizeof(Aux));						  // Pomocná struktura
 	
-	printf("swPc: %x\n",(digit_t)swPc);
-	printf("swQw: %x\n",(digit_t)swQw);
-
 	// Pomocná struktura
 	cuda_Memcpy(swAx,(void*)&h_input,sizeof(Aux),cudaMemcpyHostToDevice);
 	
 	// Počáteční body
 	VOL digit_t* iter = (digit_t*)swPc;
+	printf("1P are at %x\n",(digit_t)iter);
 	for (int i = 0;i < NUM_CURVES;i++){
 	   cuda_Memcpy((void*)(iter+0*NB_DIGITS),(void*)initPoints[i].X,MAX_BYTES,cudaMemcpyHostToDevice);
 	   cuda_Memcpy((void*)(iter+1*NB_DIGITS),(void*)initPoints[i].Y,MAX_BYTES,cudaMemcpyHostToDevice);
@@ -348,22 +346,21 @@ cudaError_t compute(const Aux h_input,const ExtendedPoint* neutral,ExtendedPoint
 	dim3 threadsPerBlock(NB_DIGITS,CURVES_PER_BLOCK);
 	edwardsDbl<<<NUM_BLOCKS,threadsPerBlock>>> ((void*)swQw,(void*)swPc,(void*)swAx);
 	for (int i = 1; i < PRECOMP_SZ;++i){ // Tady už je iter nastavené na pozici prvních lichých mocnin
+		//printf("%dP are at %x\n",2*i+1,(digit_t)iter);
 		edwardsAdd<<<NUM_BLOCKS,threadsPerBlock>>> ((void*)iter,(void*)swQw,(void*)swPc,(void*)swAx); 
 		edwardsAdd<<<NUM_BLOCKS,threadsPerBlock>>> ((void*)swQw,(void*)iter,(void*)swPc,(void*)swAx);
 		iter += NUM_CURVES*4*NB_DIGITS;
 	} 
-
-	edwardsSub<<<NUM_BLOCKS,threadsPerBlock>>>(swQw,swQw,swPc,swAx);
-
+	
 	// Do swQw nakopírovat neutrální prvek
-	/*iter = (digit_t*)swQw;
+	iter = (digit_t*)swQw;
 	cuda_Memcpy((void*)(iter+0*NB_DIGITS),(void*)neutral->X,MAX_BYTES,cudaMemcpyHostToDevice);
 	cuda_Memcpy((void*)(iter+1*NB_DIGITS),(void*)neutral->Y,MAX_BYTES,cudaMemcpyHostToDevice);
 	cuda_Memcpy((void*)(iter+2*NB_DIGITS),(void*)neutral->Z,MAX_BYTES,cudaMemcpyHostToDevice);
 	cuda_Memcpy((void*)(iter+3*NB_DIGITS),(void*)neutral->T,MAX_BYTES,cudaMemcpyHostToDevice);
-	*/
+	
 	// Provést výpočet (sliding window)
-	/*for (int i = coeff.l-1,u,s;i >= 0;i = s-1)
+	for (int i = coeff.l-1,u,s = 0;i >= 0;)
 	{
 		if (coeff.bits[i] == 0){
 		  edwardsDbl<<<NUM_BLOCKS,threadsPerBlock>>>(swQw,swQw,swAx);
@@ -379,15 +376,18 @@ cudaError_t compute(const Aux h_input,const ExtendedPoint* neutral,ExtendedPoint
 
 			u = coeff.build(s,i);
 			if (u > 0){
-			  iter = (digit_t*)swPc+((u-1)/2);
+			  iter = ((digit_t*)swPc)+((u-1)/2)*NUM_CURVES*4*NB_DIGITS;
+			  //printf("Want %d, looking at %x\n",u,(digit_t)iter);
 			  edwardsAdd<<<NUM_BLOCKS,threadsPerBlock>>>(swQw,swQw,(void*)iter,swAx);
 			}
 			else { 
-			  iter = (digit_t*)swPc+((-u-1)/2);
+			  iter = ((digit_t*)swPc)+((-u-1)/2)*NUM_CURVES*4*NB_DIGITS;
+			  //printf("Want %d, looking at %x\n",u,(digit_t)iter);
 			  edwardsSub<<<NUM_BLOCKS,threadsPerBlock>>>(swQw,swQw,(void*)iter,swAx); 
 			} 
+			i = s-1;
 		}
-	}*/
+	}
 
 	// Nakopírovat výsledky zpátky do paměti počítače
 	iter = (digit_t*)swQw;
