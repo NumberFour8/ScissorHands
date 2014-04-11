@@ -280,7 +280,7 @@ cudaError_t computeExtended(const Aux h_input,h_ExtendedPoint* initPoints,const 
 			  edwardsAdd<<<NUM_BLOCKS,threadsPerBlock>>>((void*)swQ,(void*)swQ,(void*)iter);
 			}
 			else { 
-			  iter = swPc+((u-1)/2);
+			  iter = swPc+((-u-1)/2);
 			  edwardsSub<<<NUM_BLOCKS,threadsPerBlock>>>((void*)swQ,(void*)swQ,(void*)iter); 
 			} 
 		}
