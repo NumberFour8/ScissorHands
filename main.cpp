@@ -2,104 +2,137 @@
 #include <fstream>
 #include <stdio.h>
 #include <string>
+#include <vector>
 
 #include "kernel.h"
 
 using namespace std;
 
+// Přečte počáteční body křivek v afinních souřadnicích ze souboru
+int readCurves(string file,mpz_t N,ExtendedPoint** pInit)
+{
+	ifstream fp;
+	fp.open(ln);
+
+	if (!fp.is_open())
+	{
+		cout << "ERROR: Cannot open file." << endl;
+		return 0;
+	} 
+	
+	mpz_t zX,zY;
+	mpz_intz(zX,zY);
+	
+	vector<ExtendedPoint> v;
+	while (getline(ln,fp))
+	{
+		if (ln.find("#") == string::npos) continue;
+		
+		fp >> X;
+		fp >> Y;
+		mpz_set_str(zX,X.c_str(),10);
+		mpz_set_str(zY,Y.c_str(),10);
+		
+		v.push_back(ExtendedPoint(zX,zY,N)); 
+	}
+	fp.close();
+	mpz_clrs(zX,zY);
+
+	*pInit = new ExtendedPoint[v.size()];
+	std::copy(v.begin(),v.end(),*pInit);
+	
+	//std::for_each(v.begin(),v.end(), [](ExtendedPoint p) { delete &p });
+	
+	return (int)v.size();
+}
+
 int main()
 {
-	string cf,X,Y,N;
-	mpz_t zcf,zX,zY,zN;
+	string ln;
+	cout << "Enter N:" << endl;
+	cin >> ln;
 
-	ifstream fp;
-	fp.open("C:\\Users\\Luc\\Desktop\\edwards.txt");
+	mpz_t zN;
+	mpz_init_set_str(zN,ln.c_str(),10);
 
-	fp >> N;
-	cout << "N = " << N << endl;
-	fp >> X;
-	cout << "X = " << X << endl;
-	fp >> Y;
-	cout << "Y = " << Y << endl;
-	fp >> cf;
-	cout << "B = " << cf << endl;
-	cout << "a = -1" << endl << endl;
-	fp.close();
-	
-	cout << "Is this okay ?" << endl;
-	char c;
-	cin >> c;
-	if (c == 'n') return 0;
-	
-	////////////////////////////////////////////////////////////
-	
-	mpz_init_set_str(zN,N.c_str(),10);
-	mpz_init_set_str(zX,X.c_str(),10);
-	mpz_init_set_str(zY,Y.c_str(),10);
-	
-	// Koefcient v NAF rozvoji, do kterého se chceme dopočítat
-	mpz_init(zcf);
-	//mpz_set_ui(zcf,(unsigned int)std::stoul(cf));
-	lcmToN(zcf,(unsigned int)std::stoul(cf));
+	cout << "Enter path to curve file:" << endl;
+	cin >> ln;
 
-	cout << "lcm(1,2,..." << cf << ") = ";
-	printmpz("%s\n",zcf);
-
-	NAF coeffNaf(2,zcf);
-	//coeffNaf.print();
-	mpz_clear(zcf);
+	ExtendedPoint *PP = NULL;
+	
+	int read_curves = readCurves(ln,zN,&PP);
+	if (read_curves <= 0)
+	{
+		cout << "ERROR: No curves read" << endl;
+		return 1;
+	}
+	else if (read_curves != NUM_CURVES)
+	{
+		cout << "ERROR: Invalid number of curves in file."  
+			 << "Required: " << NUM_CURVES << ". Got: " << read_curves 
+			 << endl;
+		return 1;
+	}
+	
+	mpz_t zS;
+	mpz_init(zS);
+	
+	// Hranice první fáze
+	cout << "Enter B1:" << endl;
+	cin >> ln;
+	lcmToN(zS,(unsigned int)std::stoul(ln));
+	
+	// ... a NAF rozvoj S = lcm(1,2,3...B1)
+	NAF S(2,zS);
+	cout << "S = ";
+	printmpz("%s\n",zS);
+	mpz_clear(zS);	
 		
-	ExtendedPoint pts;
-	pts.fromAffine(zX,zY,zN);
-
-	ExtendedPoint neutral;
-	neutral.infinity(zN);
-
-	// Spočítáme W = 2^32, 3*N, -N^(-1) mod W a W^(-1) mod N
-	mpz_t z3N,zInvW,zInvN;
-	mpz_init(z3N);
-	mpz_mul_ui(z3N,zN,3);
-	mpz_init(zInvW);
-	mpz_ui_pow_ui (zInvW, 2, SIZE_DIGIT); 
-    mpz_init(zInvN);	
-	mpz_invert (zInvN, zN, zInvW);
-    mpz_sub (zInvN, zInvW, zInvN);
-	mpz_invert (zInvW, zInvW, zN);
-
-	// Pomocná struktura
-	Aux ax;
-	memset(&ax,0,sizeof(Aux));
-
-	mpz_to_biguint(ax.N,zN);
-	mpz_to_biguint(ax.N3,z3N);
-	ax.invN = (digit_t)mpz_get_ui(zInvN);
-
-	cudaError_t cudaStatus = compute(ax,&neutral,&pts,coeffNaf);
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "addWithCuda failed!");
+	// Neturální prvek a pomocná struktura	
+	ExtendedPoint infty(zN);
+	Aux ax(zN);
+	
+	// Proveď výpočet
+	cudaError_t cudaStatus = compute(ax,&infty,PP,S);
+    if (cudaStatus != cudaSuccess) 
+    {
+        fprintf(stderr, "CUDA compute failed!");
         return 1;
     }
 
+	mpz_t zInvW,zX,zY;
+	mpz_intz(zInvW,zX,zY);
+	
+	// 2^(-W) mod N 
+	mpz_ui_pow_ui(zW, 2, SIZE_DIGIT); 
+	mpz_invert(zInvW, zInvW, zN);
+
 	cout << endl;
-
 	
-	ExtResult res;
-	if (pts.toAffine(zX,zY,zN,zInvW,&res)){
-		printmpz("(%s,",zX);
-		printmpz("%s)\n",zY);
-	}
-	else {
-		printmpz("Factor: %s",res.factor);
-	}
-    
-	mpz_clear(zX);
-	mpz_clear(zY);
+	// Analyzuj výsledky
+	ExtResult Result;
+	for (int i = 0; i < NUM_CURVES;++i)
+	{
+		if (PP[i].toAffine(zX,zY,zN,zInvW,&Result)){
+			cout << "No factor found by curve #" << i+1 << endl;
+			printmpz("Affine point: (%s,",zX);
+			printmpz("%s)\n",zY);
+		}
+		else if (Result.factorFound) 
+		{
+			printmpz("Found factor %s ",res.factor);
+			cout << "using curve #" << i+1 << endl;
+			break;
+		}
+		else cout << "ERROR while working with curve #" << i+1 << endl;
+    }
 	
-	mpz_clear(zN);
-	mpz_clear(z3N);
-	mpz_clear(zInvW);
-	mpz_clear(zInvN);
+	// Vyčisti paměť
+	mpz_clrs(zN,zInvW,zX,zY);
+	delete[] PP;
 
-	cin >> c;
+	cout << "Press Enter to quit..." << endl;
+	cin.ignore();
+	
     return 0;
 }

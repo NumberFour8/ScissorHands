@@ -68,9 +68,11 @@ void lcmToN(mpz_t res,const unsigned int n)
 	}
 }
 
-
-NAF::NAF(unsigned char W,mpz_t number) : w(W)
+NAF::NAF(unsigned char W,mpz_t N) : w(W)
 {
+	mpz_t number;
+	mpz_init_set(number,N);
+	
 	size_t sz = mpz_sizeinbase(number,2);
 	bits = (char*)malloc(sz*8+1);
 	l = 0;
@@ -97,6 +99,7 @@ NAF::NAF(unsigned char W,mpz_t number) : w(W)
 		else bits[i] = 0;
 		mpz_div_2exp(number,number,1);
 	}
+	mpz_clear(number);
 
 	l += 1;
 	bits = (char*)realloc((void*)bits,(size_t)l*8);
@@ -113,7 +116,7 @@ int NAF::build(unsigned int start,unsigned int end) const
 	return ret;
 }
 
-void NAF::print()
+void NAF::print() const
 {
 	printf("NAF%d: ",(int)w);
 	for (int i = l-1;i >= 0;--i)

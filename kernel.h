@@ -10,15 +10,7 @@
 #define NUM_BLOCKS 1
 #define CURVES_PER_BLOCK 1
 
-
-/*
- Pomocná struktura pro N, 3*N a inverzi N modulo velikost báze
-*/
-struct Aux {
-	biguint_t N;
-	biguint_t N3;
-	digit_t invN;
-};
+#define NUM_CURVES NUM_BLOCKS*CURVES_PER_BLOCK
 
 // Hlavní výpočetní metoda 
 cudaError_t compute(const Aux h_input,const ExtendedPoint* neutral,ExtendedPoint* initPoints,const NAF coeff);

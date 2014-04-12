@@ -318,7 +318,6 @@ cudaError_t compute(const Aux h_input,const ExtendedPoint* neutral,ExtendedPoint
 {
 	const int WINDOW_SZ	 = 4;							// Velikost okna
 	const int PRECOMP_SZ = (1 << (WINDOW_SZ-2))+1;		// Počet bodů, které je nutné předpočítat
-	const int NUM_CURVES = CURVES_PER_BLOCK*NUM_BLOCKS; // initPoints má tolik prvků
 	
 	void *swQw = NULL,*swPc = NULL,*swAx = NULL;
 	gpuErrchk(cudaSetDevice(0));

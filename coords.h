@@ -37,14 +37,34 @@ private:
      }
 
 public:	
+	// Všechny souřadnice bodu v Extended souřadnicích
 	biguint_t X,Y,Z,T;
+	
+	// Indikátor, zda se počítá na překroucené Edwardsově křivce s a = -1
+	bool minusOne;
 
-	ExtendedPoint()
+	// Vytvoří prázdný bod v Extended souřadnicích
+	ExtendedPoint(bool minus1 = true)
+	  : minusOne(minus1)
 	{
-		memset((void*)X,0,MAX_BYTES);
-		memset((void*)Y,0,MAX_BYTES);
-		memset((void*)Z,0,MAX_BYTES);
-		memset((void*)T,0,MAX_BYTES);
+		reset(X);
+		reset(Y);
+		reset(Z);
+		reset(T);
+	}
+	
+	// Vytvoří bod v Extended souřadnicích inicializovaný daným afinním bodem
+	ExtendedPoint(mpz_t x,mpz_t y,mpz_t N,bool minus1 = true) 
+	  : ExtendedPoint(minus1)
+	{
+		fromAffine(x,y,N);
+	}
+	
+	// Vytvoří bod v nekonečnu v Extended souřadnicích
+	ExtendedPoint(mpz_t N,bool minus1 = true) 
+	  : ExtendedPoint(minus1)
+	{
+		infinity(N);
 	}
 		
 	// Nastaví na neutrální prvek na Edwardsově křivce
@@ -55,8 +75,7 @@ public:
 		mpz_init_set_ui(y,1);
 
 		fromAffine(x,y,N);
-		mpz_clear(x);
-		mpz_clear(y);
+		mpz_clrs(x,y);
 	}
 
 
@@ -66,6 +85,7 @@ public:
 		mpz_t z,t;
 		mpz_init_set_ui(z,1);
 		mpz_init(t);
+		
 		mpz_mul(t,x,y);
 		
 		to_mont_repr(x,N);
@@ -78,7 +98,7 @@ public:
 		mpz_to_biguint(Z,z);
 		mpz_to_biguint(T,t);
 
-		mpz_clear(t);
+		mpz_clrs(t,z);
 	}
 
 	
@@ -89,8 +109,7 @@ public:
 	bool toAffine(mpz_t x,mpz_t y,mpz_t N,mpz_t invB,ExtResult* pRes)
 	{
 		mpz_t z,f;
-		mpz_init(z);
-		mpz_init(f);
+		mpz_intz(z,f);
 
 		pRes->factorFound = false;
 		mpz_set_ui(pRes->factor,0);
@@ -107,8 +126,7 @@ public:
 			pRes->factorFound = (mpz_cmp_ui(f,0) != 0);
 			mpz_set(pRes->factor,f);
 			
-			mpz_clear(z);
-			mpz_clear(f);
+			mpz_clrs(z,f);
 			return false;
 		}
 		else {
@@ -117,11 +135,9 @@ public:
 			mpz_mod(x,x,N);
 			mpz_mod(y,y,N);
 
-			mpz_clear(z);
-			mpz_clear(f);
+			mpz_clrs(z,f);
 			return true;
 		}
-
 	}
 };
 
