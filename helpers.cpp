@@ -100,19 +100,29 @@ bool try_invert_mod(mpz_t invx,mpz_t x,mpz_t N)
 
 bool reduce_mod(mpz_t r,mpq_t q,mpz_t n)
 {
-	mpz_t den;
+	mpz_t den,num;
 	mpz_init_set(den,mpq_denref(q));
+	mpz_init_set(num,mpq_numref(q));
 	
+	mpz_mod(den,den,n);
+	mpz_mod(num,num,n);
+
+	if (mpz_sgn(den) == -1) mpz_add(den,den,n);
+	if (mpz_sgn(num) == -1) mpz_add(num,num,n);
+
 	bool s = try_invert_mod(r,den,n);
 	mpz_clear(den);
 
-	if (!s) return false;
+	if (!s) 
+	{
+	  mpz_clear(num);
+	  return false;
+	}
 	
-	mpz_mul(r,r,mpq_numref(q));
+	mpz_mul(r,r,num);
 	mpz_mod(r,r,n);
 
-	if (mpz_sgn(r) == -1) mpz_add(r,r,n);
-
+	mpz_clear(num);
 	return true;
 }
 

@@ -32,6 +32,7 @@ int readCurves(string file,mpz_t N,ExtendedPoint** pInit)
 	string ln;
 	vector<ExtendedPoint> v;
 	bool minus1 = true;
+	cout << "Loading curves..." << endl;
 	while (getline(fp,ln))
 	{
 		// Přeskoč segment, který nezačíná #
