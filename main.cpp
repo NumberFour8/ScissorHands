@@ -25,9 +25,13 @@ int readCurves(string file,mpz_t N,ExtendedPoint** pInit)
 	
 	string ln;
 	vector<ExtendedPoint> v;
+	bool minus1;
 	while (getline(fp,ln))
 	{
 		if (ln.find("#") == string::npos) continue;
+		
+		fp >> ln; 
+		minus1 = (ln == "-1");
 		
 		fp >> ln;
 		mpz_set_str(zX,ln.c_str(),10);
