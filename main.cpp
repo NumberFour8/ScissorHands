@@ -14,23 +14,27 @@ int readCurves(string file,mpz_t N,ExtendedPoint** pInit)
 	ifstream fp;
 	fp.open(file);
 
+	// Pokud se nepodaří otevřít soubor, skonči
 	if (!fp.is_open())
 	{
 		cout << "ERROR: Cannot open file." << endl;
 		return 0;
 	} 
 	
+	// Inicializace racionálních souřadnic
 	mpq_t qX,qY;
 	mpq_intz(qX,qY);
 
+	// Inicializace celočíselných souřadnic
 	mpz_t zX,zY;
 	mpz_intz(zX,zY);
 	
 	string ln;
 	vector<ExtendedPoint> v;
-	bool minus1;
+	bool minus1 = true;
 	while (getline(fp,ln))
 	{
+		// Přeskoč segment, který nezačíná #
 		if (ln.find("#") == string::npos) continue;
 		
 		// Je to překroucená Edwardsova křivka s a = -1 ? 
@@ -92,6 +96,7 @@ int main()
 	ExtendedPoint *PP = NULL;
 	int read_curves = readCurves(ln,zN,&PP);
 
+	// Zkontroluj počet načtených křivek
 	if (read_curves <= 0)
 	{
 		cout << "ERROR: No curves read." << endl;
@@ -105,15 +110,16 @@ int main()
 		return 1;
 	}
 	
-	// Hranice B1 pro první fázi
+	// Inicializace B1
 	mpz_t zS;
 	mpz_init(zS);
 	
+	// Přečti B1 a spočti S = lcm(1,2,3...,B1)
 	cout << "Enter B1:" << endl;
 	cin >> ln;
 	lcmToN(zS,(unsigned int)std::stoul(ln));
 	
-	// ... a NAF rozvoj S = lcm(1,2,3...B1)
+	// ... a vypočítej NAF rozvoj čísla S
 	NAF S(2,zS);
 	cout << "S = ";
 	printmpz("%s\n",zS);
@@ -131,6 +137,7 @@ int main()
         return 1;
     }
 
+	// Inicializace pomocných proměnných
 	mpz_t zInvW,zX,zY;
 	mpz_intz(zInvW,zX,zY);
 	
@@ -149,7 +156,7 @@ int main()
 			printmpz("Affine point: (%s,",zX);
 			printmpz("%s)\n",zY);
 		}
-		else break;
+		else break; // Převod do afinních souřadnic selhal, máme faktor
 		cout << endl;
     }
 	

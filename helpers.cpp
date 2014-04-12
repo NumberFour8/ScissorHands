@@ -76,7 +76,8 @@ bool try_invert_mod(mpz_t invx,mpz_t x,mpz_t N)
 	mpz_intz(b,r);
          
 	mpz_gcdext(r,invx,b,x,N);
-    if (mpz_cmp_ui(r,1) == 0){
+    if (mpz_cmp_ui(r,1) == 0)
+	{
 		if (mpz_sgn(invx) == -1) 
 		  mpz_add(invx,invx,N);
 		ret = true;
@@ -109,6 +110,8 @@ bool reduce_mod(mpz_t r,mpq_t q,mpz_t n)
 	
 	mpz_mul(r,r,mpq_numref(q));
 	mpz_mod(r,r,n);
+
+	if (mpz_sgn(r) == -1) mpz_add(r,r,n);
 
 	return true;
 }
