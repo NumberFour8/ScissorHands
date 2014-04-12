@@ -84,10 +84,12 @@ bool try_invert_mod(mpz_t invx,mpz_t x,mpz_t N)
     else if (mpz_cmp(r,N) == 0)
 	{
 		mpz_set_si(invx,0);
+		printmpz("Error during inversion of: %s\n",x);
 	}
-	else {
-	  mpz_set(invx,r);
-	  printmpz("Factor found: %s\n",invx);
+	else 
+	{
+	    mpz_set(invx,r);
+	    printmpz("Factor found: %s\n",invx);
 	}
 
 	mpz_clrs(r,b);
