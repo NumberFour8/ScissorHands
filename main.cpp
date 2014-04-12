@@ -109,7 +109,8 @@ int main()
 			 << endl;
 		return 1;
 	}
-	
+	cout << "Loaded " << read_curves << " curves." << endl;
+
 	// Inicializace B1
 	mpz_t zS;
 	mpz_init(zS);
@@ -117,8 +118,9 @@ int main()
 	// Přečti B1 a spočti S = lcm(1,2,3...,B1)
 	cout << "Enter B1:" << endl;
 	cin >> ln;
-	lcmToN(zS,(unsigned int)std::stoul(ln));
-	
+	//lcmToN(zS,(unsigned int)std::stoul(ln));
+	mpz_set_ui(zS,(unsigned int)std::stoul(ln));
+
 	// ... a vypočítej NAF rozvoj čísla S
 	NAF S(2,zS);
 	cout << "S = ";
@@ -164,8 +166,12 @@ int main()
 	mpz_clrs(zN,zInvW,zX,zY);
 	delete[] PP;
 
-	cout << "Press Enter to quit..." << endl;
-	cin.ignore();
+	cout << "Type 'q' to quit..." << endl;
+	char c;
+	while (1) {
+	   cin >> c;
+	   if (c == 'q') break;
+	}
 	
     return 0;
 }

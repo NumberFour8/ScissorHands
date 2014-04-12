@@ -302,7 +302,7 @@ __global__ void edwardsDbl(void* R,void* P,void* aux)
 }
 
 
-cudaError_t compute(const Aux h_input,const ExtendedPoint* neutral,ExtendedPoint* initPoints,const NAF coeff)
+cudaError_t compute(const Aux h_input,const ExtendedPoint* neutral,ExtendedPoint* initPoints,const NAF& coeff)
 {
 	const int WINDOW_SZ	 = 4;							// Velikost okna
 	const int PRECOMP_SZ = (1 << (WINDOW_SZ-2))+1;		// Počet bodů, které je nutné předpočítat

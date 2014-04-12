@@ -13,6 +13,6 @@
 #define NUM_CURVES NUM_BLOCKS*CURVES_PER_BLOCK
 
 // Hlavní výpočetní metoda 
-cudaError_t compute(const Aux h_input,const ExtendedPoint* neutral,ExtendedPoint* initPoints,const NAF coeff);
+cudaError_t compute(const Aux h_input,const ExtendedPoint* neutral,ExtendedPoint* initPoints,const NAF& coeff);
 
 #endif
