@@ -36,6 +36,13 @@ private:
 		 return ret;
      }
 
+	void initAll()
+	{
+		reset(X);
+		reset(Y);
+		reset(Z);
+		reset(T);
+	}
 public:	
 	// Všechny souřadnice bodu v Extended souřadnicích
 	biguint_t X,Y,Z,T;
@@ -47,23 +54,22 @@ public:
 	ExtendedPoint(bool minus1 = true)
 	  : minusOne(minus1)
 	{
-		reset(X);
-		reset(Y);
-		reset(Z);
-		reset(T);
+		initAll();
 	}
 	
 	// Vytvoří bod v Extended souřadnicích inicializovaný daným afinním bodem
 	ExtendedPoint(mpz_t x,mpz_t y,mpz_t N,bool minus1 = true) 
-	  : ExtendedPoint(minus1)
+	  : minusOne(minus1)
 	{
+		initAll();
 		fromAffine(x,y,N);
 	}
 	
 	// Vytvoří bod v nekonečnu v Extended souřadnicích
 	ExtendedPoint(mpz_t N,bool minus1 = true) 
-	  : ExtendedPoint(minus1)
+	  : minusOne(minus1)
 	{
+		initAll();
 		infinity(N);
 	}
 		

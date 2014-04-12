@@ -6,16 +6,16 @@
 #define mpz_intz(...) mpz_inits(__VA_ARGS__,NULL)
 #define mpz_clrs(...) mpz_clears(__VA_ARGS__,NULL)
 
-// TÅ™Ã­da obsahujÃ­cÃ­ vÃ½sledek pÅ™evodu z Extended souÃ¸adnic
+// Tøída obsahující­ vysledek pøevodu z Extended souøadnic
 class ExtResult {
 public:
-	// IndikÃ¡tor, zda byl nalezen faktor
+	// Indikátor, zda byl nalezen faktor
 	bool factorFound;
 	
-	// NalezenÃ½ faktor
+	// Nalezenı faktor
 	mpz_t factor;
 
-	// VÃ½chozÃ­ konstruktor
+	// Vıchozí konstruktor
 	ExtResult() : factorFound(false)
 	{ mpz_init_set_ui(factor,0); }
 	
@@ -23,72 +23,72 @@ public:
 	{ mpz_clear(factor); }
 };
 
-// Rozvoj ÄÃ­sla do non-adjacent form (NAF)
+// Rozvoj è­sla do non-adjacent form (NAF)
 class NAF {
 public:
 	// Koeficienty rozvoje
 	char* bits;
 	
-	// DÃ©lka rozvoje
+	// Délka rozvoje
 	unsigned int l;
 	
-	// Å Ã­Å™ka rozvoje
+	// Šíøka rozvoje
 	const unsigned char w;
 	
-	// Zkontruuje rozvoj Å¡Ã­Å™ky W z ÄÃ­sla N
+	// Zkontruuje rozvoj šíøky W z èí­sla N
 	NAF(unsigned char W,mpz_t N);
 	
 	virtual ~NAF();
 	
-	// VypÃ­Å¡e rozvoj
+	// Vypíše rozvoj
 	void print() const;
 	
-	// VyÄÃ­slÃ­ vÃ½sek z rozvoje danÃ½ parametry start a end
+	// Vısek z rozvoje danı parametry start a end
 	int build(unsigned int start,unsigned int end) const;
 };
 
-// PÅ™evede X do Montgomeryho reprezentace modulo N
+// Pøevede X do Montgomeryho reprezentace modulo N
 void to_mont_repr(mpz_t x, mpz_t n);
 
-// PÅ™evede X z Montgomeryho reprezentace modulo N
+// Pøevede X z Montgomeryho reprezentace modulo N
 void from_mont_repr(mpz_t x, mpz_t n,mpz_t invB);
 
-// PÅ™evede MPZ ÄÃ­slo do bÃ¡ze 2^32
+// Pøevede MPZ èíslo do báze 2^32
 void mpz_to_biguint(biguint_t a, mpz_t b);
 
-// PÅ™evede ÄÃ­slo z bÃ¡ze 2^32 do MPZ
+// Pøevede èí­slo z báze 2^32 do MPZ
 void biguint_to_mpz(mpz_t a, biguint_t b);
 
-// VypÃ­Å¡e ÄÃ­slo MPZ
+// Vypíše è­slo MPZ
 void printmpz(const char* format,mpz_t number);
 
-// VypÃ­Å¡e ÄÃ­slo v bÃ¡zi 2^32
+// Vypíše èíslo v bázi 2^32
 void printBigInt(const char* tag,biguint_t B);
 
-// SpoÄÃ­tÃ¡ LCM(1,2,3...,n)
+// Spoèítá LCM(1,2,3...,n)
 void lcmToN(mpz_t res,const unsigned int n);
 
-// Vynuluje ÄÃ­slo v bÃ¡zi 2^32
+// Vynuluje èí­slo v bázi 2^32
 inline void reset(biguint_t n)
 {
 	memset((void*)n,0,MAX_BYTES);
 }
 
-// PomocnÃ¡ tÅ™Ã­da pro N, 3*N a inverzi N modulo velikost bÃ¡ze
+// Pomocná tøí­da pro N, 3*N a inverzi N modulo velikost báze
 class Aux {
 public:
 	biguint_t N;
 	biguint_t N3;
 	digit_t invN;
 	
-	Aux(mpz_t N)
+	Aux(mpz_t zN)
 	{
 		reset(N);
 		reset(N3);
 		invN = 0;
 	
 		mpz_t z3N,zW,zInvN;
-		mpz_intz(z3,z2,zInvN);
+		mpz_intz(z3N,zW,zInvN);
 	
 		mpz_mul_ui(z3N,zN,3);
 	
@@ -105,7 +105,7 @@ public:
 	}
 };
 
-// VypÃ­Å¡e chybu a pÅ™eruÅ¡Ã­ program
+// Vypíše chybu GPU a pøeruší­ program
 inline void gpuAssert(cudaError_t code, char *file, int line, bool abort = true)
 {
    if (code != cudaSuccess) 
@@ -115,7 +115,7 @@ inline void gpuAssert(cudaError_t code, char *file, int line, bool abort = true)
    }
 }
 
-//////////////////////// POMOCNÃ MAKRA NA ZACHYCENÃ CHYB V CUDA ////////////////////////
+//////////////////////// POMOCNÃ MAKRA NA ZACHYCENÍ CHYB V CUDA ////////////////////////
 
 #define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 

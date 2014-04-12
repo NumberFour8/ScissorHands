@@ -302,18 +302,6 @@ __global__ void edwardsDbl(void* R,void* P,void* aux)
 }
 
 
-int buildFromNAF(NAF N,int start,int end)
-{
-	int i,ret = 0;
-	for (i = start;i <= end;i++)
-	{
-		ret += N.bits[i]*(1 << (i-start));
-	}
-
-	return ret;
-}
-
-
 cudaError_t compute(const Aux h_input,const ExtendedPoint* neutral,ExtendedPoint* initPoints,const NAF coeff)
 {
 	const int WINDOW_SZ	 = 4;							// Velikost okna
