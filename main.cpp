@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string>
 #include <vector>
+#include <algorithm>
 
 #include "kernel.h"
 
@@ -66,6 +67,9 @@ int readCurves(string file,mpz_t N,ExtendedPoint** pInit)
 		// Vytvoř bod v Extended souřadnicích z redukovaných afinních bodů modulo N
 		v.push_back(ExtendedPoint(zX,zY,N)); 
 	}
+
+	// Překroucené Edwardsovy křivky přijdou na začátek
+	std::sort(v.begin(), v.end(), [](const ExtendedPoint& a, const ExtendedPoint & b) -> bool { return a.minusOne && !b.minusOne; });
 
 	// Překopíruj body z vektoru do paměti
 	*pInit = new ExtendedPoint[v.size()];

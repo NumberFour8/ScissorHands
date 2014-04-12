@@ -5,7 +5,7 @@ __device__ __constant__ unsigned int d_invN;
 __device__ unsigned int* d_N;
 __device__ unsigned int* d_3N;
 
-__global__ void edwardsAdd(void* R, void *P, void *Q,void* aux)
+__global__ void twistedAdd(void* R, void *P, void *Q,void* aux)
 {
 	Aux *ax = (Aux*)aux;
 	
@@ -111,7 +111,7 @@ __global__ void edwardsAdd(void* R, void *P, void *Q,void* aux)
 	__syncthreads();
 }
 
-__global__ void edwardsSub(void* R, void *P, void *Q,void* aux)
+__global__ void twistedSub(void* R, void *P, void *Q,void* aux)
 {
 	Aux *ax = (Aux*)aux;
 	
@@ -217,7 +217,7 @@ __global__ void edwardsSub(void* R, void *P, void *Q,void* aux)
 	__syncthreads();
 }
 
-__global__ void edwardsDbl(void* R,void* P,void* aux)
+__global__ void twistedDbl(void* R,void* P,void* aux)
 {
 	Aux *ax = (Aux*)aux;
 	
@@ -320,7 +320,6 @@ cudaError_t compute(const Aux h_input,const ExtendedPoint* neutral,ExtendedPoint
 	
 	// Počáteční body
 	VOL digit_t* iter = (digit_t*)swPc;
-	//printf("1P are at %x\n",(digit_t)iter);
 	for (int i = 0;i < NUM_CURVES;i++){
 	   cuda_Memcpy((void*)(iter+0*NB_DIGITS),(void*)initPoints[i].X,MAX_BYTES,cudaMemcpyHostToDevice);
 	   cuda_Memcpy((void*)(iter+1*NB_DIGITS),(void*)initPoints[i].Y,MAX_BYTES,cudaMemcpyHostToDevice);
@@ -331,11 +330,10 @@ cudaError_t compute(const Aux h_input,const ExtendedPoint* neutral,ExtendedPoint
 
 	// Další předpočítané body
 	dim3 threadsPerBlock(NB_DIGITS,CURVES_PER_BLOCK);
-	edwardsDbl<<<NUM_BLOCKS,threadsPerBlock>>> ((void*)swQw,(void*)swPc,(void*)swAx);
+	twistedDbl<<<NUM_BLOCKS,threadsPerBlock>>> ((void*)swQw,(void*)swPc,(void*)swAx);
 	for (int i = 1; i < PRECOMP_SZ;++i){ // Tady už je iter nastavené na pozici prvních lichých mocnin
-		//printf("%dP are at %x\n",2*i+1,(digit_t)iter);
-		edwardsAdd<<<NUM_BLOCKS,threadsPerBlock>>> ((void*)iter,(void*)swQw,(void*)swPc,(void*)swAx); 
-		edwardsAdd<<<NUM_BLOCKS,threadsPerBlock>>> ((void*)swQw,(void*)iter,(void*)swPc,(void*)swAx);
+		twistedAdd<<<NUM_BLOCKS,threadsPerBlock>>> ((void*)iter,(void*)swQw,(void*)swPc,(void*)swAx); 
+		twistedAdd<<<NUM_BLOCKS,threadsPerBlock>>> ((void*)swQw,(void*)iter,(void*)swPc,(void*)swAx);
 		iter += NUM_CURVES*4*NB_DIGITS;
 	} 
 	
@@ -353,7 +351,7 @@ cudaError_t compute(const Aux h_input,const ExtendedPoint* neutral,ExtendedPoint
 	for (int i = coeff.l-1,u,s = 0;i >= 0;)
 	{
 		if (coeff.bits[i] == 0){
-		  edwardsDbl<<<NUM_BLOCKS,threadsPerBlock>>>(swQw,swQw,swAx);
+		  twistedDbl<<<NUM_BLOCKS,threadsPerBlock>>>(swQw,swQw,swAx);
 		  --i;
 		}
 		else {
@@ -362,18 +360,16 @@ cudaError_t compute(const Aux h_input,const ExtendedPoint* neutral,ExtendedPoint
 
 			while (!coeff.bits[s]) ++s;
 			for (int h = 1;h <= i-s+1;++h)  
-			  edwardsDbl<<<NUM_BLOCKS,threadsPerBlock>>>(swQw,swQw,swAx);
+			  twistedDbl<<<NUM_BLOCKS,threadsPerBlock>>>(swQw,swQw,swAx);
 
 			u = coeff.build(s,i);
 			if (u > 0){
 			  iter = ((digit_t*)swPc)+((u-1)/2)*NUM_CURVES*4*NB_DIGITS;
-			  //printf("Want %d, looking at %x\n",u,(digit_t)iter);
-			  edwardsAdd<<<NUM_BLOCKS,threadsPerBlock>>>(swQw,swQw,(void*)iter,swAx);
+			  twistedAdd<<<NUM_BLOCKS,threadsPerBlock>>>(swQw,swQw,(void*)iter,swAx);
 			}
 			else { 
 			  iter = ((digit_t*)swPc)+((-u-1)/2)*NUM_CURVES*4*NB_DIGITS;
-			  //printf("Want %d, looking at %x\n",u,(digit_t)iter);
-			  edwardsSub<<<NUM_BLOCKS,threadsPerBlock>>>(swQw,swQw,(void*)iter,swAx); 
+			  twistedSub<<<NUM_BLOCKS,threadsPerBlock>>>(swQw,swQw,(void*)iter,swAx); 
 			} 
 			i = s-1;
 		}
