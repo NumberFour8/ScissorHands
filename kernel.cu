@@ -48,7 +48,7 @@ __global__ void edwardsAdd(void* R, void *P, void *Q,void* aux)
 	const digit_t _INVN = ax->invN;				// -N^(-1) mod W
 	
 	// Načítání dat (4 souřadnice po MAX_BYTES bajtech)
-	const digit_t idx = 4*MAX_BYTES*(blockIdx.x*blockDim.y + threadIdx.y);
+	const digit_t idx = 4*NB_DIGITS*(blockIdx.x*blockDim.y + threadIdx.y);
 	VOL digit_t* Pd   = ((digit_t*)P)+idx; // Teď můžeme přečíst správný bod P
 	VOL digit_t* Qd   = ((digit_t*)Q)+idx; // Teď můžeme přečíst správný bod P
 
@@ -154,7 +154,7 @@ __global__ void edwardsSub(void* R, void *P, void *Q,void* aux)
 	const digit_t _INVN = ax->invN;				// -N^(-1) mod W
 	
 	// Načítání dat (4 souřadnice po MAX_BYTES bajtech)
-	const digit_t idx = 4*MAX_BYTES*(blockIdx.x*blockDim.y + threadIdx.y);
+	const digit_t idx = 4*NB_DIGITS*(blockIdx.x*blockDim.y + threadIdx.y);
 	VOL digit_t* Pd   = ((digit_t*)P)+idx; // Teď můžeme přečíst správný bod P
 	VOL digit_t* Qd   = ((digit_t*)Q)+idx; // Teď můžeme přečíst správný bod P
 
@@ -250,7 +250,7 @@ __global__ void edwardsDbl(void* R,void* P,void* aux)
 	const digit_t _INVN = ax->invN;				// -N^(-1) mod W
 	
 	// Načítání dat (4 souřadnice po MAX_BYTES bajtech)
-	const digit_t idx = 4*MAX_BYTES*(blockIdx.x*blockDim.y + threadIdx.y);
+	const digit_t idx = 4*NB_DIGITS*(blockIdx.x*blockDim.y + threadIdx.y);
 	VOL digit_t* Pd   = ((digit_t*)P)+idx; // Teď můžeme přečíst správný bod P
 
 	
@@ -341,10 +341,13 @@ cudaError_t compute(const Aux h_input,const ExtendedPoint* neutral,ExtendedPoint
 	
 	// Do swQw nakopírovat neutrální prvek
 	iter = (digit_t*)swQw;
-	cuda_Memcpy((void*)(iter+0*NB_DIGITS),(void*)neutral->X,MAX_BYTES,cudaMemcpyHostToDevice);
-	cuda_Memcpy((void*)(iter+1*NB_DIGITS),(void*)neutral->Y,MAX_BYTES,cudaMemcpyHostToDevice);
-	cuda_Memcpy((void*)(iter+2*NB_DIGITS),(void*)neutral->Z,MAX_BYTES,cudaMemcpyHostToDevice);
-	cuda_Memcpy((void*)(iter+3*NB_DIGITS),(void*)neutral->T,MAX_BYTES,cudaMemcpyHostToDevice);
+	for (int i = 0;i < NUM_CURVES;++i){
+		cuda_Memcpy((void*)(iter+0*NB_DIGITS),(void*)neutral->X,MAX_BYTES,cudaMemcpyHostToDevice);
+		cuda_Memcpy((void*)(iter+1*NB_DIGITS),(void*)neutral->Y,MAX_BYTES,cudaMemcpyHostToDevice);
+		cuda_Memcpy((void*)(iter+2*NB_DIGITS),(void*)neutral->Z,MAX_BYTES,cudaMemcpyHostToDevice);
+		cuda_Memcpy((void*)(iter+3*NB_DIGITS),(void*)neutral->T,MAX_BYTES,cudaMemcpyHostToDevice);
+		iter += 4*NB_DIGITS;
+	}
 	
 	// Provést výpočet (sliding window)
 	for (int i = coeff.l-1,u,s = 0;i >= 0;)
@@ -375,7 +378,7 @@ cudaError_t compute(const Aux h_input,const ExtendedPoint* neutral,ExtendedPoint
 			i = s-1;
 		}
 	}
-
+	
 	// Nakopírovat výsledky zpátky do paměti počítače
 	iter = (digit_t*)swQw;
 	for (int i = 0;i < NUM_CURVES;i++){
