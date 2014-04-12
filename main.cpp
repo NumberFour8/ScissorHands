@@ -138,8 +138,8 @@ int main()
 
 	// Spočti S = lcm(1,2,3...,B1) a jeho NAF rozvoj
 	mpz_init(zS);
-	//mpz_set_ui(zS,(unsigned int)std::stoul(ln));
-	lcmToN(zS,(unsigned int)std::stoul(ln));
+	mpz_set_ui(zS,(unsigned int)std::stoul(ln));
+	//lcmToN(zS,(unsigned int)std::stoul(ln));
 	S.initialize(zS);
 
 	// Vypiš S
@@ -183,7 +183,7 @@ int main()
 				printmpz("%s)\n",zY);
 			}
 		}
-		cout << endl << "-----------" << endl;
+		cout << endl << "------------" << endl;
     }
 	
 	// Vyčisti proměnné
