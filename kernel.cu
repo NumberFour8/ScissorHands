@@ -307,9 +307,13 @@ cudaError_t compute(const Aux h_input,const ExtendedPoint* neutral,ExtendedPoint
 	const int WINDOW_SZ	 = 4;							// Velikost okna
 	const int PRECOMP_SZ = (1 << (WINDOW_SZ-2))+1;		// Počet bodů, které je nutné předpočítat
 	
+	cudaEvent_t start,stop;
 	void *swQw = NULL,*swPc = NULL,*swAx = NULL;
 	gpuErrchk(cudaSetDevice(0));
 	
+	gpuErrchk(cudaEventCreate(&start));
+	gpuErrchk(cudaEventCreate(&stop));
+
 	// Alokace potřebných dat
 	cuda_Malloc((void**)&swPc,NUM_CURVES*PRECOMP_SZ*4*MAX_BYTES); // Předpočítané body
 	cuda_Malloc((void**)&swQw,NUM_CURVES*4*MAX_BYTES);			  // Pomocný bod
@@ -330,13 +334,17 @@ cudaError_t compute(const Aux h_input,const ExtendedPoint* neutral,ExtendedPoint
 
 	// Další předpočítané body
 	dim3 threadsPerBlock(NB_DIGITS,CURVES_PER_BLOCK);
+	
+	START_MEASURE(start);
 	twistedDbl<<<NUM_BLOCKS,threadsPerBlock>>> ((void*)swQw,(void*)swPc,(void*)swAx);
 	for (int i = 1; i < PRECOMP_SZ;++i){ // Tady už je iter nastavené na pozici prvních lichých mocnin
 		twistedAdd<<<NUM_BLOCKS,threadsPerBlock>>> ((void*)iter,(void*)swQw,(void*)swPc,(void*)swAx); 
 		twistedAdd<<<NUM_BLOCKS,threadsPerBlock>>> ((void*)swQw,(void*)iter,(void*)swPc,(void*)swAx);
 		iter += NUM_CURVES*4*NB_DIGITS;
 	} 
-	
+	STOP_MEASURE("Precomputation phase",start,stop);
+
+
 	// Do swQw nakopírovat neutrální prvek
 	iter = (digit_t*)swQw;
 	for (int i = 0;i < NUM_CURVES;++i){
@@ -348,6 +356,7 @@ cudaError_t compute(const Aux h_input,const ExtendedPoint* neutral,ExtendedPoint
 	}
 	
 	// Provést výpočet (sliding window)
+	START_MEASURE(start);
 	for (int i = coeff.l-1,u,s = 0;i >= 0;)
 	{
 		if (coeff.bits[i] == 0){
@@ -374,7 +383,8 @@ cudaError_t compute(const Aux h_input,const ExtendedPoint* neutral,ExtendedPoint
 			i = s-1;
 		}
 	}
-	
+	STOP_MEASURE("Computation phase",start,stop);
+
 	// Nakopírovat výsledky zpátky do paměti počítače
 	iter = (digit_t*)swQw;
 	for (int i = 0;i < NUM_CURVES;i++){
@@ -399,6 +409,9 @@ cudaError_t compute(const Aux h_input,const ExtendedPoint* neutral,ExtendedPoint
 	cuda_Free(swAx);
 	cuda_Free(swQw);
 	cuda_Free(swPc);
+
+	gpuErrchk(cudaEventDestroy(start));
+	gpuErrchk(cudaEventDestroy(stop));
 
 	cudaStatus = cudaDeviceReset();
     if (cudaStatus != cudaSuccess) {

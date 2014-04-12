@@ -85,67 +85,80 @@ int readCurves(string file,mpz_t N,ExtendedPoint** pInit)
 
 int main()
 {
-	string ln;
+	string ln,curveFile;
+	int exitCode = 0,read_curves = 0;
+	char c = 0;
 
 	// Načíst N
 	mpz_t zN;
 	cout << "Enter N:" << endl;
 	cin >> ln;
+	cout << endl;
 	mpz_init_set_str(zN,ln.c_str(),10);
 
-	
+	// Inicializace proměnných
+	ExtendedPoint infty(zN); // Neutrální prvek
+	Aux ax(zN);			     // Pomocná struktura
+	NAF S(2);				 // NAF rozvoj šířky 2
+	mpz_t zS,zInvW,zX,zY;	 // Pomocné proměnné
+	cudaError_t cudaStatus;	 // Proměnná pro chybové kódy GPU
+	ExtendedPoint *PP;		 // Adresa všech bodů
+
 	// Načíst křivky ze souboru
 	cout << "Enter path to curve file:" << endl;
-	cin >> ln;
+	cin >> curveFile;
+	cout << endl;
 
-	ExtendedPoint *PP = NULL;
-	int read_curves = readCurves(ln,zN,&PP);
+	restart_bound:
+
+	PP = NULL;
+	read_curves = readCurves(curveFile,zN,&PP);
 
 	// Zkontroluj počet načtených křivek
 	if (read_curves <= 0)
 	{
 		cout << "ERROR: No curves read." << endl;
-		return 1;
+		exitCode = 1;
+		goto end;
 	}
 	else if (read_curves != NUM_CURVES)
 	{
 		cout << "ERROR: Invalid number of curves in file."  
 			 << "Required: " << NUM_CURVES << ". Got: " << read_curves 
 			 << endl;
-		return 1;
+		exitCode = 1;
+		goto end;
 	}
-	cout << "Loaded " << read_curves << " curves." << endl;
+	cout << "Loaded " << read_curves << " curves." << endl << endl;
 
-	// Inicializace B1
-	mpz_t zS;
-	mpz_init(zS);
-	
-	// Přečti B1 a spočti S = lcm(1,2,3...,B1)
+	// Přečti B1
 	cout << "Enter B1:" << endl;
 	cin >> ln;
-	//lcmToN(zS,(unsigned int)std::stoul(ln));
-	mpz_set_ui(zS,(unsigned int)std::stoul(ln));
+	cout << endl;
 
-	// ... a vypočítej NAF rozvoj čísla S
-	NAF S(2,zS);
-	cout << "S = ";
-	printmpz("%s\n",zS);
+	// Spočti S = lcm(1,2,3...,B1) a jeho NAF rozvoj
+	mpz_init(zS);
+	//mpz_set_ui(zS,(unsigned int)std::stoul(ln));
+	lcmToN(zS,(unsigned int)std::stoul(ln));
+	S.initialize(zS);
+
+	// Vypiš S
+	cout << "s = ";
+	printmpz("%s\n\n",zS);
 	mpz_clear(zS);	
-		
-	// Neturální prvek a pomocná struktura	
-	ExtendedPoint infty(zN);
-	Aux ax(zN);
 	
+	cout << "Computation started..." << endl;
 	// Proveď výpočet
-	cudaError_t cudaStatus = compute(ax,&infty,PP,S);
+	cudaStatus = compute(ax,&infty,PP,S);
     if (cudaStatus != cudaSuccess) 
     {
         fprintf(stderr, "CUDA compute failed!");
-        return 1;
+		exitCode = 1;
+        goto end;
     }
+	cout << "Computation finished." << endl;
 
 	// Inicializace pomocných proměnných
-	mpz_t zInvW,zX,zY;
 	mpz_intz(zInvW,zX,zY);
 	
 	// Spočti 2^(-W) mod N 
@@ -153,30 +166,39 @@ int main()
 	mpz_invert(zInvW, zInvW, zN);
 
 	cout << endl;
-	
+	cout << "Print also affine coordinates? (y/n)" << endl;
+	cin >> c;
+	cout << endl;
+
 	// Analyzuj výsledky
 	for (int i = 0; i < NUM_CURVES;++i)
 	{
-		cout << "Result at curve #" << i+1 << ":" << endl;
-		if (PP[i].toAffine(zX,zY,zN,zInvW))
+		cout << "Curve #" << i+1 << ":\t"; 
+		if (PP[i].toAffine(zX,zY,zN,zInvW)) // Pokud převod do afinních souřadnic selže, máme faktor!
 		{
-			printmpz("Affine point: (%s,",zX);
-			printmpz("%s)\n",zY);
+			cout << "No factor found." << endl;
+			if (c == 'y')
+			{ 
+				printmpz("\nsP = (%s,",zX);
+				printmpz("%s)\n",zY);
+			}
 		}
-		else break; // Převod do afinních souřadnic selhal, máme faktor
-		cout << endl;
+		cout << endl << "-----------" << endl;
     }
 	
-	// Vyčisti paměť
-	mpz_clrs(zN,zInvW,zX,zY);
+	// Vyčisti proměnné
+	mpz_clrs(zInvW,zX,zY);
 	delete[] PP;
 
-	cout << "Type 'q' to quit..." << endl;
-	char c;
+	cout << "Type 'r' to restart with new B1 or 'q' to quit..." << endl;
 	while (1) {
 	   cin >> c;
 	   if (c == 'q') break;
+	   if (c == 'r') goto restart_bound;
 	}
 	
-    return 0;
+	end:
+	mpz_clear(zN);
+
+	return exitCode;
 }

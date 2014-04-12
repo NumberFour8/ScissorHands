@@ -42,9 +42,14 @@ void biguint_to_mpz (mpz_t a, biguint_t b)
 
 void printmpz(const char* format,mpz_t number)
 {
-	char out[2048];
-	memset((void*)out,0,2048);
-	printf(format,mpz_get_str((char*)out,10,number));
+	size_t sz = mpz_sizeinbase(number,10)+3;
+	char* out = new char[sz];
+	memset((void*)out,0,sz);
+	
+	mpz_get_str((char*)out,10,number);
+	printf(format,out);
+
+	delete[] out;
 }
 
 void printBigInt(const char* tag,biguint_t B)
@@ -126,11 +131,13 @@ bool reduce_mod(mpz_t r,mpq_t q,mpz_t n)
 	return true;
 }
 
-NAF::NAF(unsigned char W,mpz_t N) : w(W)
+void NAF::initialize(mpz_t N)
 {
 	mpz_t number;
 	mpz_init_set(number,N);
 	
+	if (bits != NULL) free((void*)bits);
+
 	size_t sz = mpz_sizeinbase(number,2);
 	bits = (char*)malloc(sz*8+1);
 	l = 0;
@@ -176,6 +183,12 @@ int NAF::build(unsigned int start,unsigned int end) const
 
 void NAF::print() const
 {
+	if (bits == NULL)
+	{
+		printf("NAF not initialized");
+		return;
+	}
+
 	printf("NAF%d: ",(int)w);
 	for (int i = l-1;i >= 0;--i)
 	{
@@ -186,5 +199,5 @@ void NAF::print() const
 
 NAF::~NAF()
 {
-	free((void*)bits);
+	if (bits != NULL) free((void*)bits);
 }

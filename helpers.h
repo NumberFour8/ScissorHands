@@ -21,10 +21,14 @@ public:
 	// Šíøka rozvoje
 	const unsigned char w;
 	
-	// Zkontruuje rozvoj šíøky W z èí­sla N
-	NAF(unsigned char W,mpz_t N);
+	// Výchozí konstruktor
+	NAF(unsigned char W) : w(W), bits(NULL), l(0)
+	{ }
 	
 	virtual ~NAF();
+
+	// Vytvoøí NAF rozvoj èísla N dané šíøky W
+	void initialize(mpz_t N);
 	
 	// Vypíše rozvoj
 	void print() const;
@@ -113,7 +117,7 @@ inline void gpuAssert(cudaError_t code, char *file, int line, bool abort = true)
    }
 }
 
-//////////////////////// POMOCNÃ MAKRA NA ZACHYCENÍ CHYB V CUDA ////////////////////////
+//////////////////////// POMOCNÁ MAKRA PRO CUDA ///////////////////////////
 
 #define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 
@@ -122,4 +126,12 @@ inline void gpuAssert(cudaError_t code, char *file, int line, bool abort = true)
 #define cuda_Free(A) gpuErrchk(cudaFree(A))
 #define cuda_MemcpyToSymbol(A,B,C) gpuErrchk(cudaMemcpyToSymbol(A,B,C,cudaMemcpyHostToDevice))
 
+
+#define START_MEASURE(start) gpuErrchk(cudaEventRecord(start,0))
+#define STOP_MEASURE(name,start,stop) {gpuErrchk(cudaEventRecord(stop,0));\
+								  gpuErrchk(cudaEventSynchronize(stop));\
+								  float time = 0;\
+								  gpuErrchk(cudaEventElapsedTime(&time,start,stop));\
+								  time > 2000.0f ? printf("%s : %.3f s\n",name,time/1000.0f) :\
+												   printf("%s : %.3f ms\n",name,time); }
 #endif
