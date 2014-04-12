@@ -7,34 +7,6 @@
 // Třída pro bod v Extended souřadnicích v paměti počítače
 class ExtendedPoint {
 private:
-	/*	
-		Vrací true, je-li v invx platný inverzní prvek k x v okruhu modulo N
-		při chybě vrací false a potom invx buď je přímo faktor N, nebo 0.
-	*/
-	bool inverseMod(mpz_t invx,mpz_t x,mpz_t N)
-     {
-		 bool ret = false;
-		 
-		 mpz_t b,r;
-		 mpz_init(b);
-		 mpz_init(r);
-         
-		 mpz_gcdext(r,invx,b,x,N);
-         if (mpz_cmp_ui(r,1) == 0){
-		   if (mpz_sgn(invx) == -1)
-			 mpz_add(invx,invx,N);
-		   ret = true;
-		 }
-         else if (mpz_cmp(r,N) == 0)
-		 {
-			 mpz_set_si(invx,0);
-		 }
-		 else mpz_set(invx,r);
-
-		 mpz_clear(b);
-		 mpz_clear(r);
-		 return ret;
-     }
 
 	void initAll()
 	{
@@ -64,7 +36,7 @@ public:
 		initAll();
 		fromAffine(x,y,N);
 	}
-	
+
 	// Vytvoří bod v nekonečnu v Extended souřadnicích
 	ExtendedPoint(mpz_t N,bool minus1 = true) 
 	  : minusOne(minus1)
@@ -85,7 +57,9 @@ public:
 	}
 
 
-	// Transformace z afinních souřadnic do Extended souřadnic v Montgomeryho reprezentaci
+	/* Transformace z afinních souřadnic do Extended souřadnic v Montgomeryho reprezentaci
+	   Předpoklad: X,Y < N
+	*/
 	void fromAffine(mpz_t x,mpz_t y,mpz_t N)
 	{
 		mpz_t z,t;
@@ -110,15 +84,12 @@ public:
 	
 	/*
 		Převede bod z Extended souřadnic v Montgomeryho reprezentaci zpět do afinních.
-		V případě chyby vrací false a případný nalezný faktor N je ve struktuře pRes.
+		V případě chyby vrací false a případný nalezný faktor N je vypsán na standardní výstup.
 	*/
-	bool toAffine(mpz_t x,mpz_t y,mpz_t N,mpz_t invB,ExtResult* pRes)
+	bool toAffine(mpz_t x,mpz_t y,mpz_t N,mpz_t invB)
 	{
 		mpz_t z,f;
 		mpz_intz(z,f);
-
-		pRes->factorFound = false;
-		mpz_set_ui(pRes->factor,0);
 
 		biguint_to_mpz(x,X);
 		biguint_to_mpz(y,Y);
@@ -128,22 +99,17 @@ public:
 		from_mont_repr(y,N,invB);
 		from_mont_repr(z,N,invB);
 	
-		if (!inverseMod(f,z,N)){
-			pRes->factorFound = (mpz_cmp_ui(f,0) != 0);
-			mpz_set(pRes->factor,f);
-			
-			mpz_clrs(z,f);
-			return false;
-		}
-		else {
+		bool ret = try_invert_mod(f,z,N);
+		if (ret) 
+		{
 			mpz_mul(x,x,f);
 			mpz_mul(y,y,f);
 			mpz_mod(x,x,N);
 			mpz_mod(y,y,N);
-
-			mpz_clrs(z,f);
-			return true;
 		}
+		
+		mpz_clrs(z,f);
+		return ret;
 	}
 };
 

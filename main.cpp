@@ -20,6 +20,9 @@ int readCurves(string file,mpz_t N,ExtendedPoint** pInit)
 		return 0;
 	} 
 	
+	mpq_t qX,qY;
+	mpq_intz(qX,qY);
+
 	mpz_t zX,zY;
 	mpz_intz(zX,zY);
 	
@@ -30,45 +33,68 @@ int readCurves(string file,mpz_t N,ExtendedPoint** pInit)
 	{
 		if (ln.find("#") == string::npos) continue;
 		
+		// Je to překroucená Edwardsova křivka s a = -1 ? 
 		fp >> ln; 
 		minus1 = (ln == "-1");
 		
+		// Přečti racionální X-ovou souřadnici a zkrať
 		fp >> ln;
-		mpz_set_str(zX,ln.c_str(),10);
-		fp >> ln;
-		mpz_set_str(zY,ln.c_str(),10);
+		mpq_set_str(qX,ln.c_str(),10);
+		mpq_canonicalize(qX);
 		
+		// Přečti racionální Y-ovou souřadnici a zkrať
+		fp >> ln;
+		mpq_set_str(qY,ln.c_str(),10);
+		mpq_canonicalize(qY);
+
+		// Pokus se X-ovou a Y-ovou souřadnici rekudovat modulo N
+		if (!reduce_mod(zX,qX,N) || !reduce_mod(zY,qY,N))
+		{
+			cout << "ERROR: Cannot reduce on curve #" << v.size() << endl;
+			fp.close();
+			mpz_clrs(zX,zY);
+			mpq_clrs(qX,qY);
+
+			return 0;
+		}
+
+		// Vytvoř bod v Extended souřadnicích z redukovaných afinních bodů modulo N
 		v.push_back(ExtendedPoint(zX,zY,N)); 
 	}
-	fp.close();
-	mpz_clrs(zX,zY);
 
+	// Překopíruj body z vektoru do paměti
 	*pInit = new ExtendedPoint[v.size()];
 	std::copy(v.begin(),v.end(),*pInit);
-	
-	//std::for_each(v.begin(),v.end(), [](ExtendedPoint p) { delete &p });
-	
+
+	// Vyčisti paměť
+	fp.close();
+	mpz_clrs(zX,zY);
+	mpq_clrs(qX,qY);
+
 	return (int)v.size();
 }
 
 int main()
 {
 	string ln;
+
+	// Načíst N
+	mpz_t zN;
 	cout << "Enter N:" << endl;
 	cin >> ln;
-
-	mpz_t zN;
 	mpz_init_set_str(zN,ln.c_str(),10);
 
+	
+	// Načíst křivky ze souboru
 	cout << "Enter path to curve file:" << endl;
 	cin >> ln;
 
 	ExtendedPoint *PP = NULL;
-	
 	int read_curves = readCurves(ln,zN,&PP);
+
 	if (read_curves <= 0)
 	{
-		cout << "ERROR: No curves read" << endl;
+		cout << "ERROR: No curves read." << endl;
 		return 1;
 	}
 	else if (read_curves != NUM_CURVES)
@@ -79,10 +105,10 @@ int main()
 		return 1;
 	}
 	
+	// Hranice B1 pro první fázi
 	mpz_t zS;
 	mpz_init(zS);
 	
-	// Hranice první fáze
 	cout << "Enter B1:" << endl;
 	cin >> ln;
 	lcmToN(zS,(unsigned int)std::stoul(ln));
@@ -108,28 +134,23 @@ int main()
 	mpz_t zInvW,zX,zY;
 	mpz_intz(zInvW,zX,zY);
 	
-	// 2^(-W) mod N 
+	// Spočti 2^(-W) mod N 
 	mpz_ui_pow_ui(zInvW, 2, SIZE_DIGIT); 
 	mpz_invert(zInvW, zInvW, zN);
 
 	cout << endl;
 	
 	// Analyzuj výsledky
-	ExtResult Result;
 	for (int i = 0; i < NUM_CURVES;++i)
 	{
-		if (PP[i].toAffine(zX,zY,zN,zInvW,&Result)){
-			cout << "No factor found by curve #" << i+1 << endl;
+		cout << "Result at curve #" << i+1 << ":" << endl;
+		if (PP[i].toAffine(zX,zY,zN,zInvW))
+		{
 			printmpz("Affine point: (%s,",zX);
 			printmpz("%s)\n",zY);
 		}
-		else if (Result.factorFound) 
-		{
-			printmpz("Found factor %s ",Result.factor);
-			cout << "using curve #" << i+1 << endl;
-			break;
-		}
-		else cout << "ERROR while working with curve #" << i+1 << endl;
+		else break;
+		cout << endl;
     }
 	
 	// Vyčisti paměť

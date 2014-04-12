@@ -6,22 +6,8 @@
 #define mpz_intz(...) mpz_inits(__VA_ARGS__,NULL)
 #define mpz_clrs(...) mpz_clears(__VA_ARGS__,NULL)
 
-// Tøída obsahující­ vysledek pøevodu z Extended souøadnic
-class ExtResult {
-public:
-	// Indikátor, zda byl nalezen faktor
-	bool factorFound;
-	
-	// Nalezený faktor
-	mpz_t factor;
-
-	// Výchozí konstruktor
-	ExtResult() : factorFound(false)
-	{ mpz_init_set_ui(factor,0); }
-	
-	~ExtResult()
-	{ mpz_clear(factor); }
-};
+#define mpq_intz(...) mpq_inits(__VA_ARGS__,NULL)
+#define mpq_clrs(...) mpq_clears(__VA_ARGS__,NULL)
 
 // Rozvoj è­sla do non-adjacent form (NAF)
 class NAF {
@@ -67,6 +53,18 @@ void printBigInt(const char* tag,biguint_t B);
 
 // Spoèítá LCM(1,2,3...,n)
 void lcmToN(mpz_t res,const unsigned int n);
+
+/* Pokusí se invertovat X modulo N.
+   Pokud inverze neexistuje vrací false a v invX je faktor N.
+   Je-li gcd(X,N) = N, pak vrací 0.
+ */ 
+bool try_invert_mod(mpz_t invx,mpz_t x,mpz_t N);
+
+/* Vypoèítá redukci racionálního èísla q modulo n.
+   Pøi chybì vrací false a v r je faktor èísla N nebo 0. 
+*/
+bool reduce_mod(mpz_t r,mpq_t q,mpz_t n);
+
 
 // Vynuluje èí­slo v bázi 2^32
 inline void reset(biguint_t n)

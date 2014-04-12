@@ -68,6 +68,49 @@ void lcmToN(mpz_t res,const unsigned int n)
 	}
 }
 
+bool try_invert_mod(mpz_t invx,mpz_t x,mpz_t N)
+{
+	bool ret = false;
+		 
+	mpz_t b,r;
+	mpz_intz(b,r);
+         
+	mpz_gcdext(r,invx,b,x,N);
+    if (mpz_cmp_ui(r,1) == 0){
+		if (mpz_sgn(invx) == -1) 
+		  mpz_add(invx,invx,N);
+		ret = true;
+	}
+    else if (mpz_cmp(r,N) == 0)
+	{
+		mpz_set_si(invx,0);
+	}
+	else {
+	  mpz_set(invx,r);
+	  printmpz("Factor found: %s\n",invx);
+	}
+
+	mpz_clrs(r,b);
+	
+	return ret;
+}
+
+bool reduce_mod(mpz_t r,mpq_t q,mpz_t n)
+{
+	mpz_t den;
+	mpz_init_set(den,mpq_denref(q));
+	
+	bool s = try_invert_mod(r,den,n);
+	mpz_clear(den);
+
+	if (!s) return false;
+	
+	mpz_mul(r,r,mpq_numref(q));
+	mpz_mod(r,r,n);
+
+	return true;
+}
+
 NAF::NAF(unsigned char W,mpz_t N) : w(W)
 {
 	mpz_t number;
