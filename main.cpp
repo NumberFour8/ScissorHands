@@ -12,7 +12,7 @@ using namespace std;
 int readCurves(string file,mpz_t N,ExtendedPoint** pInit)
 {
 	ifstream fp;
-	fp.open(ln);
+	fp.open(file);
 
 	if (!fp.is_open())
 	{
@@ -23,15 +23,16 @@ int readCurves(string file,mpz_t N,ExtendedPoint** pInit)
 	mpz_t zX,zY;
 	mpz_intz(zX,zY);
 	
+	string ln;
 	vector<ExtendedPoint> v;
-	while (getline(ln,fp))
+	while (getline(fp,ln))
 	{
 		if (ln.find("#") == string::npos) continue;
 		
-		fp >> X;
-		fp >> Y;
-		mpz_set_str(zX,X.c_str(),10);
-		mpz_set_str(zY,Y.c_str(),10);
+		fp >> ln;
+		mpz_set_str(zX,ln.c_str(),10);
+		fp >> ln;
+		mpz_set_str(zY,ln.c_str(),10);
 		
 		v.push_back(ExtendedPoint(zX,zY,N)); 
 	}
@@ -104,7 +105,7 @@ int main()
 	mpz_intz(zInvW,zX,zY);
 	
 	// 2^(-W) mod N 
-	mpz_ui_pow_ui(zW, 2, SIZE_DIGIT); 
+	mpz_ui_pow_ui(zInvW, 2, SIZE_DIGIT); 
 	mpz_invert(zInvW, zInvW, zN);
 
 	cout << endl;
@@ -120,7 +121,7 @@ int main()
 		}
 		else if (Result.factorFound) 
 		{
-			printmpz("Found factor %s ",res.factor);
+			printmpz("Found factor %s ",Result.factor);
 			cout << "using curve #" << i+1 << endl;
 			break;
 		}
