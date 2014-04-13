@@ -13,9 +13,14 @@ using namespace std;
 int readCurves(string file,mpz_t N,ExtendedPoint** pInit)
 {
 	ifstream fp;
-	fp.open(file);
-
+	if (file.length() < 2) 
+	{
+		file = "curves.txt";
+		cout << "INFO: Defaulting to curves.txt" << endl;	
+	}
+	
 	// Pokud se nepodaří otevřít soubor, skonči
+	fp.open(file);
 	if (!fp.is_open())
 	{
 		cout << "ERROR: Cannot open file." << endl;
@@ -88,6 +93,7 @@ int main()
 	string ln,curveFile;
 	int exitCode = 0,read_curves = 0;
 	char c = 0;
+	bool factorsFound = false;
 
 	// Načíst N
 	mpz_t zN;
@@ -132,14 +138,14 @@ int main()
 	cout << "Loaded " << read_curves << " curves." << endl << endl;
 
 	// Přečti B1
-	cout << "Enter B1:" << endl;
+	cout << "Enter B1: " << endl;
 	cin >> ln;
 	cout << endl;
 
 	// Spočti S = lcm(1,2,3...,B1) a jeho NAF rozvoj
 	mpz_init(zS);
-	mpz_set_ui(zS,(unsigned int)std::stoul(ln));
-	//lcmToN(zS,(unsigned int)std::stoul(ln));
+	//mpz_set_ui(zS,(unsigned int)std::stoul(ln));
+	lcmToN(zS,(unsigned int)std::stoul(ln));
 	S.initialize(zS);
 
 	// Vypiš S
@@ -183,14 +189,18 @@ int main()
 				printmpz("%s)\n",zY);
 			}
 		}
+		else factorsFound = true;
 		cout << endl << "------------" << endl;
     }
 	
+	if (factorsFound)
+	  cout << endl << "SOME FACTORS HAVE BEEN FOUND!" << endl;
+
 	// Vyčisti proměnné
 	mpz_clrs(zInvW,zX,zY);
 	delete[] PP;
 
-	cout << "Type 'r' to restart with new B1 or 'q' to quit..." << endl;
+	cout << endl << "Type 'r' to restart with new B1 or 'q' to quit..." << endl;
 	while (1) {
 	   cin >> c;
 	   if (c == 'q') break;

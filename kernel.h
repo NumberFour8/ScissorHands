@@ -7,8 +7,8 @@
 #include "coords.h"
 #include "helpers.h"
 
-#define NUM_BLOCKS 5
-#define CURVES_PER_BLOCK 8
+#define NUM_BLOCKS 6
+#define CURVES_PER_BLOCK 10
 
 #define NUM_CURVES NUM_BLOCKS*CURVES_PER_BLOCK
 
