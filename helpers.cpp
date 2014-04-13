@@ -1,6 +1,3 @@
-#include <iostream>
-using namespace std;
-
 #include "helpers.h"
 
 void to_mont_repr (mpz_t x, mpz_t n)

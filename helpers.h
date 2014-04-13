@@ -1,6 +1,10 @@
 #ifndef HELPERS_H
 #define HELPERS_H
 
+#include <iostream>
+#include <string>
+using namespace std;
+
 #include "def.h"
 
 #define mpz_intz(...) mpz_inits(__VA_ARGS__,NULL)
