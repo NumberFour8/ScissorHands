@@ -1,3 +1,6 @@
+#include <iostream>
+using namespace std;
+
 #include "helpers.h"
 
 void to_mont_repr (mpz_t x, mpz_t n)
@@ -40,16 +43,23 @@ void biguint_to_mpz (mpz_t a, biguint_t b)
   }
 }
 
-void printmpz(const char* format,mpz_t number)
+string mpz_to_string(mpz_t number)
 {
 	size_t sz = mpz_sizeinbase(number,10)+3;
 	char* out = new char[sz];
 	memset((void*)out,0,sz);
 	
 	mpz_get_str((char*)out,10,number);
-	printf(format,out);
-
+	
+	string ret(out);
 	delete[] out;
+
+	return ret;
+}
+
+void printmpz(const char* format,mpz_t number)
+{
+	printf(format,mpz_to_string(number).c_str());
 }
 
 void printBigInt(const char* tag,biguint_t B)
@@ -90,12 +100,14 @@ bool try_invert_mod(mpz_t invx,mpz_t x,mpz_t N)
     else if (mpz_cmp(r,N) == 0)
 	{
 		mpz_set_si(invx,0);
-		printmpz("Error during inversion of: %s\n",x);
+		cout << "Error during inversion of: " << mpz_to_string(invx) << endl;
 	}
 	else 
 	{
 	    mpz_set(invx,r);
-	    printmpz("Factor found: %s\n",invx);
+
+		string fac = mpz_to_string(invx);
+	    cout << "Factor found: " << fac << endl;
 	}
 
 	mpz_clrs(r,b);

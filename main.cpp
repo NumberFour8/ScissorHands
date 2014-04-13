@@ -193,8 +193,10 @@ int main()
 		cout << endl << "------------" << endl;
     }
 	
-	if (factorsFound)
+	if (factorsFound){
 	  cout << endl << "SOME FACTORS HAVE BEEN FOUND!" << endl;
+	  //cout << factorStream.str() << endl;
+	}
 
 	// Vyčisti proměnné
 	mpz_clrs(zInvW,zX,zY);

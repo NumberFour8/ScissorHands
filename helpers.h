@@ -49,6 +49,9 @@ void mpz_to_biguint(biguint_t a, mpz_t b);
 // Pøevede èí­slo z báze 2^32 do MPZ
 void biguint_to_mpz(mpz_t a, biguint_t b);
 
+// Pøevede MPZ èíslo do øetìzce
+std::string mpz_to_string(mpz_t number);
+
 // Vypíše è­slo MPZ
 void printmpz(const char* format,mpz_t number);
 
