@@ -1,3 +1,7 @@
+#define curvesAdd edwardsAdd
+#define curvesDbl edwardsDbl
+#define curvesSub edwardsSub
+
 __global__ void edwardsAdd(void* R, void *P, void *Q,void* aux)
 {
 	Aux *ax = (Aux*)aux;
@@ -183,7 +187,7 @@ __global__ void edwardsSub(void* R, void *P, void *Q,void* aux)
 	MUL_MOD(c_z2,c_z2,c_z1);
 	ADD_MOD(c_z1,c_z2,c_tt1);
 	
-	ADD_MOD(c_t1,c_z1,c_t0); 
+	ADD_MOD(c_t1,c_z1,c_tt0); 
 	SUB_MOD(c_z2,c_tt1,c_tt0);
 	
 	MUL_MOD(c_x1,c_x2,c_t1); 
@@ -264,7 +268,7 @@ __global__ void edwardsDbl(void* R,void* P,void* aux)
 	SUB_MOD(c_y1,c_t1,c_tt1);
 	SQR_MOD(c_z1,c_z1);
 	
-	DBL_MOD(c_t1,c_z1);
+	DBE_MOD(c_t1,c_z1);
 	SUB_MOD(c_x1,c_y1,c_tt0);
 	
 	ADD_MOD(c_z1,c_tt1,c_tt0);

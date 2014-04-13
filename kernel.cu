@@ -41,10 +41,10 @@ cudaError_t compute(const Aux h_input,const ExtendedPoint* neutral,ExtendedPoint
 	dim3 threadsPerBlock(NB_DIGITS,CURVES_PER_BLOCK);
 	
 	START_MEASURE(start);
-	twistedDbl<<<NUM_BLOCKS,threadsPerBlock>>> ((void*)swQw,(void*)swPc,(void*)swAx);
+	curvesDbl<<<NUM_BLOCKS,threadsPerBlock>>> ((void*)swQw,(void*)swPc,(void*)swAx);
 	for (int i = 1; i < PRECOMP_SZ;++i){ // Tady už je iter nastavené na pozici prvních lichých mocnin
-		twistedAdd<<<NUM_BLOCKS,threadsPerBlock>>> ((void*)iter,(void*)swQw,(void*)swPc,(void*)swAx); 
-		twistedAdd<<<NUM_BLOCKS,threadsPerBlock>>> ((void*)swQw,(void*)iter,(void*)swPc,(void*)swAx);
+		curvesAdd<<<NUM_BLOCKS,threadsPerBlock>>> ((void*)iter,(void*)swQw,(void*)swPc,(void*)swAx); 
+		curvesAdd<<<NUM_BLOCKS,threadsPerBlock>>> ((void*)swQw,(void*)iter,(void*)swPc,(void*)swAx);
 		iter += NUM_CURVES*4*NB_DIGITS;
 	} 
 	STOP_MEASURE("Precomputation phase",start,stop);
@@ -65,7 +65,7 @@ cudaError_t compute(const Aux h_input,const ExtendedPoint* neutral,ExtendedPoint
 	for (int i = coeff.l-1,u,s = 0;i >= 0;)
 	{
 		if (coeff.bits[i] == 0){
-		  twistedDbl<<<NUM_BLOCKS,threadsPerBlock>>>(swQw,swQw,swAx);
+		  curvesDbl<<<NUM_BLOCKS,threadsPerBlock>>>(swQw,swQw,swAx);
 		  --i;
 		}
 		else {
@@ -74,16 +74,16 @@ cudaError_t compute(const Aux h_input,const ExtendedPoint* neutral,ExtendedPoint
 
 			while (!coeff.bits[s]) ++s;
 			for (int h = 1;h <= i-s+1;++h)  
-			  twistedDbl<<<NUM_BLOCKS,threadsPerBlock>>>(swQw,swQw,swAx);
+			  curvesDbl<<<NUM_BLOCKS,threadsPerBlock>>>(swQw,swQw,swAx);
 
 			u = coeff.build(s,i);
 			if (u > 0){
 			  iter = ((digit_t*)swPc)+((u-1)/2)*NUM_CURVES*4*NB_DIGITS;
-			  twistedAdd<<<NUM_BLOCKS,threadsPerBlock>>>(swQw,swQw,(void*)iter,swAx);
+			  curvesAdd<<<NUM_BLOCKS,threadsPerBlock>>>(swQw,swQw,(void*)iter,swAx);
 			}
 			else { 
 			  iter = ((digit_t*)swPc)+((-u-1)/2)*NUM_CURVES*4*NB_DIGITS;
-			  twistedSub<<<NUM_BLOCKS,threadsPerBlock>>>(swQw,swQw,(void*)iter,swAx); 
+			  curvesSub<<<NUM_BLOCKS,threadsPerBlock>>>(swQw,swQw,(void*)iter,swAx); 
 			} 
 			i = s-1;
 		}

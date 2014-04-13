@@ -77,6 +77,9 @@ __device__ void Cuda_Square_mod(biguint_t mul, bigint_t cy, const biguint_t A, b
 // A = 2*A
 #define DBL_MOD(A)	   Cuda_Dbl_mod(A,A)
 
+// A = 2*B
+#define DBE_MOD(A,B)   Cuda_Dbl_mod(A,B)
+
 // A = -B
 #define NEG_MOD(A,B)   SUB_MOD(A,_N,B)
 

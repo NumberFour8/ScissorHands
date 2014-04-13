@@ -1,3 +1,7 @@
+#define curvesAdd twistedAdd
+#define curvesDbl twistedDbl
+#define curvesSub twistedSub
+
 __global__ void twistedAdd(void* R, void *P, void *Q,void* aux)
 {
 	Aux *ax = (Aux*)aux;
