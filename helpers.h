@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <string>
+#include <vector>
 using namespace std;
 
 #include "def.h"
@@ -55,9 +56,6 @@ void biguint_to_mpz(mpz_t a, biguint_t b);
 
 // Pøevede MPZ èíslo do øetìzce
 std::string mpz_to_string(mpz_t number);
-
-// Vypíše è­slo MPZ
-void printmpz(const char* format,mpz_t number);
 
 // Vypíše èíslo v bázi 2^32
 void printBigInt(const char* tag,biguint_t B);

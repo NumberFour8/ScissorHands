@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <algorithm>
+#include <set>
 
 #include "kernel.h"
 
@@ -33,7 +34,8 @@ int readCurves(string file,mpz_t N,ExtendedPoint** pInit)
 
 	// Inicializace celočíselných souřadnic
 	mpz_t zX,zY;
-	mpz_intz(zX,zY);
+	mpz_init_set_ui(zX,0);
+	mpz_init_set_ui(zY,0);
 	
 	string ln;
 	vector<ExtendedPoint> v;
@@ -62,6 +64,15 @@ int readCurves(string file,mpz_t N,ExtendedPoint** pInit)
 		if (!reduce_mod(zX,qX,N) || !reduce_mod(zY,qY,N))
 		{
 			cout << "ERROR: Cannot reduce on curve #" << v.size() << endl;
+			if (mpz_cmp_ui(zX,0) != 0) // Byl nalezen faktor?
+			{
+				cout << "Factor found: " << mpz_to_string(zX) << endl;
+			}
+			else if (mpz_cmp_ui(zY,0) != 0)
+			{
+				cout << "Factor found: " << mpz_to_string(zY) << endl;
+			}
+			
 			fp.close();
 			mpz_clrs(zX,zY);
 			mpq_clrs(qX,qY);
@@ -91,9 +102,12 @@ int readCurves(string file,mpz_t N,ExtendedPoint** pInit)
 int main()
 {
 	string ln,curveFile;
+	typedef pair<string,bool> factor;
 	int exitCode = 0,read_curves = 0;
 	char c = 0;
-	bool factorsFound = false;
+
+	// Množina nalezených faktorů s vlastním uspořádnáním
+	set<factor,bool(*)(factor x, factor y)> foundFactors([](factor x, factor y){ return x.first < y.first; });
 
 	// Načíst N
 	mpz_t zN;
@@ -106,7 +120,7 @@ int main()
 	ExtendedPoint infty(zN); // Neutrální prvek
 	Aux ax(zN);			     // Pomocná struktura
 	NAF S(2);				 // NAF rozvoj šířky 2
-	mpz_t zS,zInvW,zX,zY;	 // Pomocné proměnné
+	mpz_t zS,zInvW,zX,zY,zF; // Pomocné proměnné
 	cudaError_t cudaStatus;	 // Proměnná pro chybové kódy GPU
 	ExtendedPoint *PP;		 // Adresa všech bodů
 
@@ -149,8 +163,7 @@ int main()
 	S.initialize(zS);
 
 	// Vypiš S
-	cout << "s = ";
-	printmpz("%s\n\n",zS);
+	cout << "s = " << mpz_to_string(zS) << endl << endl;
 	mpz_clear(zS);	
 	
 	cout << "Computation started..." << endl;
@@ -165,7 +178,7 @@ int main()
 	cout << "Computation finished." << endl;
 
 	// Inicializace pomocných proměnných
-	mpz_intz(zInvW,zX,zY);
+	mpz_intz(zInvW,zX,zY,zF);
 	
 	// Spočti 2^(-W) mod N 
 	mpz_ui_pow_ui(zInvW, 2, SIZE_DIGIT); 
@@ -177,26 +190,45 @@ int main()
 	cout << endl;
 
 	// Analyzuj výsledky
+	foundFactors.clear();
 	for (int i = 0; i < NUM_CURVES;++i)
 	{
 		cout << "Curve #" << i+1 << ":\t"; 
-		if (PP[i].toAffine(zX,zY,zN,zInvW)) // Pokud převod do afinních souřadnic selže, máme faktor!
+		if (PP[i].toAffine(zX,zY,zN,zInvW,zF)) 
 		{
 			cout << "No factor found." << endl;
 			if (c == 'y')
-			{ 
-				printmpz("\nsP = (%s,",zX);
-				printmpz("%s)\n",zY);
-			}
+			  cout << endl << "sP = " << mpz_to_string(zX) << "," << mpz_to_string(zY) << ")" << endl;
 		}
-		else factorsFound = true;
+		else if (mpz_cmp_ui(zF,0) != 0) // Máme faktor!
+		{
+		   string fact = mpz_to_string(zF);
+		   if (mpz_probab_prime_p(zF,25) != 0)
+		   {
+		      cout << "Prime factor found: " << fact << endl;
+		      foundFactors.insert(std::make_pair(fact,true));
+		   }
+		   else
+		   {
+			  cout << "Composite factor found: " << fact << endl;
+			  foundFactors.insert(std::make_pair(fact,false));
+		   }
+
+		}
+		else cout << "Error during conversion." << endl;
 		cout << endl << "------------" << endl;
     }
 	
-	if (factorsFound){
-	  cout << endl << "SOME FACTORS HAVE BEEN FOUND!" << endl;
-	  //cout << factorStream.str() << endl;
+	// Vypiš všechny nalezené faktory
+	if (foundFactors.size() > 0)
+	{
+	  cout << endl << foundFactors.size() << " FACTORS FOUND:" << endl << endl;
+	  std::for_each(foundFactors.begin(),foundFactors.end(),
+				    [](const factor f)
+					{ cout << (f.second ? "Prime:\t" : "Composite:\t") << f.first <<  endl; }
+				   );
 	}
+	else cout << endl << "No factors found." << endl << endl;
 
 	// Vyčisti proměnné
 	mpz_clrs(zInvW,zX,zY);

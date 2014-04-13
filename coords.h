@@ -15,7 +15,9 @@ private:
 		reset(Z);
 		reset(T);
 	}
+
 public:	
+
 	// Všechny souřadnice bodu v Extended souřadnicích
 	biguint_t X,Y,Z,T;
 	
@@ -84,12 +86,13 @@ public:
 	
 	/*
 		Převede bod z Extended souřadnic v Montgomeryho reprezentaci zpět do afinních.
-		V případě chyby vrací false a případný nalezný faktor N je vypsán na standardní výstup.
+		V případě chyby vrací false a případný nalezný faktor čísla N je zapsán do fact.
 	*/
-	bool toAffine(mpz_t x,mpz_t y,mpz_t N,mpz_t invB)
+	bool toAffine(mpz_t x,mpz_t y,mpz_t N,mpz_t invB,mpz_t fact)
 	{
-		mpz_t z,f;
-		mpz_intz(z,f);
+		mpz_t z;
+		mpz_init(z);
+		mpz_set_ui(fact,0);
 
 		biguint_to_mpz(x,X);
 		biguint_to_mpz(y,Y);
@@ -99,16 +102,18 @@ public:
 		from_mont_repr(y,N,invB);
 		from_mont_repr(z,N,invB);
 	
-		bool ret = try_invert_mod(f,z,N);
+		bool ret = try_invert_mod(fact,z,N);
 		if (ret) 
 		{
-			mpz_mul(x,x,f);
-			mpz_mul(y,y,f);
+			mpz_mul(x,x,fact);
+			mpz_mul(y,y,fact);
 			mpz_mod(x,x,N);
 			mpz_mod(y,y,N);
+			
+			mpz_set_ui(fact,0);
 		}
 		
-		mpz_clrs(z,f);
+		mpz_clear(z);
 		return ret;
 	}
 };

@@ -54,11 +54,6 @@ string mpz_to_string(mpz_t number)
 	return ret;
 }
 
-void printmpz(const char* format,mpz_t number)
-{
-	printf(format,mpz_to_string(number).c_str());
-}
-
 void printBigInt(const char* tag,biguint_t B)
 {
 	printf("%s: {",tag);
@@ -96,15 +91,13 @@ bool try_invert_mod(mpz_t invx,mpz_t x,mpz_t N)
 	}
     else if (mpz_cmp(r,N) == 0)
 	{
+		// Pøi chybì do r nastav 0
 		mpz_set_si(invx,0);
-		cout << "Error during inversion of: " << mpz_to_string(invx) << endl;
 	}
 	else 
 	{
-	    mpz_set(invx,r);
-
-		string fac = mpz_to_string(invx);
-	    cout << "Factor found: " << fac << endl;
+		// Do r nastav faktor èísla N
+	    mpz_set(invx,r); 
 	}
 
 	mpz_clrs(r,b);
@@ -129,8 +122,9 @@ bool reduce_mod(mpz_t r,mpq_t q,mpz_t n)
 
 	if (!s) 
 	{
+	  // Pøi selhání je v r zapsán faktor èísla N nebo 0, viz try_invert_mod().
 	  mpz_clear(num);
-	  return false;
+	  return false; 
 	}
 	
 	mpz_mul(r,r,num);
