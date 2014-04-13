@@ -1,5 +1,0 @@
-# Edwards Curve 1, torsion Z/12Z
-1
-56/65
-44/5
-1375/1024

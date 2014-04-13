@@ -16,8 +16,8 @@ int readCurves(string file,mpz_t N,ExtendedPoint** pInit)
 	ifstream fp;
 	if (file.length() < 2) 
 	{
-		file = "curves.txt";
-		cout << "INFO: Defaulting to curves.txt" << endl;	
+		file = "curves_edwards.txt";
+		cout << "INFO: Defaulting to curves_edwards.txt" << endl;	
 	}
 	
 	// Pokud se nepodaří otevřít soubor, skonči
@@ -198,7 +198,7 @@ int main()
 		{
 			cout << "No factor found." << endl;
 			if (c == 'y')
-			  cout << endl << "sP = " << mpz_to_string(zX) << "," << mpz_to_string(zY) << ")" << endl;
+			  cout << endl << "sP = (" << mpz_to_string(zX) << "," << mpz_to_string(zY) << ")" << endl;
 		}
 		else if (mpz_cmp_ui(zF,0) != 0) // Máme faktor!
 		{

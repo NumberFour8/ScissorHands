@@ -79,7 +79,7 @@ __global__ void edwardsAdd(void* R, void *P, void *Q,void* aux)
 	SUB_MOD(c_z2,c_x1,c_y1);
 	
 	ADD_MOD(c_x2,c_t1,c_t2);
-	ADD_MOD(c_y2,c_t1,c_t2);
+	SUB_MOD(c_y2,c_t1,c_t2);
 	
 	MUL_MOD(c_z2,c_z2,c_z1);
 	ADD_MOD(c_z1,c_z2,c_tt1);
