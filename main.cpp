@@ -16,8 +16,12 @@ int readCurves(string file,mpz_t N,ExtendedPoint** pInit)
 	ifstream fp;
 	if (file.length() < 2) 
 	{
-		file = "curves_edwards.txt";
-		cout << "INFO: Defaulting to curves_edwards.txt" << endl;	
+		#ifdef USE_TWISTED
+			file = "curves_twisted.txt";
+		#else 
+			file = "curves_edwards.txt";
+		#endif
+		cout << "INFO: Defaulting to " << file  << endl;	
 	}
 	
 	// Pokud se nepodaří otevřít soubor, skonči
@@ -101,6 +105,13 @@ int readCurves(string file,mpz_t N,ExtendedPoint** pInit)
 
 int main()
 {
+	cout << "ECM using ";
+	#ifdef USE_TWISTED
+	  cout << "Twisted Edwards curves" << endl;
+	#else 
+	  cout << "Edwards curves" << endl;
+	#endif
+
 	string ln,curveFile;
 	typedef pair<string,bool> factor;
 	int exitCode = 0,read_curves = 0;

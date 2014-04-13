@@ -35,4 +35,6 @@ typedef int carry_t;
 typedef digit_t VOL biguint_t[NB_DIGITS];
 typedef carry_t VOL bigint_t[NB_DIGITS];
 
+#define USE_TWISTED
+
 #endif

@@ -5,7 +5,11 @@ __device__ __constant__ unsigned int d_invN;
 __device__ unsigned int* d_N;
 __device__ unsigned int* d_3N;
 
-#include "edwards.h"
+#ifndef USE_TWISTED
+	#include "edwards.h"
+#else 
+	#include "twisted.h"
+#endif
 
 cudaError_t compute(const Aux h_input,const ExtendedPoint* neutral,ExtendedPoint* initPoints,const NAF& coeff)
 {
