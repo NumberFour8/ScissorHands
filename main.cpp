@@ -159,14 +159,14 @@ int main()
 	// Spočti S = lcm(1,2,3...,B1) a jeho NAF rozvoj
 	mpz_init(zS);
 	//mpz_set_ui(zS,(unsigned int)std::stoul(ln));
+	
+	cout << "Computing coefficient..." << endl;
 	lcmToN(zS,(unsigned int)std::stoul(ln));
 	S.initialize(zS);
-
-	// Vypiš S
-	cout << "s = " << mpz_to_string(zS) << endl << endl;
+	//cout << "s = " << mpz_to_string(zS) << endl << endl;
 	mpz_clear(zS);	
 	
-	cout << "Computation started..." << endl;
+	cout << endl << "Computation started..." << endl;
 	// Proveď výpočet
 	cudaStatus = compute(ax,&infty,PP,S);
     if (cudaStatus != cudaSuccess) 
