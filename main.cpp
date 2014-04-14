@@ -195,7 +195,7 @@ int main(int argc,char** argv)
 	
 	mpz_clear(zS);	
 	
-	cout << endl << "Computation started..." << endl;
+	cout << endl << "Trying to factor " << inpN << " with B1 = "<< inpB1 << " using " << read_curves << "..." << endl << endl;
 
 	// Proveď výpočet
 	cudaStatus = compute(ax,&infty,PP,S);
