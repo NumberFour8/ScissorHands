@@ -103,7 +103,17 @@ int readCurves(string file,mpz_t N,ExtendedPoint** pInit)
 	return (int)v.size();
 }
 
-int main()
+bool parseArguments(int argc,char** argv,string& N,string& CF,string& B1)
+{
+	if (argc != 4) return false;
+	N  = string(argv[1]);
+	CF = string(argv[2]);
+	B1 = string(argv[3]);
+	
+	return true;
+}
+
+int main(int argc,char** argv)
 {
 	cout << "ECM using ";
 	#ifdef USE_TWISTED
@@ -112,7 +122,7 @@ int main()
 	  cout << "Edwards curves" << endl;
 	#endif
 
-	string ln,curveFile;
+	string inpN,inpB1,curveFile;
 	typedef pair<string,bool> factor;
 	int exitCode = 0,read_curves = 0;
 	char c = 0;
@@ -120,12 +130,29 @@ int main()
 	// Množina nalezených faktorů s vlastním uspořádnáním
 	set<factor,bool(*)(factor x, factor y)> foundFactors([](factor x, factor y){ return x.first < y.first; });
 
-	// Načíst N
+	// Jsou-li předány parametry, použij je. Jinak se na ně zeptej.
+	if (!parseArguments(argc,argv,inpN,curveFile,inpB1))
+	{
+		// Načíst N
+		cout << "Enter N:" << endl;
+		cin >> inpN;
+		cout << endl;
+
+		// Načíst křivky ze souboru
+		cout << "Enter path to curve file:" << endl;
+		cin >> curveFile;
+		cout << endl;
+
+		// Přečti B1
+		cout << "Enter B1: " << endl;
+		cin >> inpB1;
+		cout << endl;
+	}
+
+	
+	// Inicializace N
 	mpz_t zN;
-	cout << "Enter N:" << endl;
-	cin >> ln;
-	cout << endl;
-	mpz_init_set_str(zN,ln.c_str(),10);
+	mpz_init_set_str(zN,inpN.c_str(),10);
 
 	// Inicializace proměnných
 	ExtendedPoint infty(zN); // Neutrální prvek
@@ -134,11 +161,6 @@ int main()
 	mpz_t zS,zInvW,zX,zY,zF; // Pomocné proměnné
 	cudaError_t cudaStatus;	 // Proměnná pro chybové kódy GPU
 	ExtendedPoint *PP;		 // Adresa všech bodů
-
-	// Načíst křivky ze souboru
-	cout << "Enter path to curve file:" << endl;
-	cin >> curveFile;
-	cout << endl;
 
 	restart_bound:
 
@@ -162,22 +184,19 @@ int main()
 	}
 	cout << "Loaded " << read_curves << " curves." << endl << endl;
 
-	// Přečti B1
-	cout << "Enter B1: " << endl;
-	cin >> ln;
-	cout << endl;
-
+	
 	// Spočti S = lcm(1,2,3...,B1) a jeho NAF rozvoj
 	mpz_init(zS);
-	//mpz_set_ui(zS,(unsigned int)std::stoul(ln));
 	
+	//mpz_set_ui(zS,(unsigned int)std::stoul(ln));
 	cout << "Computing coefficient..." << endl;
-	lcmToN(zS,(unsigned int)std::stoul(ln));
+	lcmToN(zS,(unsigned int)std::stoul(inpB1));
 	S.initialize(zS);
-	//cout << "s = " << mpz_to_string(zS) << endl << endl;
+	
 	mpz_clear(zS);	
 	
 	cout << endl << "Computation started..." << endl;
+
 	// Proveď výpočet
 	cudaStatus = compute(ax,&infty,PP,S);
     if (cudaStatus != cudaSuccess) 
