@@ -6,8 +6,7 @@
 	#include "twisted.h"
 #endif
 
-#define PREPARE() \
-	Aux *ax = (Aux*)swAux;												\
+#define PREPARE() Aux *ax = (Aux*)swAux;								\
 	__shared__ VOL digit_t x1[CURVES_PER_BLOCK][NB_DIGITS];				\
 	__shared__ VOL digit_t y1[CURVES_PER_BLOCK][NB_DIGITS];				\
 	__shared__ VOL digit_t z1[CURVES_PER_BLOCK][NB_DIGITS];				\
@@ -38,36 +37,48 @@
 	const digit_t idx = 4*NB_DIGITS*(blockIdx.x*blockDim.y + threadIdx.y);
 
 
-__global__ void slidingWindow(void* pY,void* pPc,void* swAux,const int WS,const NAF& coeff)
+__device__ int build(char* bits,unsigned int start,unsigned int end) 
+{
+	int ret = 0;
+	for (unsigned int i = start;i <= end;i++)
+	{
+		ret += bits[i]*(1 << (i-start));
+	}
+
+	return ret;
+}
+
+__global__ void slidingWindow(void* pY,void* pPc,void* swAux,void* swCoeff)
 {
 	PREPARE();
 
 	VOL digit_t* Qd	  = ((digit_t*)pY)+idx; 
-
+	
 	// Nakopirovani pracovnich dat pro Y
 	c_x1[threadIdx.x] = *(Qd+threadIdx.x+0*NB_DIGITS); // prvních 32 cifer patří k X
 	c_y1[threadIdx.x] = *(Qd+threadIdx.x+1*NB_DIGITS); // dalších 32 cifer patří k Y
 	c_z1[threadIdx.x] = *(Qd+threadIdx.x+2*NB_DIGITS); // dalších 32 k souřadnici Z
 	c_t1[threadIdx.x] = *(Qd+threadIdx.x+3*NB_DIGITS); // ... a poslední k souřadnici T
 
-	for (int i = coeff.l-1,u,s = 0;i >= 0;)
+	char* Cf = (char*)swCoeff;
+	for (int i = ax->nafLen-1,u,s = 0;i >= 0;)
 	{
-		if (coeff.bits[i] == 0)
+		if (Cf[i] == 0)
 		{
 		  curvesDbl(); 
 		  --i;
 		}
 		else {
-			s = i - WS + 1;
+			s = i - ax->windowSz + 1;
 			s = s > 0 ? s : 0;
 
-			while (!coeff.bits[s]) ++s;
+			while (!Cf[s]) ++s;
 			for (int h = 1;h <= i-s+1;++h) 
 			{
 			  curvesDbl();
 			}
 
-			u = coeff.build(s,i);
+			u = build(Cf,s,i);
 			if (u > 0){
 			  Qd = ((digit_t*)pPc)+idx+((u-1)/2)*NUM_CURVES*4*NB_DIGITS;
 			  curvesAdd();
@@ -121,13 +132,13 @@ __global__ void precompute(void* pX,void* pCube,void* swAux,const int PS)
 	}
 }
 
-cudaError_t compute(const Aux h_input,const ExtendedPoint* neutral,ExtendedPoint* initPoints,const NAF& coeff,const unsigned int WS)
+cudaError_t compute(const Aux h_input,const ExtendedPoint* neutral,ExtendedPoint* initPoints,const NAF& coeff)
 {
-	const int PRECOMP_SZ = (1 << WS)-1;			// Počet bodů, které je nutné předpočítat
+	const int PRECOMP_SZ = (1 << h_input.windowSz)-1;			// Počet bodů, které je nutné předpočítat
 	
 	cudaEvent_t start,stop;
 	float totalTime = 0;
-	void *swQw = NULL,*swPc = NULL,*swAx = NULL;
+	void *swQw = NULL,*swPc = NULL,*swAx = NULL,*swCf = NULL;
 	gpuErrchk(cudaSetDevice(0));
 	
 	gpuErrchk(cudaEventCreate(&start));
@@ -137,9 +148,13 @@ cudaError_t compute(const Aux h_input,const ExtendedPoint* neutral,ExtendedPoint
 	cuda_Malloc((void**)&swPc,NUM_CURVES*PRECOMP_SZ*4*MAX_BYTES); // Předpočítané body
 	cuda_Malloc((void**)&swQw,NUM_CURVES*4*MAX_BYTES);			  // Pomocný bod
 	cuda_Malloc((void**)&swAx,sizeof(Aux));						  // Pomocná struktura
+	cuda_Malloc((void**)&swCf,h_input.nafLen);					  // NAF rozvoj koeficientu
 	
 	// Pomocná struktura
 	cuda_Memcpy(swAx,(void*)&h_input,sizeof(Aux),cudaMemcpyHostToDevice);
+
+	// NAF rozvoj koeficientu
+	cuda_Memcpy(swCf,(void*)coeff.bits,h_input.nafLen,cudaMemcpyHostToDevice);
 	
 	// Počáteční body
 	VOL digit_t* iter = (digit_t*)swPc;
@@ -170,7 +185,7 @@ cudaError_t compute(const Aux h_input,const ExtendedPoint* neutral,ExtendedPoint
 	
 	// Provést výpočet (sliding window)
 	START_MEASURE(start);
-	slidingWindow<<<NUM_BLOCKS,threadsPerBlock>>>((void*)swQw,(void*)swPc,(void*)swAx,WS,&coeff);
+	slidingWindow<<<NUM_BLOCKS,threadsPerBlock>>>((void*)swQw,(void*)swPc,(void*)swAx,(void*)swCf);
 	STOP_MEASURE("Computation phase",start,stop,totalTime);
 	
 	printf("--------------------------\n");
@@ -200,6 +215,7 @@ cudaError_t compute(const Aux h_input,const ExtendedPoint* neutral,ExtendedPoint
 	cuda_Free(swAx);
 	cuda_Free(swQw);
 	cuda_Free(swPc);
+	cuda_Free(swCf);
 
 	gpuErrchk(cudaEventDestroy(start));
 	gpuErrchk(cudaEventDestroy(stop));

@@ -173,17 +173,6 @@ void NAF::initialize(mpz_t N)
 	bits = (char*)realloc((void*)bits,(size_t)l*8);
 }
 
-int NAF::build(unsigned int start,unsigned int end) const
-{
-	int ret = 0;
-	for (unsigned int i = start;i <= end;i++)
-	{
-		ret += bits[i]*(1 << (i-start));
-	}
-
-	return ret;
-}
-
 void NAF::print() const
 {
 	if (bits == NULL)

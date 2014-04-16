@@ -14,6 +14,6 @@
 
 
 // Hlavní výpočetní metoda 
-cudaError_t compute(const Aux h_input,const ExtendedPoint* neutral,ExtendedPoint* initPoints,const NAF& coeff,const unsigned int WS);
+cudaError_t compute(const Aux h_input,const ExtendedPoint* neutral,ExtendedPoint* initPoints,const NAF& coeff);
 
 #endif

@@ -214,8 +214,11 @@ int main(int argc,char** argv)
 	
 	cout << endl << "Trying to factor " << inpN << " with B1 = "<< inpB1 << " using " << read_curves << " curves..." << endl << endl;
 
+	ax.windowSz = windowSize;
+	ax.nafLen   = S.l;
+
 	// Proveď výpočet
-	cudaStatus = compute(ax,&infty,PP,S,windowSize);
+	cudaStatus = compute(ax,&infty,PP,S);
     if (cudaStatus != cudaSuccess) 
     {
         fprintf(stderr, "CUDA compute failed!");

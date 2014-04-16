@@ -38,8 +38,6 @@ public:
 	// Vypíše rozvoj
 	void print() const;
 	
-	// Výsek z rozvoje daný parametry start a end
-	int build(unsigned int start,unsigned int end) const;
 };
 
 // Pøevede X do Montgomeryho reprezentace modulo N
@@ -88,6 +86,8 @@ public:
 	biguint_t N3;
 	digit_t invN;
 	
+	int nafLen,windowSz;
+
 	Aux(mpz_t zN)
 	{
 		reset(N);
