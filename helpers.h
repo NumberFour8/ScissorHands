@@ -133,10 +133,11 @@ inline void gpuAssert(cudaError_t code, char *file, int line, bool abort = true)
 
 
 #define START_MEASURE(start) gpuErrchk(cudaEventRecord(start,0))
-#define STOP_MEASURE(name,start,stop) {gpuErrchk(cudaEventRecord(stop,0));\
+#define STOP_MEASURE(name,start,stop,tt) {gpuErrchk(cudaEventRecord(stop,0));\
 								  gpuErrchk(cudaEventSynchronize(stop));\
 								  float time = 0;\
 								  gpuErrchk(cudaEventElapsedTime(&time,start,stop));\
+								  tt += time; \
 								  time > 2000.0f ? printf("%s : %.3f s\n",name,time/1000.0f) :\
 												   printf("%s : %.3f ms\n",name,time); }
 #endif

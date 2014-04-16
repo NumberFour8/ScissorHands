@@ -11,12 +11,13 @@ __device__ unsigned int* d_3N;
 	#include "twisted.h"
 #endif
 
-cudaError_t compute(const Aux h_input,const ExtendedPoint* neutral,ExtendedPoint* initPoints,const NAF& coeff)
+cudaError_t compute(const Aux h_input,const ExtendedPoint* neutral,ExtendedPoint* initPoints,const NAF& coeff,const unsigned int WS)
 {
-	const int WINDOW_SZ	 = 4;							// Velikost okna
+	const int WINDOW_SZ	 = WS;							// Velikost okna
 	const int PRECOMP_SZ = (1 << (WINDOW_SZ-2))+1;		// Počet bodů, které je nutné předpočítat
 	
 	cudaEvent_t start,stop;
+	float totalTime = 0;
 	void *swQw = NULL,*swPc = NULL,*swAx = NULL;
 	gpuErrchk(cudaSetDevice(0));
 	
@@ -51,7 +52,7 @@ cudaError_t compute(const Aux h_input,const ExtendedPoint* neutral,ExtendedPoint
 		curvesAdd<<<NUM_BLOCKS,threadsPerBlock>>> ((void*)swQw,(void*)iter,(void*)swPc,(void*)swAx);
 		iter += NUM_CURVES*4*NB_DIGITS;
 	} 
-	STOP_MEASURE("Precomputation phase",start,stop);
+	STOP_MEASURE("Precomputation phase",start,stop,totalTime);
 
 
 	// Do swQw nakopírovat neutrální prvek
@@ -92,7 +93,8 @@ cudaError_t compute(const Aux h_input,const ExtendedPoint* neutral,ExtendedPoint
 			i = s-1;
 		}
 	}
-	STOP_MEASURE("Computation phase",start,stop);
+	STOP_MEASURE("Computation phase",start,stop,totalTime);
+	printf("Total time: %.3f ms\n",totalTime);
 
 	// Nakopírovat výsledky zpátky do paměti počítače
 	iter = (digit_t*)swQw;

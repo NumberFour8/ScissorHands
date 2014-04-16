@@ -103,15 +103,23 @@ int readCurves(string file,mpz_t N,ExtendedPoint** pInit)
 	return (int)v.size();
 }
 
-bool parseArguments(int argc,char** argv,string& N,string& CF,string& B1)
+bool parseArguments(int argc,char** argv,string& N,string& CF,unsigned int& B1,unsigned int& WS)
 {
-	if (argc != 4) return false;
+	if (argc != 5) return false;
 	N  = string(argv[1]);
 	CF = string(argv[2]);
-	B1 = string(argv[3]);
+	WS = atoi(argv[3]);
+	B1 = atoi(argv[4]);
 	
 	return true;
 }
+
+struct factor {
+		string fac;
+		bool prime;
+		unsigned int curveId;
+		factor(string f,bool p,unsigned int c) : fac(f),prime(p),curveId(c) {}
+};
 
 int main(int argc,char** argv)
 {
@@ -122,16 +130,15 @@ int main(int argc,char** argv)
 	  cout << "Edwards curves" << endl;
 	#endif
 
-	string inpN,inpB1,curveFile;
-	typedef pair<string,bool> factor;
-	int exitCode = 0,read_curves = 0;
+	string inpN,curveFile;
+	unsigned int exitCode = 0,read_curves = 0,inpB1 = 0,windowSize = 0;
 	char c = 0;
 
 	// Množina nalezených faktorů s vlastním uspořádnáním
-	set<factor,bool(*)(factor x, factor y)> foundFactors([](factor x, factor y){ return x.first < y.first; });
+	set<factor,bool(*)(factor x, factor y)> foundFactors([](factor x, factor y){ return x.fac < y.fac && x.fac.length() < y.fac.length(); });
 
 	// Jsou-li předány parametry, použij je. Jinak se na ně zeptej.
-	if (!parseArguments(argc,argv,inpN,curveFile,inpB1))
+	if (!parseArguments(argc,argv,inpN,curveFile,inpB1,windowSize))
 	{
 		// Načíst N
 		cout << "Enter N:" << endl;
@@ -141,11 +148,6 @@ int main(int argc,char** argv)
 		// Načíst křivky ze souboru
 		cout << "Enter path to curve file:" << endl;
 		cin >> curveFile;
-		cout << endl;
-
-		// Přečti B1
-		cout << "Enter B1: " << endl;
-		cin >> inpB1;
 		cout << endl;
 	}
 
@@ -184,21 +186,36 @@ int main(int argc,char** argv)
 	}
 	cout << "Loaded " << read_curves << " curves." << endl << endl;
 
-	
+	// Přečti B1 pokud ho nemame
+	if (inpB1 <= 1)
+	{
+	  cout << "Enter B1: " << endl;
+	  cin >> inpB1;
+	  cout << endl;
+	}
+
+	// Velikost okna pro sliding window
+	if (windowSize <= 1)
+	{
+		cout << "Sliding window size:" << endl;
+		cin >> windowSize;
+		cout << endl;
+	}
+
 	// Spočti S = lcm(1,2,3...,B1) a jeho NAF rozvoj
 	mpz_init(zS);
 	
 	//mpz_set_ui(zS,(unsigned int)std::stoul(ln));
 	cout << "Computing coefficient..." << endl;
-	lcmToN(zS,(unsigned int)std::stoul(inpB1));
+	lcmToN(zS,inpB1);
 	S.initialize(zS);
 	
 	mpz_clear(zS);	
 	
-	cout << endl << "Trying to factor " << inpN << " with B1 = "<< inpB1 << " using " << read_curves << "..." << endl << endl;
+	cout << endl << "Trying to factor " << inpN << " with B1 = "<< inpB1 << " using " << read_curves << " curves..." << endl << endl;
 
 	// Proveď výpočet
-	cudaStatus = compute(ax,&infty,PP,S);
+	cudaStatus = compute(ax,&infty,PP,S,windowSize);
     if (cudaStatus != cudaSuccess) 
     {
         fprintf(stderr, "CUDA compute failed!");
@@ -233,17 +250,8 @@ int main(int argc,char** argv)
 		else if (mpz_cmp_ui(zF,0) != 0) // Máme faktor!
 		{
 		   string fact = mpz_to_string(zF);
-		   if (mpz_probab_prime_p(zF,25) != 0)
-		   {
-		      cout << "Prime factor found: " << fact << endl;
-		      foundFactors.insert(std::make_pair(fact,true));
-		   }
-		   else
-		   {
-			  cout << "Composite factor found: " << fact << endl;
-			  foundFactors.insert(std::make_pair(fact,false));
-		   }
-
+		   cout << "Factor found: " << fact << endl;
+		   foundFactors.insert(factor(fact,mpz_probab_prime_p(zF,25) != 0,i));
 		}
 		else cout << "Error during conversion." << endl;
 		cout << endl << "------------" << endl;
@@ -255,7 +263,9 @@ int main(int argc,char** argv)
 	  cout << endl << foundFactors.size() << " FACTORS FOUND:" << endl << endl;
 	  std::for_each(foundFactors.begin(),foundFactors.end(),
 				    [](const factor f)
-					{ cout << (f.second ? "Prime:\t" : "Composite:\t") << f.first <<  endl; }
+					{ 
+						cout << (f.prime ? "Prime:\t" : "Composite:\t") << f.fac << " (#" << f.curveId << ")" <<  endl; 
+					}
 				   );
 	}
 	else cout << endl << "No factors found." << endl << endl;
@@ -264,11 +274,16 @@ int main(int argc,char** argv)
 	mpz_clrs(zInvW,zX,zY);
 	delete[] PP;
 
-	cout << endl << "Type 'r' to restart with new B1 or 'q' to quit..." << endl;
-	while (1) {
+	cout << endl << "Type 'r' to restart with new bound B1 or 'q' to quit..." << endl;
+	while (1)
+	{
 	   cin >> c;
 	   if (c == 'q') break;
-	   if (c == 'r') goto restart_bound;
+	   else if (c == 'r')
+	   {
+		  inpB1 = windowSize = 0;
+		  goto restart_bound;
+		}
 	}
 	
 	end:
