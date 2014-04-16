@@ -94,6 +94,7 @@ cudaError_t compute(const Aux h_input,const ExtendedPoint* neutral,ExtendedPoint
 		}
 	}
 	STOP_MEASURE("Computation phase",start,stop,totalTime);
+	printf("--------------------------\n");
 	printf("Total time: %.3f ms\n",totalTime);
 
 	// Nakopírovat výsledky zpátky do paměti počítače
