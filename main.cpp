@@ -135,7 +135,7 @@ int main(int argc,char** argv)
 	char c = 0;
 
 	// Množina nalezených faktorů s vlastním uspořádnáním
-	set<factor,bool(*)(factor x, factor y)> foundFactors([](factor x, factor y){ return x.fac < y.fac && x.fac.length() < y.fac.length(); });
+	set<factor,bool(*)(factor x, factor y)> foundFactors([](factor x, factor y){ return x.fac < y.fac; });
 
 	// Jsou-li předány parametry, použij je. Jinak se na ně zeptej.
 	if (!parseArguments(argc,argv,inpN,curveFile,inpB1,windowSize))
