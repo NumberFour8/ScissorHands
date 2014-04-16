@@ -1,5 +1,6 @@
 #include "modular.h"
 
+// Makra instrukcí v sadì PTX
 #define __add_cc(r,a,b) 	ASM ("add.cc.u32 %0, %1, %2;": "=r"(r): "r"(a), "r"(b)) 
 #define __addc_cc(r,a,b) 	ASM ("addc.cc.u32 %0, %1, %2;": "=r"(r): "r"(a), "r"(b))
 #define __sub_cc(r,a,b) 	ASM ("sub.cc.u32 %0, %1, %2;": "=r"(r): "r"(a), "r"(b)) 
@@ -36,9 +37,9 @@ __device__ void Cuda_Fully_Normalize (biguint_t A, bigint_t cy)
   }
 }
 
-/* Compute Rmod <- A + B */ 
-/* Input: 0 <= A, B < 3*N */ 
-/* Ouput: 0 <= Rmod < 6*N */ 
+/* Spoèti: Rmod <- A + B */ 
+/* Vstup: 0 <= A, B < 3*N */ 
+/* Výstup: 0 <= Rmod < 6*N */ 
 __device__ void Cuda_Add_mod
 (biguint_t Rmod, bigint_t cy, const biguint_t A, const biguint_t B)
 {
@@ -49,11 +50,11 @@ __device__ void Cuda_Add_mod
   Cuda_Fully_Normalize (Rmod, cy); 
 }
 
-/* Compute Rmod <- Rmod + B */ 
-/* Input: 0 <= Rmod, B < 3*N */ 
-/* (except when it follows Cuda_Mulint_mod, 0 <= Rmod < 3*N, 0 < B < 7*N ) */ 
-/* Ouput: 0 <= Rmod < 6*N */ 
-/* (except when it follows Cuda_Mulint_mod, 0 <= Rmod < 10*N) */ 
+/* Spoèti: Rmod <- Rmod + B */ 
+/* Vstup: 0 <= Rmod, B < 3*N */ 
+/* (vyjma pøi splnìní pøepokladù Cuda_Mulint_mod, 0 <= Rmod < 3*N, 0 < B < 7*N ) */ 
+/* Výstup: 0 <= Rmod < 6*N */ 
+/* (vyjma pøi splnìní pøedpokladù Cuda_Mulint_mod, 0 <= Rmod < 10*N) */ 
 __device__ void Cuda_Add_mod
 (biguint_t Rmod, bigint_t cy, const biguint_t A)
 {
@@ -65,9 +66,9 @@ __device__ void Cuda_Add_mod
   Cuda_Fully_Normalize (Rmod, cy);
 }
 
-/* Compute Rmod <- Rmod - B */ 
-/* Input: 0 <= Rmod, B < 3*N */ 
-/* Ouput: 0 <= Rmod < 6*N */ 
+/* Spoèti: Rmod <- Rmod - B */ 
+/* Vstup: 0 <= Rmod, B < 3*N */ 
+/* Výstup: 0 <= Rmod < 6*N */ 
 __device__ void Cuda_Sub_mod 
 (biguint_t Rmod, bigint_t cy, const biguint_t B, const digit_t N3thdx)
 {
@@ -84,7 +85,7 @@ __device__ void Cuda_Sub_mod
   Cuda_Fully_Normalize (Rmod, cy); 
 }
 
-/* Perform one step of REDC */ 
+// Jeden krok REDC 
 __device__ void Cuda_Mulmod_step
 (biguint_t r, bigint_t cy, digit_t a, digit_t b, const digit_t Nthdx,
  const digit_t invN)
@@ -103,15 +104,15 @@ __device__ void Cuda_Mulmod_step
   __madc_hi_cc(reg_hi,t,Nthdx);
   __addcy2(reg_cy);
 
-  /* make one round of normalize + a right shift at the same time */
+  // Normalizace a shift doprava
   __add_cc(r[threadIdx.x],r[thp1],reg_hi);
   __addc_cc(r[thp1],r[thp1],reg_cy);
   __addcy(cy[thp1]); 
 }
 
-/* Compute r <- 2*a */ 
-/* Input: 0 <= a < 3*N */ 
-/* Ouput: 0 <= r < 3*N */ 
+/* Spoèti: r <- 2*a */ 
+/* Vstup: 0 <= a < 3*N */ 
+/* Výstup: 0 <= r < 3*N */ 
 __device__ void Cuda_Dbl_mod
 (biguint_t r, biguint_t a)
 {
@@ -121,9 +122,10 @@ __device__ void Cuda_Dbl_mod
 }
 
 
-/* Compute r <- A*b */ 
-/* Input: 0 < b < 2^SIZE_DIGIT, 0 <= A < 6*N */ 
-/* Ouput: 0 <= r < 7*N */ 
+// NEFUNGUJE!
+/* Spoèti: r <- A*b */ 
+/* Vstup: 0 < b < 2^SIZE_DIGIT, 0 <= A < 6*N */ 
+/* Výstup: 0 <= r < 7*N */ 
 /*__device__ void Cuda_Mulint_mod
 (biguint_t r, bigint_t cy, biguint_t A, digit_t b, const digit_t Nthdx,const digit_t invN)
 {
@@ -141,7 +143,6 @@ __device__ void Cuda_Dbl_mod
   __madc_hi_cc(reg_hi,t,Nthdx);
   __addcy(reg_cy);
 
-  // make one round of normalize + a right shift at the same time 
   __add_cc(r[threadIdx.x],r[thp1],reg_hi);
   __addc_cc(r[thp1],r[thp1],reg_cy);
   __addcy(cy[thp1]); 
@@ -150,10 +151,10 @@ __device__ void Cuda_Dbl_mod
 }
 */
 
-/* Compute r <- A*B */ 
-/* Input: 0 <= A, B < 6*N */
-/* (except when it follows Cuda_Mulint_mod, 0 <= A < 6*N, 0 < B < 10*N ) */ 
-/* Ouput: 0 <= r < 3*N */ 
+/* Spoèti: r <- A*B */ 
+/* Vstup: 0 <= A, B < 6*N */
+/* (vyjma pøi splnìní Cuda_Mulint_mod, 0 <= A < 6*N, 0 < B < 10*N ) */ 
+/* Výstup: 0 <= r < 3*N */ 
 __device__ void Cuda_Mul_mod 
 (biguint_t mul, bigint_t cy, const biguint_t A, const biguint_t B, biguint_t r,
  const digit_t Nthdx, const digit_t invN)
