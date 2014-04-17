@@ -14,7 +14,7 @@ __device__ unsigned int* d_3N;
 cudaError_t compute(const Aux h_input,const ExtendedPoint* neutral,ExtendedPoint* initPoints,const NAF& coeff,const unsigned int WS)
 {
 	const int WINDOW_SZ	 = WS;							// Velikost okna
-	const int PRECOMP_SZ = (1 << WINDOW_SZ)-1;			// Počet bodů, které je nutné předpočítat
+	const int PRECOMP_SZ = 1 << (WINDOW_SZ-1);			// Počet bodů, které je nutné předpočítat
 	
 	cudaEvent_t start,stop;
 	float totalTime = 0;
