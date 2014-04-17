@@ -102,7 +102,7 @@ __global__ void slidingWindow(void* pY,void* pPc,void* swAux,void* swCoeff)
 	__syncthreads();
 }
 
-__global__ void precompute(void* pX,void* pCube,void* swAux,const int PS)
+__global__ void precompute(void* pX,void* pCube,void* swAux)
 {
 	PREPARE();
 
@@ -116,7 +116,7 @@ __global__ void precompute(void* pX,void* pCube,void* swAux,const int PS)
 	c_t1[threadIdx.x] = *(Qd+threadIdx.x+3*NB_DIGITS); // ... a poslední k souřadnici T
 
 	curvesDbl();
-	for (int i = 1; i < PS;++i)
+	for (int i = 1; i < (1 << (ax->windowSz-1));++i)
 	{ 
 		curvesAdd();
 
@@ -133,9 +133,9 @@ __global__ void precompute(void* pX,void* pCube,void* swAux,const int PS)
 }
 
 cudaError_t compute(const Aux h_input,const ExtendedPoint* neutral,ExtendedPoint* initPoints,const NAF& coeff)
-{
-	const int PRECOMP_SZ = (1 << h_input.windowSz)-1;			// Počet bodů, které je nutné předpočítat
-	
+{		
+	const int PRECOMP_SZ = (1 << (h_input.windowSz-1)); // Počet bodů, které je nutné předpočítat
+
 	cudaEvent_t start,stop;
 	float totalTime = 0;
 	void *swQw = NULL,*swPc = NULL,*swAx = NULL,*swCf = NULL;
@@ -170,7 +170,7 @@ cudaError_t compute(const Aux h_input,const ExtendedPoint* neutral,ExtendedPoint
 	dim3 threadsPerBlock(NB_DIGITS,CURVES_PER_BLOCK);
 	
 	START_MEASURE(start);
-	precompute<<<NUM_BLOCKS,threadsPerBlock>>>((void*)swPc,(void*)iter,(void*)swAx,PRECOMP_SZ);
+	precompute<<<NUM_BLOCKS,threadsPerBlock>>>((void*)swPc,(void*)iter,(void*)swAx);
 	STOP_MEASURE("Precomputation phase",start,stop,totalTime);
 
 	// Do swQw nakopírovat neutrální prvek

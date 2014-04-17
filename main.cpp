@@ -205,7 +205,7 @@ int main(int argc,char** argv)
 	// Spočti S = lcm(1,2,3...,B1) a jeho NAF rozvoj
 	mpz_init(zS);
 	
-	//mpz_set_ui(zS,(unsigned int)std::stoul(ln));
+	//mpz_set_ui(zS,inpB1);
 	cout << "Computing coefficient..." << endl;
 	lcmToN(zS,inpB1);
 	S.initialize(zS);
