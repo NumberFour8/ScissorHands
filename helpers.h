@@ -14,80 +14,82 @@ using namespace std;
 #define mpq_intz(...) mpq_inits(__VA_ARGS__,NULL)
 #define mpq_clrs(...) mpq_clears(__VA_ARGS__,NULL)
 
-// Rozvoj è­sla do non-adjacent form (NAF)
+// Rozvoj ÄÃ­sla do non-adjacent form (NAF)
 class NAF {
 public:
 	// Koeficienty rozvoje
 	char* bits;
 	
-	// Délka rozvoje
-	unsigned long long l;
+	// DÃ©lka rozvoje
+	unsigned long l;
 	
-	// Šíøka rozvoje
+	// DÃ©lka rozvoje
 	const unsigned char w;
 	
-	// Vıchozí konstruktor
+	// VÃ½chozÃ­ konstruktor
 	NAF(unsigned char W) : w(W), bits(NULL), l(0)
 	{ }
 	
 	virtual ~NAF();
 
-	// Vytvoøí NAF rozvoj èísla N dané šíøky W
+	// VytvoÅ™Ã­ NAF rozvoj ÄÃ­sla N danÃ© dÃ©lky W
 	void initialize(mpz_t N);
 	
-	// Vypíše rozvoj
+	// VypÃ­Å¡e rozvoj
 	void print() const;
 	
 };
 
-// Pøevede X do Montgomeryho reprezentace modulo N
+// PÅ™evede X do Montgomeryho reprezentace modulo N
 void to_mont_repr(mpz_t x, mpz_t n);
 
-// Pøevede X z Montgomeryho reprezentace modulo N
+// PÅ™evede X z Montgomeryho reprezentace modulo N
 void from_mont_repr(mpz_t x, mpz_t n,mpz_t invB);
 
-// Pøevede MPZ èíslo do báze 2^32
+// PÅ™evede MPZ ÄÃ­slo do bÃ¡ze 2^32
 void mpz_to_biguint(biguint_t a, mpz_t b);
 
-// Pøevede èí­slo z báze 2^32 do MPZ
+// PÅ™evede ÄÃ­Â­slo z bÃ¡ze 2^32 do MPZ
 void biguint_to_mpz(mpz_t a, biguint_t b);
 
-// Pøevede MPZ èíslo do øetìzce
+// PÅ™evede MPZ ÄÃ­slo do Å™etÄ›zce
 std::string mpz_to_string(mpz_t number);
 
-// Vypíše èíslo v bázi 2^32
+// VypÃ­Å¡e ÄÃ­slo v bÃ¡zi 2^32
 void printBigInt(const char* tag,biguint_t B);
 
-// Spoèítá LCM(1,2,3...,n)
+// SpoÃ¨Ã­tÃ¡ LCM(1,2,3...,n)
 void lcmToN(mpz_t res,const unsigned int n);
 
-/* Pokusí se invertovat X modulo N.
-   Pokud inverze neexistuje vrací false a v invX je faktor N.
-   Je-li gcd(X,N) = N, pak vrací 0.
+/* PokusÃ­ se invertovat X modulo N.
+   Pokud inverze neexistuje vracÃ­ false a v invX je faktor N.
+   Je-li gcd(X,N) = N, pak vracÃ­ 0.
  */ 
 bool try_invert_mod(mpz_t invx,mpz_t x,mpz_t N);
 
-/* Vypoèítá redukci racionálního èísla q modulo n.
-   Pøi chybì vrací false a v r je faktor èísla N nebo 0. 
+/* VypoÄÃ­tÃ¡ redukci racionÃ¡lnÃ­ho ÄÃ­sla q modulo n.
+   PÅ™i chybÄ› vracÃ­ false a v r je faktor ÄÃ­sla N nebo 0. 
 */
 bool reduce_mod(mpz_t r,mpq_t q,mpz_t n);
 
 
-// Vynuluje èí­slo v bázi 2^32
+// Vynuluje ÄÃ­Â­slo v bÃ¡zi 2^32
 inline void reset(biguint_t n)
 {
 	memset((void*)n,0,MAX_BYTES);
 }
 
-// Pomocná tøí­da pro N, 3*N a inverzi N modulo velikost báze
-class Aux {
+// PomocnÃ¡ tÅ™Ã­Â­da konfigurace vÃ½poÄtu
+class ComputeConfig {
 public:
-	biguint_t N;
-	biguint_t N3;
-	digit_t invN;
+	biguint_t N;   // N
+	biguint_t N3;  // 3*N
+	digit_t invN;  // N^(-1) mod W
 	
-	unsigned short windowSz;
-	unsigned long long nafLen;
+	unsigned short windowSz;	 // Velikost okna
+	unsigned long  nafLen;   // Å Ã­Å™ka NAF
+	
+	unsigned long numCurves;	 // PoÄet kÅ™ivek
 
 	Aux(mpz_t zN)
 	{
@@ -113,7 +115,7 @@ public:
 	}
 };
 
-// Vypíše chybu GPU a pøeruší­ program
+// VypÃ­Å¡e chybu GPU a pÅ™eruÅ¡Ã­Â­ program
 inline void gpuAssert(cudaError_t code, char *file, int line, bool abort = true)
 {
    if (code != cudaSuccess) 
@@ -123,7 +125,7 @@ inline void gpuAssert(cudaError_t code, char *file, int line, bool abort = true)
    }
 }
 
-//////////////////////// POMOCNÁ MAKRA PRO CUDA ///////////////////////////
+//////////////////////// POMOCNÃ MAKRA PRO CUDA ///////////////////////////
 
 #define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 

@@ -176,17 +176,9 @@ int main(int argc,char** argv)
 		exitCode = 1;
 		goto end;
 	}
-	else if (read_curves != NUM_CURVES)
-	{
-		cout << "ERROR: Invalid number of curves in file."  
-			 << "Required: " << NUM_CURVES << ". Got: " << read_curves 
-			 << endl;
-		exitCode = 1;
-		goto end;
-	}
 	cout << "Loaded " << read_curves << " curves." << endl << endl;
 
-	// Přečti B1 pokud ho nemame
+	// Přečti B1 pokud ho nemáme
 	if (inpB1 <= 1)
 	{
 	  cout << "Enter B1: " << endl;
@@ -204,18 +196,18 @@ int main(int argc,char** argv)
 
 	// Spočti S = lcm(1,2,3...,B1) a jeho NAF rozvoj
 	mpz_init(zS);
-	
-	//mpz_set_ui(zS,inpB1);
 	cout << "Computing coefficient..." << endl;
+	//mpz_set_ui(zS,inpB1);
 	lcmToN(zS,inpB1);
 	S.initialize(zS);
-	
 	mpz_clear(zS);	
 	
 	cout << endl << "Trying to factor " << inpN << " with B1 = "<< inpB1 << " using " << read_curves << " curves..." << endl << endl;
 
-	ax.windowSz = windowSize;
-	ax.nafLen   = S.l;
+	// Nastavit hodnoty do konfigurace
+	ax.windowSz  = windowSize;
+	ax.nafLen    = S.l;
+	ax.numCurves = read_curves;
 
 	// Proveď výpočet
 	cudaStatus = compute(ax,&infty,PP,S);

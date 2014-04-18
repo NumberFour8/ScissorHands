@@ -6,37 +6,7 @@
 	#include "twisted.h"
 #endif
 
-#define PREPARE() Aux *ax = (Aux*)swAux;								\
-	__shared__ VOL digit_t x1[CURVES_PER_BLOCK][NB_DIGITS];				\
-	__shared__ VOL digit_t y1[CURVES_PER_BLOCK][NB_DIGITS];				\
-	__shared__ VOL digit_t z1[CURVES_PER_BLOCK][NB_DIGITS];				\
-	__shared__ VOL digit_t t1[CURVES_PER_BLOCK][NB_DIGITS];				\
-	__shared__ VOL digit_t x2[CURVES_PER_BLOCK][NB_DIGITS];				\
-	__shared__ VOL digit_t y2[CURVES_PER_BLOCK][NB_DIGITS];				\
-	__shared__ VOL digit_t z2[CURVES_PER_BLOCK][NB_DIGITS];				\
-	__shared__ VOL digit_t t2[CURVES_PER_BLOCK][NB_DIGITS];				\
-	__shared__ VOL carry_t carry[CURVES_PER_BLOCK][NB_DIGITS];			\
-	__shared__ VOL digit_t temp0[CURVES_PER_BLOCK][NB_DIGITS];			\
-	__shared__ VOL digit_t temp1[CURVES_PER_BLOCK][NB_DIGITS];			\
-	__shared__ VOL digit_t temp2[CURVES_PER_BLOCK][NB_DIGITS];			\
-	VOL digit_t* c_x1 = x1[threadIdx.y];								\
-	VOL digit_t* c_y1 = y1[threadIdx.y];								\
-	VOL digit_t* c_z1 = z1[threadIdx.y];								\
-	VOL digit_t* c_t1 = t1[threadIdx.y];								\
-	VOL digit_t* c_x2 = x2[threadIdx.y];								\
-	VOL digit_t* c_y2 = y2[threadIdx.y];								\
-	VOL digit_t* c_z2 = z2[threadIdx.y];								\
-	VOL digit_t* c_t2 = t2[threadIdx.y];								\
-	VOL digit_t* c_tt0  = temp0[threadIdx.y];							\
-	VOL digit_t* c_tt1  = temp1[threadIdx.y];							\
-	VOL carry_t* _CARRY = carry[threadIdx.y];							\
-	VOL digit_t* _AUX   = temp2[threadIdx.y];							\
-	const digit_t _N    = ax->N[threadIdx.x];							\
-	const digit_t _3N   = ax->N3[threadIdx.x];							\
-	const digit_t _INVN = ax->invN;										\
-	const digit_t idx = 4*NB_DIGITS*(blockIdx.x*blockDim.y + threadIdx.y);
-
-
+// Vrátí výsek z NAF rozvoje
 __device__ int build(char* bits,unsigned int start,unsigned int end) 
 {
 	int ret = 0;
@@ -48,13 +18,14 @@ __device__ int build(char* bits,unsigned int start,unsigned int end)
 	return ret;
 }
 
+// Výpočet pomocí sliding window
 __global__ void slidingWindow(void* pY,void* pPc,void* swAux,void* swCoeff)
 {
 	PREPARE();
 
 	VOL digit_t* Qd	  = ((digit_t*)pY)+idx; 
 	
-	// Nakopirovani pracovnich dat pro Y
+	// Nakopírování pracovních dat pro Y
 	c_x1[threadIdx.x] = *(Qd+threadIdx.x+0*NB_DIGITS); // prvních 32 cifer patří k X
 	c_y1[threadIdx.x] = *(Qd+threadIdx.x+1*NB_DIGITS); // dalších 32 cifer patří k Y
 	c_z1[threadIdx.x] = *(Qd+threadIdx.x+2*NB_DIGITS); // dalších 32 k souřadnici Z
@@ -109,7 +80,7 @@ __global__ void precompute(void* pX,void* pCube,void* swAux)
 	VOL digit_t* Qd    = ((digit_t*)pX)    + idx; 
 	VOL digit_t* out   = ((digit_t*)pCube) + idx;
 
-	// Nakopirovani pracovnich dat pro Y
+	// Nakopírování pracovních dat pro Y
 	c_x1[threadIdx.x] = *(Qd+threadIdx.x+0*NB_DIGITS); // prvních 32 cifer patří k X
 	c_y1[threadIdx.x] = *(Qd+threadIdx.x+1*NB_DIGITS); // dalších 32 cifer patří k Y
 	c_z1[threadIdx.x] = *(Qd+threadIdx.x+2*NB_DIGITS); // dalších 32 k souřadnici Z
@@ -120,7 +91,7 @@ __global__ void precompute(void* pX,void* pCube,void* swAux)
 	{ 
 		curvesAdd();
 
-		// Vysledek na sve misto
+		// Výsledek na své místo
 		*(out+threadIdx.x+0*NB_DIGITS) = c_x1[threadIdx.x];  // prvních 32 cifer patří k X
 		*(out+threadIdx.x+1*NB_DIGITS) = c_y1[threadIdx.x];  // dalších 32 cifer patří k Y
 		*(out+threadIdx.x+2*NB_DIGITS) = c_z1[threadIdx.x];  // dalších 32 k souřadnici Z
@@ -132,10 +103,12 @@ __global__ void precompute(void* pX,void* pCube,void* swAux)
 	}
 }
 
-cudaError_t compute(const Aux h_input,const ExtendedPoint* neutral,ExtendedPoint* initPoints,const NAF& coeff)
+cudaError_t compute(const ComputeConfig& h_input,const ExtendedPoint* neutral,ExtendedPoint* initPoints,const NAF& coeff)
 {		
 	const int PRECOMP_SZ = (1 << (h_input.windowSz-1)); // Počet bodů, které je nutné předpočítat
-
+	const int NUM_CURVES = h_input.numCurves;			// Počet načtených křivek
+	const int NUM_BLOCKS = NUM_CURVES/CURVES_BY_BLOCK;	// Počet použitých bloků
+	
 	cudaEvent_t start,stop;
 	float totalTime = 0;
 	void *swQw = NULL,*swPc = NULL,*swAx = NULL,*swCf = NULL;
@@ -166,9 +139,11 @@ cudaError_t compute(const Aux h_input,const ExtendedPoint* neutral,ExtendedPoint
 	   iter += 4*NB_DIGITS;	
 	}
 
-	// Další předpočítané body
+	// Konfigurace kernelů
 	dim3 threadsPerBlock(NB_DIGITS,CURVES_PER_BLOCK);
+	printf("Execution configuration: %d x %d x %d\n",NUM_BLOCKS,CURVES_PER_BLOCK,NB_DIGITS);
 	
+	// Další předpočítané body
 	START_MEASURE(start);
 	precompute<<<NUM_BLOCKS,threadsPerBlock>>>((void*)swPc,(void*)iter,(void*)swAx);
 	STOP_MEASURE("Precomputation phase",start,stop,totalTime);
