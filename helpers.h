@@ -21,7 +21,7 @@ public:
 	char* bits;
 	
 	// Délka rozvoje
-	unsigned int l;
+	unsigned long long l;
 	
 	// Šíøka rozvoje
 	const unsigned char w;
@@ -86,7 +86,8 @@ public:
 	biguint_t N3;
 	digit_t invN;
 	
-	int nafLen,windowSz;
+	unsigned short windowSz;
+	unsigned long long nafLen;
 
 	Aux(mpz_t zN)
 	{

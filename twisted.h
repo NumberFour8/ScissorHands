@@ -60,7 +60,7 @@
 /////////////////////////////////////////
 	
 // Twisted Edwards Extended (dbl-2008-hwcd-4), a = -1, independent of d,incomplete	
-#define curvesDbl()	CLEAR_TEMP()				\
+#define curvesDbl()	CLEAR_TEMP();				\
 					ADD_MOD(c_tt0,c_x1,c_y1);	\
 					SQR_MOD(c_tt1,c_x1);		\
 					SQR_MOD(c_x1,c_y1);			\
