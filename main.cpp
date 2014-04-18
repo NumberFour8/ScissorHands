@@ -158,7 +158,7 @@ int main(int argc,char** argv)
 
 	// Inicializace proměnných
 	ExtendedPoint infty(zN); // Neutrální prvek
-	Aux ax(zN);			     // Pomocná struktura
+	ComputeConfig ax(zN);    // Pomocná struktura
 	NAF S(2);				 // NAF rozvoj šířky 2
 	mpz_t zS,zInvW,zX,zY,zF; // Pomocné proměnné
 	cudaError_t cudaStatus;	 // Proměnná pro chybové kódy GPU
@@ -233,7 +233,7 @@ int main(int argc,char** argv)
 
 	// Analyzuj výsledky
 	foundFactors.clear();
-	for (int i = 0; i < NUM_CURVES;++i)
+	for (unsigned int i = 0; i < read_curves;++i)
 	{
 		cout << "Curve #" << i+1 << ":\t"; 
 		if (PP[i].toAffine(zX,zY,zN,zInvW,zF)) 

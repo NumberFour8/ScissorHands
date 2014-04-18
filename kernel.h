@@ -11,7 +11,7 @@
 #define CURVES_PER_BLOCK 16
 
 // Hlavní výpočetní metoda 
-cudaError_t compute(const ComputeConfig h_input,const ExtendedPoint* neutral,ExtendedPoint* initPoints,const NAF& coeff);
+cudaError_t compute(const ComputeConfig& cfg,const ExtendedPoint* neutral,ExtendedPoint* initPoints,const NAF& coeff);
 
 //////////////////////////////////////////// INTERNÍ MAKRA KERNELŮ ////////////////////////////////////////////
 
@@ -44,6 +44,7 @@ cudaError_t compute(const ComputeConfig h_input,const ExtendedPoint* neutral,Ext
 	const digit_t _N    = ax->N[threadIdx.x];							\
 	const digit_t _3N   = ax->N3[threadIdx.x];							\
 	const digit_t _INVN = ax->invN;										\
+	const digit_t NUM_CURVES = ax->numCurves;							\
 	const digit_t idx = 4*NB_DIGITS*(blockIdx.x*blockDim.y + threadIdx.y);
 
 // Vyčištění dočasných proměnných

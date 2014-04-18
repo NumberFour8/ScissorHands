@@ -23,7 +23,7 @@ __global__ void slidingWindow(void* pY,void* pPc,void* swAux,void* swCoeff)
 {
 	PREPARE();
 
-	VOL digit_t* Qd	  = ((digit_t*)pY)+idx; 
+	VOL digit_t* Qd		 = ((digit_t*)pY)+idx; 
 	
 	// Nakopírování pracovních dat pro Y
 	c_x1[threadIdx.x] = *(Qd+threadIdx.x+0*NB_DIGITS); // prvních 32 cifer patří k X
@@ -103,11 +103,11 @@ __global__ void precompute(void* pX,void* pCube,void* swAux)
 	}
 }
 
-cudaError_t compute(const ComputeConfig& h_input,const ExtendedPoint* neutral,ExtendedPoint* initPoints,const NAF& coeff)
+cudaError_t compute(const ComputeConfig& cfg,const ExtendedPoint* neutral,ExtendedPoint* initPoints,const NAF& coeff)
 {		
-	const int PRECOMP_SZ = (1 << (h_input.windowSz-1)); // Počet bodů, které je nutné předpočítat
-	const int NUM_CURVES = h_input.numCurves;			// Počet načtených křivek
-	const int NUM_BLOCKS = NUM_CURVES/CURVES_BY_BLOCK;	// Počet použitých bloků
+	const int PRECOMP_SZ = (1 << (cfg.windowSz-1));		// Počet bodů, které je nutné předpočítat
+	const int NUM_CURVES = cfg.numCurves;				// Počet načtených křivek
+	const int NUM_BLOCKS = NUM_CURVES/CURVES_PER_BLOCK;	// Počet použitých bloků
 	
 	cudaEvent_t start,stop;
 	float totalTime = 0;
@@ -120,14 +120,14 @@ cudaError_t compute(const ComputeConfig& h_input,const ExtendedPoint* neutral,Ex
 	// Alokace potřebných dat
 	cuda_Malloc((void**)&swPc,NUM_CURVES*PRECOMP_SZ*4*MAX_BYTES); // Předpočítané body
 	cuda_Malloc((void**)&swQw,NUM_CURVES*4*MAX_BYTES);			  // Pomocný bod
-	cuda_Malloc((void**)&swAx,sizeof(Aux));						  // Pomocná struktura
-	cuda_Malloc((void**)&swCf,h_input.nafLen);					  // NAF rozvoj koeficientu
+	cuda_Malloc((void**)&swAx,sizeof(ComputeConfig));			  // Pomocná struktura
+	cuda_Malloc((void**)&swCf,cfg.nafLen);						  // NAF rozvoj koeficientu
 	
 	// Pomocná struktura
-	cuda_Memcpy(swAx,(void*)&h_input,sizeof(Aux),cudaMemcpyHostToDevice);
+	cuda_Memcpy(swAx,(void*)&cfg,sizeof(ComputeConfig),cudaMemcpyHostToDevice);
 
 	// NAF rozvoj koeficientu
-	cuda_Memcpy(swCf,(void*)coeff.bits,h_input.nafLen,cudaMemcpyHostToDevice);
+	cuda_Memcpy(swCf,(void*)coeff.bits,cfg.nafLen,cudaMemcpyHostToDevice);
 	
 	// Počáteční body
 	VOL digit_t* iter = (digit_t*)swPc;

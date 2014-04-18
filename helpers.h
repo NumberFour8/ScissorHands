@@ -14,72 +14,72 @@ using namespace std;
 #define mpq_intz(...) mpq_inits(__VA_ARGS__,NULL)
 #define mpq_clrs(...) mpq_clears(__VA_ARGS__,NULL)
 
-// Rozvoj čísla do non-adjacent form (NAF)
+// Rozvoj cisla do non-adjacent form (NAF)
 class NAF {
 public:
 	// Koeficienty rozvoje
 	char* bits;
 	
-	// Délka rozvoje
+	// Delka rozvoje
 	unsigned long l;
 	
-	// Délka rozvoje
+	// Delka rozvoje
 	const unsigned char w;
 	
-	// Výchozí konstruktor
+	// Vychozi� konstruktor
 	NAF(unsigned char W) : w(W), bits(NULL), l(0)
 	{ }
 	
 	virtual ~NAF();
 
-	// Vytvoří NAF rozvoj čísla N dané délky W
+	// Vytvori� NAF rozvoj ci�sla N dane delky W
 	void initialize(mpz_t N);
 	
-	// Vypíše rozvoj
+	// Vypise rozvoj
 	void print() const;
 	
 };
 
-// Převede X do Montgomeryho reprezentace modulo N
+// Preevede X do Montgomeryho reprezentace modulo N
 void to_mont_repr(mpz_t x, mpz_t n);
 
-// Převede X z Montgomeryho reprezentace modulo N
+// Preevede X z Montgomeryho reprezentace modulo N
 void from_mont_repr(mpz_t x, mpz_t n,mpz_t invB);
 
-// Převede MPZ číslo do báze 2^32
+// Preevede MPZ cislo do baze 2^32
 void mpz_to_biguint(biguint_t a, mpz_t b);
 
-// Převede čí­slo z báze 2^32 do MPZ
+// Preevede ci�slo z baze 2^32 do MPZ
 void biguint_to_mpz(mpz_t a, biguint_t b);
 
-// Převede MPZ číslo do řetězce
+// Prevede MPZ cislo do retezce
 std::string mpz_to_string(mpz_t number);
 
-// Vypíše číslo v bázi 2^32
+// Vypise ci�slo v bazi 2^32
 void printBigInt(const char* tag,biguint_t B);
 
-// Spoèítá LCM(1,2,3...,n)
+// Spocita LCM(1,2,3...,n)
 void lcmToN(mpz_t res,const unsigned int n);
 
-/* Pokusí se invertovat X modulo N.
-   Pokud inverze neexistuje vrací false a v invX je faktor N.
-   Je-li gcd(X,N) = N, pak vrací 0.
+/* Pokusi se invertovat X modulo N.
+   Pokud inverze neexistuje vraci false a v invX je faktor N.
+   Je-li gcd(X,N) = N, pak vraci� 0.
  */ 
 bool try_invert_mod(mpz_t invx,mpz_t x,mpz_t N);
 
-/* Vypočítá redukci racionálního čísla q modulo n.
-   Při chybě vrací false a v r je faktor čísla N nebo 0. 
+/* Vypocita redukci racionalni�ho ci�sla q modulo n.
+   Pri chybe vraci� false a v r je faktor ci�sla N nebo 0. 
 */
 bool reduce_mod(mpz_t r,mpq_t q,mpz_t n);
 
 
-// Vynuluje čí­slo v bázi 2^32
+// Vynuluje cislo v bazi 2^32
 inline void reset(biguint_t n)
 {
 	memset((void*)n,0,MAX_BYTES);
 }
 
-// Pomocná tří­da konfigurace výpočtu
+// Pomocna tri�da konfigurace vypoctu
 class ComputeConfig {
 public:
 	biguint_t N;   // N
@@ -87,11 +87,11 @@ public:
 	digit_t invN;  // N^(-1) mod W
 	
 	unsigned short windowSz;	 // Velikost okna
-	unsigned long  nafLen;   // Šířka NAF
+	unsigned long  nafLen;		 // Sirka NAF
 	
-	unsigned long numCurves;	 // Počet křivek
+	unsigned long numCurves;	 // Pocet krivek
 
-	Aux(mpz_t zN)
+	ComputeConfig(mpz_t zN)
 	{
 		reset(N);
 		reset(N3);
@@ -115,7 +115,7 @@ public:
 	}
 };
 
-// Vypíše chybu GPU a přeruší­ program
+// Vypise chybu GPU a prerusi program
 inline void gpuAssert(cudaError_t code, char *file, int line, bool abort = true)
 {
    if (code != cudaSuccess) 
@@ -125,7 +125,7 @@ inline void gpuAssert(cudaError_t code, char *file, int line, bool abort = true)
    }
 }
 
-//////////////////////// POMOCNÁ MAKRA PRO CUDA ///////////////////////////
+//////////////////////// POMOCNA� MAKRA PRO CUDA ///////////////////////////
 
 #define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 
