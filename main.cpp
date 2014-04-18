@@ -11,16 +11,12 @@
 using namespace std;
 
 // Přečte počáteční body křivek v afinních souřadnicích ze souboru
-int readCurves(string file,mpz_t N,ExtendedPoint** pInit)
+int readCurves(string file,mpz_t N,ExtendedPoint** pInit,bool& minus1)
 {
 	ifstream fp;
 	if (file.length() < 2) 
 	{
-		#ifdef USE_TWISTED
-			file = "curves_twisted.txt";
-		#else 
-			file = "curves_edwards.txt";
-		#endif
+		file = "curves_twisted.txt";
 		cout << "INFO: Defaulting to " << file  << endl;	
 	}
 	
@@ -43,7 +39,7 @@ int readCurves(string file,mpz_t N,ExtendedPoint** pInit)
 	
 	string ln;
 	vector<ExtendedPoint> v;
-	bool minus1 = true;
+	minus1 = true;
 	cout << "Loading curves..." << endl;
 	while (getline(fp,ln))
 	{
@@ -51,7 +47,17 @@ int readCurves(string file,mpz_t N,ExtendedPoint** pInit)
 		if (ln.find("#") == string::npos) continue;
 		
 		// Je to překroucená Edwardsova křivka s a = -1 ? 
-		fp >> ln; 
+		fp >> ln;
+		if (v.size() > 0 && (ln == "-1") != minus1)
+		{
+			cout << "ERROR: Cannot mix curves with a = 1 and curves with a = -1." << endl; 
+		
+			fp.close();
+			mpz_clrs(zX,zY);
+			mpq_clrs(qX,qY);
+
+			return 0;
+		}
 		minus1 = (ln == "-1");
 		
 		// Přečti racionální X-ovou souřadnici a zkrať
@@ -88,9 +94,6 @@ int readCurves(string file,mpz_t N,ExtendedPoint** pInit)
 		v.push_back(ExtendedPoint(zX,zY,N)); 
 	}
 
-	// Překroucené Edwardsovy křivky přijdou na začátek
-	std::sort(v.begin(), v.end(), [](const ExtendedPoint& a, const ExtendedPoint & b) -> bool { return a.minusOne && !b.minusOne; });
-
 	// Překopíruj body z vektoru do paměti
 	*pInit = new ExtendedPoint[v.size()];
 	std::copy(v.begin(),v.end(),*pInit);
@@ -123,13 +126,8 @@ struct factor {
 
 int main(int argc,char** argv)
 {
-	cout << "ECM using ";
-	#ifdef USE_TWISTED
-	  cout << "Twisted Edwards curves" << endl;
-	#else 
-	  cout << "Edwards curves" << endl;
-	#endif
-
+	cout << "ECM using Twisted Edwards curves" << endl;
+	
 	string inpN,curveFile;
 	unsigned int exitCode = 0,read_curves = 0,inpB1 = 0,windowSize = 0;
 	char c = 0;
@@ -144,14 +142,8 @@ int main(int argc,char** argv)
 		cout << "Enter N:" << endl;
 		cin >> inpN;
 		cout << endl;
-
-		// Načíst křivky ze souboru
-		cout << "Enter path to curve file:" << endl;
-		cin >> curveFile;
-		cout << endl;
 	}
 
-	
 	// Inicializace N
 	mpz_t zN;
 	mpz_init_set_str(zN,inpN.c_str(),10);
@@ -163,11 +155,20 @@ int main(int argc,char** argv)
 	mpz_t zS,zInvW,zX,zY,zF; // Pomocné proměnné
 	cudaError_t cudaStatus;	 // Proměnná pro chybové kódy GPU
 	ExtendedPoint *PP;		 // Adresa všech bodů
+	bool minusOne;			 // Pracujeme s křivkami s a =-1 ?
 
 	restart_bound:
 
+	// Zjisti název souboru s křivkami, pokud ho nemáme
+	if (curveFile.empty())
+	{
+		cout << "Enter path to curve file:" << endl;
+		cin >> curveFile;
+		cout << endl;
+	}
+
 	PP = NULL;
-	read_curves = readCurves(curveFile,zN,&PP);
+	read_curves = readCurves(curveFile,zN,&PP,minusOne);
 
 	// Zkontroluj počet načtených křivek
 	if (read_curves <= 0)
@@ -176,14 +177,14 @@ int main(int argc,char** argv)
 		exitCode = 1;
 		goto end;
 	}
-	cout << "Loaded " << read_curves << " curves." << endl << endl;
+	cout << "Loaded " << read_curves << " curves with a = " << (minusOne ? "-1" : "1")  << endl << endl;
 
 	// Přečti B1 pokud ho nemáme
 	if (inpB1 <= 1)
 	{
-	  cout << "Enter B1: " << endl;
-	  cin >> inpB1;
-	  cout << endl;
+		cout << "Enter B1: " << endl;
+		cin >> inpB1;
+		cout << endl;
 	}
 
 	// Velikost okna pro sliding window
@@ -208,6 +209,7 @@ int main(int argc,char** argv)
 	ax.windowSz  = windowSize;
 	ax.nafLen    = S.l;
 	ax.numCurves = read_curves;
+	ax.minus1	 = minusOne; 
 
 	// Proveď výpočet
 	cudaStatus = compute(ax,&infty,PP,S);
@@ -269,7 +271,7 @@ int main(int argc,char** argv)
 	mpz_clrs(zInvW,zX,zY);
 	delete[] PP;
 
-	cout << endl << "Type 'r' to restart with new bound B1 or 'q' to quit..." << endl;
+	cout << endl << "Type 'r' to restart with new configuration or 'q' to quit..." << endl;
 	while (1)
 	{
 	   cin >> c;
@@ -277,6 +279,7 @@ int main(int argc,char** argv)
 	   else if (c == 'r')
 	   {
 		  inpB1 = windowSize = 0;
+		  curveFile.clear();
 		  goto restart_bound;
 		}
 	}

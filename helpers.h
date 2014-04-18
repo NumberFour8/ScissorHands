@@ -90,6 +90,7 @@ public:
 	unsigned long  nafLen;		 // Sirka NAF
 	
 	unsigned long numCurves;	 // Pocet krivek
+	bool		  minus1;		 // Typ krivek 
 
 	ComputeConfig(mpz_t zN)
 	{

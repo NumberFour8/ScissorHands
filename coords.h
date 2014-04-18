@@ -21,27 +21,21 @@ public:
 	// Všechny souřadnice bodu v Extended souřadnicích
 	biguint_t X,Y,Z,T;
 	
-	// Indikátor, zda se počítá na překroucené Edwardsově křivce s a = -1
-	bool minusOne;
-
 	// Vytvoří prázdný bod v Extended souřadnicích
-	ExtendedPoint(bool minus1 = true)
-	  : minusOne(minus1)
+	ExtendedPoint()
 	{
 		initAll();
 	}
 	
 	// Vytvoří bod v Extended souřadnicích inicializovaný daným afinním bodem
-	ExtendedPoint(mpz_t x,mpz_t y,mpz_t N,bool minus1 = true) 
-	  : minusOne(minus1)
+	ExtendedPoint(mpz_t x,mpz_t y,mpz_t N) 
 	{
 		initAll();
 		fromAffine(x,y,N);
 	}
 
 	// Vytvoří bod v nekonečnu v Extended souřadnicích
-	ExtendedPoint(mpz_t N,bool minus1 = true) 
-	  : minusOne(minus1)
+	ExtendedPoint(mpz_t N) 
 	{
 		initAll();
 		infinity(N);

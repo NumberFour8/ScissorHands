@@ -59,5 +59,4 @@ cudaError_t compute(const ComputeConfig& cfg,const ExtendedPoint* neutral,Extend
 					c_z2[threadIdx.x] = *(Qd+threadIdx.x+2*NB_DIGITS);  \
 					c_t2[threadIdx.x] = *(Qd+threadIdx.x+3*NB_DIGITS); 
 
-
 #endif
