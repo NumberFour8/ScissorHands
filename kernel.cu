@@ -1,6 +1,6 @@
 #include "kernel.h"
 
-//#include "edwards.h"
+#include "edwards.h"
 #include "twisted.h"
 
 // Vrátí výsek z NAF rozvoje
@@ -16,7 +16,7 @@ __device__ int build(char* bits,unsigned int start,unsigned int end)
 }
 
 // Výpočet pomocí sliding window pro křivky s a=1
-/*
+
 __global__ void slidingWindowE(void* pY,void* pPc,void* swAux,void* swCoeff)
 {
 	PREPARE();
@@ -70,7 +70,7 @@ __global__ void slidingWindowE(void* pY,void* pPc,void* swAux,void* swCoeff)
 
 	__syncthreads();
 }
-*/
+
 // Výpočet pomocí sliding window pro křivky s a=-1
 __global__ void slidingWindowT(void* pY,void* pPc,void* swAux,void* swCoeff)
 {
@@ -126,7 +126,7 @@ __global__ void slidingWindowT(void* pY,void* pPc,void* swAux,void* swCoeff)
 	__syncthreads();
 }
 
-/*
+
 __global__ void precomputeE(void* pX,void* pCube,void* swAux)
 {
 	PREPARE();
@@ -156,7 +156,7 @@ __global__ void precomputeE(void* pX,void* pCube,void* swAux)
 		edwardsAdd();
 	}
 }
-*/
+
 __global__ void precomputeT(void* pX,void* pCube,void* swAux)
 {
 	PREPARE();
@@ -237,7 +237,7 @@ cudaError_t compute(const ComputeConfig& cfg,const ExtendedPoint* neutral,Extend
 	else
 	{
 		START_MEASURE(start);
-		//precomputeE<<<NUM_BLOCKS,threadsPerBlock>>>((void*)swPc,(void*)iter,(void*)swAx);
+		precomputeE<<<NUM_BLOCKS,threadsPerBlock>>>((void*)swPc,(void*)iter,(void*)swAx);
 		STOP_MEASURE("Precomputation phase",start,stop,totalTime);
 	
 	}
@@ -261,7 +261,7 @@ cudaError_t compute(const ComputeConfig& cfg,const ExtendedPoint* neutral,Extend
 	else
 	{
 		START_MEASURE(start);
-		//slidingWindowE<<<NUM_BLOCKS,threadsPerBlock>>>((void*)swQw,(void*)swPc,(void*)swAx,(void*)swCf);
+		slidingWindowE<<<NUM_BLOCKS,threadsPerBlock>>>((void*)swQw,(void*)swPc,(void*)swAx,(void*)swCf);
 		STOP_MEASURE("Computation phase",start,stop,totalTime);
 	}
 	
