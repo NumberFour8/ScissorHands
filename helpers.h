@@ -4,6 +4,9 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <fstream>
+#include <vector>
+#include <algorithm>
 using namespace std;
 
 #include "def.h"
@@ -23,17 +26,17 @@ public:
 	// Delka rozvoje
 	unsigned long l;
 	
-	// Delka rozvoje
-	const unsigned char w;
+	// Sirka rozvoje
+	unsigned char w;
 	
 	// Vychozi≠ konstruktor
-	NAF(unsigned char W) : w(W), bits(NULL), l(0)
+	NAF() : w(2), bits(NULL), l(0)
 	{ }
 	
 	virtual ~NAF();
 
 	// Vytvori≠ NAF rozvoj ci≠sla N dane delky W
-	void initialize(mpz_t N);
+	void initialize(mpz_t N,unsigned char W = 2);
 	
 	// Vypise rozvoj
 	void print() const;
@@ -79,6 +82,17 @@ inline void reset(biguint_t n)
 	memset((void*)n,0,MAX_BYTES);
 }
 
+/* Nacte krivky a jejich pocatecni body v racionalnich afinnich souradnicich 
+ * ze souboru a provede jejich redukci modulo N.
+ * Nactene pocatecni body v Extended souradnicich jsou ulozeny do pInit,
+ * kter˝ je potÈ nutno uvolnit pomoci delete[].
+ * Indikator minus1 je nastaven v pripade, ze se jedna o prekroucene Edwardsovy
+ * krivky s parametrem a = 1.
+ * Vraci pocet uspesne prectenych krivek. 
+*/
+int readCurves(string file,mpz_t N,ExtendedPoint** pInit,bool& minus1);
+
+
 // Pomocna tri≠da konfigurace vypoctu
 class ComputeConfig {
 public:
@@ -91,6 +105,7 @@ public:
 	
 	unsigned long numCurves;	 // Pocet krivek
 	bool		  minus1;		 // Typ krivek 
+	bool 		  useDblAdd;	 // Pouzit double-and-add misto sliding window?
 
 	ComputeConfig(mpz_t zN)
 	{
@@ -126,7 +141,7 @@ inline void gpuAssert(cudaError_t code, char *file, int line, bool abort = true)
    }
 }
 
-//////////////////////// POMOCNAÅ MAKRA PRO CUDA ///////////////////////////
+//////////////////////// POMOCNA MAKRA PRO CUDA ///////////////////////////
 
 #define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 
