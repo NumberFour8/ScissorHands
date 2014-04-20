@@ -32,14 +32,10 @@ void parseArguments(int argc,char** argv,progArgs& args)
 	po::options_description desc("List of supported options");
 	desc.add_options()
 		("help", "Print usage information.")
-		("verbose", po::value<bool>(&args.verbose)->default_value(false),
-			"More verbose output.")
-		("double-add", po::value<bool>(&args.useDoubleAndAdd)->default_value(false),
-			"Use double-and-add instead sliding window.")
-		("dont-compute-bound", po::value<bool>(&args.noLCM)->default_value(false),
-			"True for s = B1, false for s = lcm(1,2...B1).")
-		("no-restart", po::value<bool>(&args.exitOnFinish)->default_value(false),
-			"When set, program terminates automatically after finishing.")
+		("verbose", "More verbose output.")
+		("use-double-add", "Use double-and-add instead sliding window.")
+		("dont-compute-bound", "True for s = B1, false for s = lcm(1,2...B1).")
+		("no-restart", "When set, program terminates automatically after finishing.")
 		("N-to-factor", po::value<string>(),
 			"Number to factor.")
 		("curve-file", po::value<string>(),
@@ -53,6 +49,11 @@ void parseArguments(int argc,char** argv,progArgs& args)
 	po::store(po::parse_command_line(argc,argv,desc),vm);
 	po::notify(vm);
 	
+	args.useDoubleAndAdd = vm.count("use-double-add") != 0;
+	args.verbose		 = vm.count("verbose") != 0;
+	args.noLCM			 = vm.count("dont-compute-bound") != 0;
+	args.exitOnFinish	 = vm.count("no-restart") != 0;
+
 	if (vm.count("N-to-factor"))
 	  args.N = vm["N-to-factor"].as<string>();
 	if (vm.count("curve-file"))
