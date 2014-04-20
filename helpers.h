@@ -143,5 +143,5 @@ inline void gpuAssert(cudaError_t code, char *file, int line, bool abort = true)
 								  gpuErrchk(cudaEventElapsedTime(&time,start,stop));\
 								  tt += time; \
 								  time > 2000.0f ? printf("%s : %.3f s\n",name,time/1000.0f) :\
-												   printf("%s : %.3f ms\n",name,time); }
+												   printf("%s : %.3f ms\n",name,time); } 
 #endif

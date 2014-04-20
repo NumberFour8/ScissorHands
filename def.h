@@ -18,8 +18,10 @@
 	#define ASM asm volatile
 #endif
 
-#include "cuda_runtime.h"
-#include "device_launch_parameters.h"
+#include <cuda.h>
+#include <cuda_runtime.h>
+#include <cuda_profiler_api.h>
+#include <device_launch_parameters.h>
 
 #define NB_DIGITS 32 
 #define SIZE_DIGIT 32

@@ -130,13 +130,16 @@ int main(int argc,char** argv)
 	
 	string inpN,curveFile;
 	unsigned int exitCode = 0,read_curves = 0,inpB1 = 0,windowSize = 0;
+	bool quick = false;
 	char c = 0;
 
 	// Množina nalezených faktorů s vlastním uspořádnáním
 	set<factor,bool(*)(factor x, factor y)> foundFactors([](factor x, factor y){ return x.fac < y.fac; });
 
 	// Jsou-li předány parametry, použij je. Jinak se na ně zeptej.
-	if (!parseArguments(argc,argv,inpN,curveFile,inpB1,windowSize))
+	quick = parseArguments(argc,argv,inpN,curveFile,inpB1,windowSize);
+
+	if (inpN.empty())
 	{
 		// Načíst N
 		cout << "Enter N:" << endl;
@@ -228,10 +231,13 @@ int main(int argc,char** argv)
 	mpz_ui_pow_ui(zInvW, 2, SIZE_DIGIT); 
 	mpz_invert(zInvW, zInvW, zN);
 
-	cout << endl;
-	cout << "Print also affine coordinates? (y/n)" << endl;
-	cin >> c;
-	cout << endl;
+	if (!quick){
+		cout << endl;
+		cout << "Print also affine coordinates? (y/n)" << endl;
+		cin >> c;
+		cout << endl;
+	}
+	else c = 'y';
 
 	// Analyzuj výsledky
 	foundFactors.clear();
@@ -271,9 +277,9 @@ int main(int argc,char** argv)
 	mpz_clrs(zInvW,zX,zY);
 	delete[] PP;
 
-	cout << endl << "Type 'r' to restart with new configuration or 'q' to quit..." << endl;
-	while (1)
+	while (!quick)
 	{
+	   cout << endl << "Type 'r' to restart with new configuration or 'q' to quit..." << endl;
 	   cin >> c;
 	   if (c == 'q') break;
 	   else if (c == 'r')
