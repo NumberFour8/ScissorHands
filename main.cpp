@@ -62,6 +62,7 @@ void parseArguments(int argc,char** argv,progArgs& args)
 // Zkontroluje úplnost parametrů, případně požádá o doplnění
 void validateArguments(progArgs& args)
 {
+	bool recheck = false; 
 	const static boost::regex numVal("^[0-9]+$");
 	if (args.N.empty() || !regex_match(args.N,numVal))
 	{
@@ -69,31 +70,52 @@ void validateArguments(progArgs& args)
 		cout << "Enter N:" << endl;
 		cin  >> args.N;
 		cout << endl;
+		recheck = true; 
 	}
 	
-	const fs::path p(curveFile);
-	if (args.curveFile.empty() || !fs::exists(p) || !fs::is_regular_file(p))
+	if (!args.curveFile.empty() && args.curveFile.length() < 2) 
 	{
-	  	// Načíst název souboru s křivkami
+		args.curveFile = "curves_twisted.txt";
+		cout << "INFO: Defaulting to " << args.curveFile  << endl << endl;	
+	}
+	else if (args.curveFile.empty())
+	{ 
 		cout << "Enter path to curve file:" << endl;
 		cin  >> args.curveFile;
 		cout << endl;
+		recheck = true;
 	}
+	else 
+	{ 
+		const fs::path p(args.curveFile);
+		if (!fs::exists(p) || !fs::is_regular_file(p))
+		{
+	  		// Načíst název souboru s křivkami
+			cout << "Enter path to curve file:" << endl;
+			cin  >> args.curveFile;
+			cout << endl;
+			recheck = true;
+		}
+	}
+
 	if (args.B1 <= 2)
 	{
 		// Načíst hranici první fáze
 		cout << "Enter stage 1 bound B1:" << endl;
 		cin  >> args.B1;
 		cout << endl;
+		recheck = true;
 	}
+
 	if (args.windowSize < 2)
 	{
 		// Velikost okna
 		cout << "Enter window size:" << endl;
 		cin  >> args.windowSize;
 		cout << endl;
+		recheck = true;
 	}
-	validateArguments(args);
+	if (recheck) validateArguments(args);
 }
 
 // Struktura obsahující informace o získaném faktoru
@@ -123,14 +145,6 @@ int main(int argc,char** argv)
 	mpz_t zN;
 	mpz_init_set_str(zN,args.N.c_str(),10);
 	
-	// Pokud je N prvočíslo, není co faktorizovat
-	if (mpz_probab_prime_p(zF,25) != 0)
-	{
-		cout << "ERROR: N is almost surely prime." << endl;
-		exitCode = 1;
-		goto end;
-	}
-
 	// Inicializace proměnných
 	ExtendedPoint infty(zN); 	// Neutrální prvek
 	ComputeConfig ax(zN);    	// Pomocná struktura
@@ -139,6 +153,14 @@ int main(int argc,char** argv)
 	cudaError_t cudaStatus;	 	// Proměnná pro chybové kódy GPU
 	ExtendedPoint *PP;		 	// Adresa všech bodů
 	bool minusOne;			 	// Pracujeme s křivkami s a =-1 ?
+
+	// Pokud je N prvočíslo, není co faktorizovat
+	if (mpz_probab_prime_p(zN,25) != 0)
+	{
+		cout << "ERROR: N is almost surely prime." << endl;
+		exitCode = 1;
+		goto end;
+	}
 
 	restart_bound:
 

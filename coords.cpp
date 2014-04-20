@@ -94,11 +94,6 @@ bool ExtendedPoint::toAffine(mpz_t x,mpz_t y,mpz_t N,mpz_t invB,mpz_t fact)
 int readCurves(string file,mpz_t N,ExtendedPoint** pInit,bool& minus1)
 {
 	ifstream fp;
-	if (file.length() < 2) 
-	{
-		file = "curves_twisted.txt";
-		cout << "INFO: Defaulting to " << file  << endl;	
-	}
 	
 	// Pokud se nepodari otevrit soubor, skonci
 	fp.open(file);
