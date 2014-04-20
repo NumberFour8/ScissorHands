@@ -78,7 +78,7 @@ void validateArguments(progArgs& args)
 	
 	if (!args.curveFile.empty() && args.curveFile.length() < 2) 
 	{
-		args.curveFile = "curves_twisted.txt";
+		args.curveFile = args.curveFile == "E" ? "curves_edwards.txt" : "curves_twisted.txt";
 		cout << "INFO: Defaulting to " << args.curveFile  << endl << endl;	
 	}
 	else if (args.curveFile.empty())
@@ -161,7 +161,7 @@ int main(int argc,char** argv)
 	restart_bound:
 	
 	// Pokud je N prvočíslo, není co faktorizovat
-	if (mpz_probab_prime_p(zN,25) != 0 || mpz_cmp_ui(zN,1) == 0 || mpz_cmp_ui(zN,0) == 0)
+	if (is_almost_surely_prime(zN) || mpz_cmp_ui(zN,1) == 0 || mpz_cmp_ui(zN,0) == 0)
 	{
 		cout << "ERROR: N equals 0,1 or is almost surely a prime." << endl;
 		exitCode = 1;
@@ -241,7 +241,7 @@ int main(int argc,char** argv)
 		}
 		else if (mpz_cmp_ui(zF,0) != 0) // Máme faktor!
 		{
-		   bool isPrime = (mpz_probab_prime_p(zF,25) != 0);
+		   bool isPrime = is_almost_surely_prime(zF);
 		   string fact  = mpz_to_string(zF);
 
 		   cout << "Factor found: " << fact << endl;
@@ -263,14 +263,23 @@ int main(int argc,char** argv)
 		}
 	   );
 	}
-	else cout << endl << "No factors found." << endl << endl;
+	else cout << endl << "NO FACTORS FOUND." << endl << endl;
 
 	// Poděl číslo N všemi nalezenými prvočíselnými faktory
 	cout << endl; 
 	if (mpz_cmp(zChk,zN) != 0)
 	{
-		mpz_divexact(zN,zN,zChk);
-		cout << "REMAINING UNFACTORED PART: " << mpz_to_string(zN) << endl; 
+		mpz_divexact(zChk,zN,zChk);
+		if (is_almost_surely_prime(zChk))
+		{
+			cout << "REMAINING UNFACTORED PART " << mpz_to_string(zChk) << " IS A PRIME." endl;
+			cout << mpz_to_string(zN) << " HAS BEEN FACTORED TOTALLY!" << endl;
+			args.exitOnFinish = true; 
+		}
+		else {
+			cout << "REMAINING UNFACTORED PART: " << mpz_to_string(zChk) << endl; 
+			mpz_set(zN,zChk);
+		}
 	}
 	else 
 	{
