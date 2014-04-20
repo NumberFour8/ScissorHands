@@ -180,7 +180,7 @@ int main(int argc,char** argv)
 		exitCode = 1;
 		goto end;
 	}
-	cout << "Loaded " << read_curves << " curves with a = " << (minusOne ? "-1 (twisted " : "1 (")  << "Edwards curve)" << endl << endl;
+	cout << "Loaded " << read_curves << " curves with a = " << (minusOne ? "-1 (twisted " : "1 (")  << "Edwards curves)" << endl << endl;
 
 
 	// Spočti S = lcm(1,2,3...,B1) a jeho NAF rozvoj
