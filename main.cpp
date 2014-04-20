@@ -34,7 +34,7 @@ void parseArguments(int argc,char** argv,progArgs& args)
 		("help", "Print usage information.")
 		("verbose", "More verbose output.")
 		("use-double-add", "Use double-and-add instead sliding window.")
-		("dont-compute-bound", "True for s = B1, false for s = lcm(1,2...B1).")
+		("dont-compute-bound", "Coefficient s = B1 when set, otherwise s = lcm(1,2...B1).")
 		("no-restart", "When set, program terminates automatically after finishing.")
 		("N-to-factor", po::value<string>(),
 			"Number to factor.")
@@ -59,7 +59,7 @@ void parseArguments(int argc,char** argv,progArgs& args)
 	if (vm.count("curve-file"))
 	  args.curveFile = vm["curve-file"].as<string>();
 	if (vm.count("help"))
-	  cout << endl << desc << endl << "-----------------------------------------" << endl;
+	  cout << endl << desc << endl << "-----------------------------------------" << endl << endl;
 }
 
 // Zkontroluje úplnost parametrů, případně požádá o doplnění
