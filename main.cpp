@@ -23,17 +23,17 @@ struct progArgs {
 // Precte parametry programu
 void parseArguments(int argc,char** argv,progArgs& args)
 {
-	po::options_description desc("Allowed options");
+	po::options_description desc("List of supported options");
 	desc.add_options()
-		("help", "Print usage information")
-		("verbose", po::value<int>(&args.verbose)->default_value(0),
+		("help", "Print usage information.")
+		("verbose", po::value<bool>(&args.verbose)->default_value(false),
 			"More verbose output.")
-		("double-add", po::value<int>(&args.useDoubleAndAdd)->default_value(0),
+		("double-add", po::value<bool>(&args.useDoubleAndAdd)->default_value(false),
 			"Use double-and-add instead sliding window.")
-		("dont-compute-bound", po::value<int>(&args.noLCM)->default_value(0),
-			"True for s = B1, false for s = lcm(1,2...B1)."
-		("no-restart", po::value<int>(&args.exitOnFinish)->default_value(0),
-			"Program terminates automatically when set.")
+		("dont-compute-bound", po::value<bool>(&args.noLCM)->default_value(false),
+			"True for s = B1, false for s = lcm(1,2...B1).")
+		("no-restart", po::value<bool>(&args.exitOnFinish)->default_value(false),
+			"When set, program terminates automatically after finishing.")
 		("N-to-factor", po::value<string>(),
 			"Number to factor.")
 		("curve-file", po::value<string>(),
@@ -52,7 +52,7 @@ void parseArguments(int argc,char** argv,progArgs& args)
 	if (vm.count("curve-file"))
 	  args.curveFile = vm["curve-file"].as<string>();
 	if (vm.count("help"))
-	  cout << desc << endl;
+	  cout << endl << desc << endl << "-----------------------------------------" << endl;
 }
 
 // Zkontroluje uplnost prametru, pripadne pozada o doplneni
@@ -100,6 +100,7 @@ int main(int argc,char** argv)
 	cout << "ECM using Twisted Edwards curves" << endl;
 	
 	progArgs args;
+	int read_curves = 0,exitCode = 0;
 	char c = 0;
 
 	// Množina nalezených faktorů s vlastním uspořádnáním
@@ -111,7 +112,7 @@ int main(int argc,char** argv)
 
 	// Inicializace N
 	mpz_t zN;
-	mpz_init_set_str(zN,inpN.c_str(),10);
+	mpz_init_set_str(zN,args.N.c_str(),10);
 
 	// Inicializace proměnných
 	ExtendedPoint infty(zN); // Neutrální prvek
@@ -125,7 +126,7 @@ int main(int argc,char** argv)
 	restart_bound:
 
 	PP = NULL;
-	read_curves = readCurves(curveFile,zN,&PP,minusOne);
+	read_curves = readCurves(args.curveFile,zN,&PP,minusOne);
 
 	// Zkontroluj počet načtených křivek
 	if (read_curves <= 0)
@@ -176,7 +177,7 @@ int main(int argc,char** argv)
 
 	// Analyzuj výsledky
 	foundFactors.clear();
-	for (unsigned int i = 0; i < read_curves;++i)
+	for (int i = 0; i < read_curves;++i)
 	{
 		cout << "Curve #" << i+1 << ":\t"; 
 		if (PP[i].toAffine(zX,zY,zN,zInvW,zF)) 
