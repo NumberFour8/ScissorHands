@@ -1,11 +1,12 @@
 #include <stdio.h>
-
-#include <iostream>
 #include <set>
-using namespace std;
+
+#include <boost/program_options.hpp>
+namespace po = boost::program_options;
 
 #include "kernel.h"
 
+// Struktura uchovavajici konfiguraci prectenou z parametru nebo ze vstupu
 struct progArgs {
 	string N;
 	string curveFile;
@@ -19,41 +20,42 @@ struct progArgs {
 	progArgs() : verbose(false), noLCM(false), useDoubleAndAdd(false) { }
 };
 
+// Precte parametry programu
 void parseArguments(int argc,char** argv,progArgs& args)
 {
-	static struct option prog_options[] = {
-        {"verbose",    no_argument, (int*)&args.verbose, 1},
-        {"double-add", no_argument, (int*)&args.useDoubleAndAdd, 1},
-        {"dont-compute-bound", no_argument, (int*)&args.noLCM, 1},
-        {"no-restart", no_argument, (int*)&args.exitOnFinish, 1},
-        {"N-to-factor", required_argument, 0, 'N'},
-        {"curve-file",  required_argument, 0, 'f'},
-        {"stage1-bound",required_argument, 0, 'B'},
-        {"window-size", required_argument, 0, 'w'},
-        {0, 0, 0, 0}
-    };
-    
-    int c = 0,optIndex = 0;
-    while ((c = getopt_long(arc,argv,"NfBw",prog_options,&optIndex)) != -1)
-    {
-		switch (c) 
-		{
-			case 'N':
-				args.N = string(optarg);
-				break;
-			case 'f':
-				args.curveFile = string(optarg);
-				break;
-			case 'B':
-				args.B1 = atoi(optarg);
-				break;
-			case 'w':
-				args.windowSize = atoi(optarg);
-				break;
-		};
-	}
+	po::options_description desc("Allowed options");
+	desc.add_options()
+		("help", "Print usage information")
+		("verbose", po::value<int>(&args.verbose)->default_value(0),
+			"More verbose output.")
+		("double-add", po::value<int>(&args.useDoubleAndAdd)->default_value(0),
+			"Use double-and-add instead sliding window.")
+		("dont-compute-bound", po::value<int>(&args.noLCM)->default_value(0),
+			"True for s = B1, false for s = lcm(1,2...B1)."
+		("no-restart", po::value<int>(&args.exitOnFinish)->default_value(0),
+			"Program terminates automatically when set.")
+		("N-to-factor", po::value<string>(),
+			"Number to factor.")
+		("curve-file", po::value<string>(),
+			"Path to file containing curves used for factoring.")
+		("stage1-bound", po::value<unsigned int>(&args.B1)->default_value(4096),
+			"Bound for ECM stage 1.")
+		("window-size", po::value<unsigned short>(&args.windowSize)->default_value(4),
+			"Size of sliding window or NAF width (in case of double-and-add).");
+	
+	po::variables_map vm;
+	po::store(po::parse_command_line(argc,argv,desc),vm);
+	po::notify(vm);
+	
+	if (vm.count("N-to-factor"))
+	  args.N = vm["N-to-factor"].as<string>();
+	if (vm.count("curve-file"))
+	  args.curveFile = vm["curve-file"].as<string>();
+	if (vm.count("help"))
+	  cout << desc << endl;
 }
 
+// Zkontroluje uplnost prametru, pripadne pozada o doplneni
 void validateArguments(progArgs& args)
 {
 	if (args.N.empty())
