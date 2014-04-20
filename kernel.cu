@@ -332,18 +332,36 @@ cudaError_t compute(const ComputeConfig& cfg,const ExtendedPoint* neutral,Extend
 		iter += 4*NB_DIGITS;
 	}
 	
-	// Provést výpočet (sliding window)
 	if (cfg.minus1)
 	{
-		START_MEASURE(start);
-		slidingWindowT<<<NUM_BLOCKS,threadsPerBlock>>>((void*)swQw,(void*)swPc,(void*)swAx,(void*)swCf);
-		STOP_MEASURE("Computation phase",start,stop,totalTime);
+		if (cfg.useDblAdd)
+		{
+			START_MEASURE(start);
+			windowT<<<NUM_BLOCKS,threadsPerBlock>>>((void*)swQw,(void*)swPc,(void*)swAx,(void*)swCf);
+			STOP_MEASURE("Computation phase",start,stop,totalTime);
+		}
+		else 
+		{
+			START_MEASURE(start);
+			slidingWindowT<<<NUM_BLOCKS,threadsPerBlock>>>((void*)swQw,(void*)swPc,(void*)swAx,(void*)swCf);
+			STOP_MEASURE("Computation phase",start,stop,totalTime);
+		}
+	
 	}
 	else
 	{
-		START_MEASURE(start);
-		slidingWindowE<<<NUM_BLOCKS,threadsPerBlock>>>((void*)swQw,(void*)swPc,(void*)swAx,(void*)swCf);
-		STOP_MEASURE("Computation phase",start,stop,totalTime);
+		if (cfg.useDblAdd)
+		{
+			START_MEASURE(start);
+			windowE<<<NUM_BLOCKS,threadsPerBlock>>>((void*)swQw,(void*)swPc,(void*)swAx,(void*)swCf);
+			STOP_MEASURE("Computation phase",start,stop,totalTime);
+		}
+		else 
+		{
+			START_MEASURE(start);
+			slidingWindowE<<<NUM_BLOCKS,threadsPerBlock>>>((void*)swQw,(void*)swPc,(void*)swAx,(void*)swCf);
+			STOP_MEASURE("Computation phase",start,stop,totalTime);
+		}
 	}
 	
 	printf("--------------------------\n");
