@@ -1,6 +1,10 @@
 #include <stdio.h>
 #include <set>
 
+#include <boost/regex.hpp>
+#include <boost/filesystem.hpp>
+namespace fs = boost::filesystem;
+
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
@@ -55,24 +59,27 @@ void parseArguments(int argc,char** argv,progArgs& args)
 	  cout << endl << desc << endl << "-----------------------------------------" << endl;
 }
 
-// Zkontroluje uplnost prametru, pripadne pozada o doplneni
+// Zkontroluje úplnost parametrů, případně požádá o doplnění
 void validateArguments(progArgs& args)
 {
-	if (args.N.empty())
+	const static boost::regex numVal("^[0-9]+$");
+	if (args.N.empty() || !regex_match(args.N,numVal))
 	{
 		// Načíst N
 		cout << "Enter N:" << endl;
 		cin  >> args.N;
 		cout << endl;
 	}
-	if (args.curveFile.empty())
+	
+	const fs::path p(curveFile);
+	if (args.curveFile.empty() || !fs::exists(p) || !fs::is_regular_file(p))
 	{
 	  	// Načíst název souboru s křivkami
 		cout << "Enter path to curve file:" << endl;
 		cin  >> args.curveFile;
 		cout << endl;
 	}
-	if (args.B1 <= 1)
+	if (args.B1 <= 2)
 	{
 		// Načíst hranici první fáze
 		cout << "Enter stage 1 bound B1:" << endl;
@@ -86,8 +93,10 @@ void validateArguments(progArgs& args)
 		cin  >> args.windowSize;
 		cout << endl;
 	}
+	validateArguments(args);
 }
 
+// Struktura obsahující informace o získaném faktoru
 struct factor {
 		string fac;
 		bool prime;
@@ -113,15 +122,23 @@ int main(int argc,char** argv)
 	// Inicializace N
 	mpz_t zN;
 	mpz_init_set_str(zN,args.N.c_str(),10);
+	
+	// Pokud je N prvočíslo, není co faktorizovat
+	if (mpz_probab_prime_p(zF,25) != 0)
+	{
+		cout << "ERROR: N is almost surely prime." << endl;
+		exitCode = 1;
+		goto end;
+	}
 
 	// Inicializace proměnných
-	ExtendedPoint infty(zN); // Neutrální prvek
-	ComputeConfig ax(zN);    // Pomocná struktura
-	NAF S;					 // NAF rozvoj
-	mpz_t zS,zInvW,zX,zY,zF; // Pomocné proměnné
-	cudaError_t cudaStatus;	 // Proměnná pro chybové kódy GPU
-	ExtendedPoint *PP;		 // Adresa všech bodů
-	bool minusOne;			 // Pracujeme s křivkami s a =-1 ?
+	ExtendedPoint infty(zN); 	// Neutrální prvek
+	ComputeConfig ax(zN);    	// Pomocná struktura
+	NAF S;					 	// NAF rozvoj
+	mpz_t zS,zInvW,zX,zY,zF; 	// Pomocné proměnné
+	cudaError_t cudaStatus;	 	// Proměnná pro chybové kódy GPU
+	ExtendedPoint *PP;		 	// Adresa všech bodů
+	bool minusOne;			 	// Pracujeme s křivkami s a =-1 ?
 
 	restart_bound:
 
