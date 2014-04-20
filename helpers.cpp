@@ -198,3 +198,26 @@ NAF::~NAF()
 	  bits = NULL;
 	}
 }
+
+void ComputeConfig::initialize(mpz_t zN)
+{
+	reset(N);
+	reset(N3);
+	invN = 0;
+	
+	mpz_t z3N,zW,zInvN;
+	mpz_intz(z3N,zW,zInvN);
+	
+	mpz_mul_ui(z3N,zN,3);
+	
+	mpz_ui_pow_ui (zW, 2, SIZE_DIGIT); 
+    
+	mpz_invert(zInvN, zN, zW);
+	mpz_sub(zInvN, zW, zInvN);
+
+	mpz_to_biguint(N,zN);
+	mpz_to_biguint(N3,z3N);
+	invN = (digit_t)mpz_get_ui(zInvN);
+		
+	mpz_clrs(z3N,zW,zInvN);
+}

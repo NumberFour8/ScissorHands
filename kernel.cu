@@ -273,12 +273,24 @@ cudaError_t compute(const ComputeConfig& cfg,const ExtendedPoint* neutral,Extend
 	
 	int blcks = NUM_CURVES/CURVES_PER_BLOCK;
 	const int NUM_BLOCKS = (blcks == 0 ? 1 : blcks);	// Počet použitých bloků
-	
+	const int USE_DEVICE = 0;							// ID zařízení, které bude použito
+
 	cudaEvent_t start,stop;
 	float totalTime = 0;
 	void *swQw = NULL,*swPc = NULL,*swAx = NULL,*swCf = NULL;
 	gpuErrchk(cudaSetDevice(0));
 	
+	// Zjištění vlastností zařízení
+	cudaDeviceProp prop;
+    gpuErrchk(cudaGetDeviceProperties(&prop, 0));
+
+	// Ověření, že se všechny křivky vejdou do sdílené paměti
+	if ((int)prop.sharedMemPerBlock*prop.multiProcessorCount < NUM_CURVES*CURVE_MEMORY_SIZE)
+	{
+		fprintf(stderr,"Launch failed: cannot fit curves into shared memory.");
+		return cudaErrorLaunchOutOfResources;
+	}
+
 	gpuErrchk(cudaEventCreate(&start));
 	gpuErrchk(cudaEventCreate(&stop));
 
@@ -306,8 +318,10 @@ cudaError_t compute(const ComputeConfig& cfg,const ExtendedPoint* neutral,Extend
 
 	// Konfigurace kernelů
 	dim3 threadsPerBlock(NB_DIGITS,CURVES_PER_BLOCK);
+	printf("Device name and ID : %s (%d)\n",prop.name,USE_DEVICE);
 	printf("Execution configuration: %d x %d x %d\n",NUM_BLOCKS,CURVES_PER_BLOCK,NB_DIGITS);
-	
+	printf("--------------------------\n");
+
 	// Další předpočítané body
 	if (cfg.minus1)
 	{
@@ -397,7 +411,8 @@ cudaError_t compute(const ComputeConfig& cfg,const ExtendedPoint* neutral,Extend
 	gpuErrchk(cudaEventDestroy(stop));
 
 	cudaStatus = cudaDeviceReset();
-    if (cudaStatus != cudaSuccess) {
+    if (cudaStatus != cudaSuccess) 
+	{
         fprintf(stderr, "cudaDeviceReset failed!");
 		return cudaStatus;
     }

@@ -21,7 +21,9 @@ struct progArgs {
 	bool noLCM;
 	bool exitOnFinish;
 	
-	progArgs() : verbose(false), noLCM(false), useDoubleAndAdd(false) { }
+	progArgs() 
+	 : verbose(false), noLCM(false), useDoubleAndAdd(false), B1(0), windowSize(0) 
+	{ }
 };
 
 // Precte parametry programu
@@ -42,10 +44,10 @@ void parseArguments(int argc,char** argv,progArgs& args)
 			"Number to factor.")
 		("curve-file", po::value<string>(),
 			"Path to file containing curves used for factoring.")
-		("stage1-bound", po::value<unsigned int>(&args.B1)->default_value(4096),
+		("stage1-bound", po::value<unsigned int>(&args.B1),
 			"Bound for ECM stage 1.")
-		("window-size", po::value<unsigned short>(&args.windowSize)->default_value(4),
-			"Size of sliding window or NAF width (in case of double-and-add).");
+		("window-size", po::value<unsigned short>(&args.windowSize),
+			"Size of sliding window (or NAF width in case of double-and-add).");
 	
 	po::variables_map vm;
 	po::store(po::parse_command_line(argc,argv,desc),vm);
@@ -135,7 +137,8 @@ int main(int argc,char** argv)
 	char c = 0;
 
 	// Množina nalezených faktorů s vlastním uspořádnáním
-	set<factor,bool(*)(factor x, factor y)> foundFactors([](factor x, factor y){ return x.fac < y.fac; });
+	typedef bool(*factor_comparator)(factor, factor);
+	set<factor,factor_comparator> foundFactors([](factor x, factor y){ return x.fac < y.fac; });
 
 	// Jsou-li předány parametry, použij je. Jinak se na ně zeptej.
 	parseArguments(argc,argv,args);
@@ -146,23 +149,26 @@ int main(int argc,char** argv)
 	mpz_init_set_str(zN,args.N.c_str(),10);
 	
 	// Inicializace proměnných
-	ExtendedPoint infty(zN); 	// Neutrální prvek
-	ComputeConfig ax(zN);    	// Pomocná struktura
-	NAF S;					 	// NAF rozvoj
-	mpz_t zS,zInvW,zX,zY,zF; 	// Pomocné proměnné
-	cudaError_t cudaStatus;	 	// Proměnná pro chybové kódy GPU
-	ExtendedPoint *PP;		 	// Adresa všech bodů
-	bool minusOne;			 	// Pracujeme s křivkami s a =-1 ?
+	ExtendedPoint infty;			// Neutrální prvek
+	ComputeConfig ax;	    		// Pomocná struktura
+	NAF S;					 		// NAF rozvoj
+	mpz_t zS,zInvW,zX,zY,zF,zChk; 	// Pomocné proměnné
+	cudaError_t cudaStatus;	 		// Proměnná pro chybové kódy GPU
+	ExtendedPoint *PP;		 		// Adresa všech bodů
+	bool minusOne;			 		// Pracujeme s křivkami s a =-1 ?
 
+	restart_bound:
+	
 	// Pokud je N prvočíslo, není co faktorizovat
-	if (mpz_probab_prime_p(zN,25) != 0)
+	if (mpz_probab_prime_p(zN,25) != 0 || mpz_cmp_ui(zN,1) == 0 || mpz_cmp_ui(zN,0) == 0)
 	{
-		cout << "ERROR: N is almost surely prime." << endl;
+		cout << "ERROR: N equals 0,1 or is almost surely a prime." << endl;
 		exitCode = 1;
 		goto end;
 	}
 
-	restart_bound:
+	infty.infinity(zN);
+	ax.initialize(zN);
 
 	PP = NULL;
 	read_curves = readCurves(args.curveFile,zN,&PP,minusOne);
@@ -174,7 +180,7 @@ int main(int argc,char** argv)
 		exitCode = 1;
 		goto end;
 	}
-	cout << "Loaded " << read_curves << " curves with a = " << (minusOne ? "-1" : "1")  << endl << endl;
+	cout << "Loaded " << read_curves << " curves with a = " << (minusOne ? "-1 (twisted " : "1 (")  << "Edwards curve)" << endl << endl;
 
 
 	// Spočti S = lcm(1,2,3...,B1) a jeho NAF rozvoj
@@ -182,7 +188,10 @@ int main(int argc,char** argv)
 	cout << "Computing coefficient..." << endl;
 	
 	if (args.noLCM)
+	{
+	  cout << "NOTE: Using bound as coefficient directly." << endl; 
 	  mpz_set_ui(zS,args.B1);
+	}
 	else lcmToN(zS,args.B1);
 	
 	S.initialize(zS,(unsigned char)args.windowSize);
@@ -197,6 +206,9 @@ int main(int argc,char** argv)
 	ax.minus1	 = minusOne; 
 	ax.useDblAdd = args.useDoubleAndAdd;
 
+	if (args.useDoubleAndAdd)
+	  cout << "NOTE: Using double-and-add algorithm." << endl;
+	
 	// Proveď výpočet
 	cudaStatus = compute(ax,&infty,PP,S);
     if (cudaStatus != cudaSuccess) 
@@ -205,7 +217,7 @@ int main(int argc,char** argv)
 		exitCode = 1;
         goto end;
     }
-	cout << "Computation finished." << endl;
+	cout << "Computation finished." << endl << endl;
 
 	// Inicializace pomocných proměnných
 	mpz_intz(zInvW,zX,zY,zF);
@@ -216,6 +228,7 @@ int main(int argc,char** argv)
 
 	// Analyzuj výsledky
 	foundFactors.clear();
+	mpz_init_set_ui(zChk,1);
 	for (int i = 0; i < read_curves;++i)
 	{
 		cout << "Curve #" << i+1 << ":\t"; 
@@ -227,9 +240,12 @@ int main(int argc,char** argv)
 		}
 		else if (mpz_cmp_ui(zF,0) != 0) // Máme faktor!
 		{
-		   string fact = mpz_to_string(zF);
+		   bool isPrime = (mpz_probab_prime_p(zF,25) != 0);
+		   string fact  = mpz_to_string(zF);
+
 		   cout << "Factor found: " << fact << endl;
-		   foundFactors.insert(factor(fact,mpz_probab_prime_p(zF,25) != 0,i));
+		   if (foundFactors.insert(factor(fact,isPrime,i)).second && isPrime) 
+			 mpz_mul(zChk,zChk,zF);
 		}
 		else cout << "Error during conversion." << endl;
 		cout << endl << "------------" << endl;
@@ -248,8 +264,21 @@ int main(int argc,char** argv)
 	}
 	else cout << endl << "No factors found." << endl << endl;
 
+	// Poděl číslo N všemi nalezenými prvočíselnými faktory
+	cout << endl; 
+	if (mpz_cmp(zChk,zN) != 0)
+	{
+		mpz_divexact(zN,zN,zChk);
+		cout << "REMAINING UNFACTORED PART: " << mpz_to_string(zN) << endl; 
+	}
+	else 
+	{
+		cout << mpz_to_string(zN) << " HAS BEEN FACTORED TOTALLY!" << endl;
+		args.exitOnFinish = true; 
+	}
+
 	// Vyčisti proměnné
-	mpz_clrs(zInvW,zX,zY);
+	mpz_clrs(zInvW,zX,zY,zChk);
 	delete[] PP;
 
 	while (!args.exitOnFinish)
