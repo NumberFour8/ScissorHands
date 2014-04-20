@@ -4,9 +4,6 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include <fstream>
-#include <vector>
-#include <algorithm>
 using namespace std;
 
 #include "def.h"
@@ -81,17 +78,6 @@ inline void reset(biguint_t n)
 {
 	memset((void*)n,0,MAX_BYTES);
 }
-
-/* Nacte krivky a jejich pocatecni body v racionalnich afinnich souradnicich 
- * ze souboru a provede jejich redukci modulo N.
- * Nactene pocatecni body v Extended souradnicich jsou ulozeny do pInit,
- * který je poté nutno uvolnit pomoci delete[].
- * Indikator minus1 je nastaven v pripade, ze se jedna o prekroucene Edwardsovy
- * krivky s parametrem a = 1.
- * Vraci pocet uspesne prectenych krivek. 
-*/
-int readCurves(string file,mpz_t N,ExtendedPoint** pInit,bool& minus1);
-
 
 // Pomocna tri­da konfigurace vypoctu
 class ComputeConfig {

@@ -11,10 +11,12 @@
 	#include <unistd.h>
 	#include <sys/resource.h>
 	#include <gmp.h>
+	#include <getopt.h>
 	#define ASM asm __volatile__
 #else
 	#include <windows.h>
 	#include <mpir.h>
+	#include "getopt/XGetopt.h"
 	#define ASM asm volatile
 #endif
 
