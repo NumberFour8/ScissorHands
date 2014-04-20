@@ -287,7 +287,7 @@ cudaError_t compute(const ComputeConfig& cfg,const ExtendedPoint* neutral,Extend
 	// Ověření, že se všechny křivky vejdou do sdílené paměti
 	if ((int)prop.sharedMemPerBlock*prop.multiProcessorCount < NUM_CURVES*CURVE_MEMORY_SIZE)
 	{
-		fprintf(stderr,"Launch failed: cannot fit curves into shared memory.");
+		fprintf(stderr,"Launch failed: cannot fit curves into the shared memory.\n");
 		return cudaErrorLaunchOutOfResources;
 	}
 
@@ -413,7 +413,7 @@ cudaError_t compute(const ComputeConfig& cfg,const ExtendedPoint* neutral,Extend
 	cudaStatus = cudaDeviceReset();
     if (cudaStatus != cudaSuccess) 
 	{
-        fprintf(stderr, "cudaDeviceReset failed!");
+        fprintf(stderr, "cudaDeviceReset failed!\n");
 		return cudaStatus;
     }
 
