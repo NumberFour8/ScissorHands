@@ -189,7 +189,7 @@ int main(int argc,char** argv)
 	
 	if (args.noLCM)
 	{
-	  cout << "NOTE: Using bound as coefficient directly." << endl; 
+	  cout << "NOTE: Using bound B1 as a coefficient directly." << endl; 
 	  mpz_set_ui(zS,args.B1);
 	}
 	else lcmToN(zS,args.B1);
