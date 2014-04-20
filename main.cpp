@@ -195,7 +195,7 @@ int main(int argc,char** argv)
 	}
 	else lcmToN(zS,args.B1);
 	
-	S.initialize(zS,(unsigned char)args.windowSize);
+	S.initialize(zS,args.useDoubleAndAdd ? (unsigned char)args.windowSize : 2);
 	mpz_clear(zS);	
 	
 	cout << endl << "Trying to factor " << args.N << " with B1 = "<< args.B1 << " using " << read_curves << " curves..." << endl << endl;
