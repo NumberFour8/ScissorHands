@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <getopt.h>
 
 #include <iostream>
 #include <set>
