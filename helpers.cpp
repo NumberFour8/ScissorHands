@@ -91,12 +91,12 @@ bool try_invert_mod(mpz_t invx,mpz_t x,mpz_t N)
 	}
     else if (mpz_cmp(r,N) == 0)
 	{
-		// Pøi chybì do r nastav 0
+		// Pri chybe do r nastav 0
 		mpz_set_si(invx,0);
 	}
 	else 
 	{
-		// Do r nastav faktor èísla N
+		// Do r nastav faktor cisla N
 	    mpz_set(invx,r); 
 	}
 
@@ -122,7 +122,7 @@ bool reduce_mod(mpz_t r,mpq_t q,mpz_t n)
 
 	if (!s) 
 	{
-	  // Pøi selhání je v r zapsán faktor èísla N nebo 0, viz try_invert_mod().
+	  // Pri selhani je v r zapsan faktor cisla N nebo 0, viz try_invert_mod().
 	  mpz_clear(num);
 	  return false; 
 	}
@@ -134,10 +134,11 @@ bool reduce_mod(mpz_t r,mpq_t q,mpz_t n)
 	return true;
 }
 
-void NAF::initialize(mpz_t N)
+void NAF::initialize(mpz_t N,unsigned char W)
 {
 	mpz_t number;
 	mpz_init_set(number,N);
+	w = W;
 	
 	if (bits != NULL) free((void*)bits);
 
@@ -173,17 +174,6 @@ void NAF::initialize(mpz_t N)
 	bits = (char*)realloc((void*)bits,(size_t)l*8);
 }
 
-int NAF::build(unsigned int start,unsigned int end) const
-{
-	int ret = 0;
-	for (unsigned int i = start;i <= end;i++)
-	{
-		ret += bits[i]*(1 << (i-start));
-	}
-
-	return ret;
-}
-
 void NAF::print() const
 {
 	if (bits == NULL)
@@ -202,5 +192,9 @@ void NAF::print() const
 
 NAF::~NAF()
 {
-	if (bits != NULL) free((void*)bits);
+	if (bits != NULL)
+	{ 
+	  free((void*)bits);
+	  bits = NULL;
+	}
 }

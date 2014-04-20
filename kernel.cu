@@ -1,24 +1,282 @@
 #include "kernel.h"
 
-// Globální proměnné
-__device__ __constant__ unsigned int d_invN;
-__device__ unsigned int* d_N;
-__device__ unsigned int* d_3N;
+#include "edwards.h"
+#include "twisted.h"
 
-#ifndef USE_TWISTED
-	#include "edwards.h"
-#else 
-	#include "twisted.h"
-#endif
-
-cudaError_t compute(const Aux h_input,const ExtendedPoint* neutral,ExtendedPoint* initPoints,const NAF& coeff,const unsigned int WS)
+// Vrátí výsek z NAF rozvoje
+__device__ int build(char* bits,unsigned int start,unsigned int end) 
 {
-	const int WINDOW_SZ	 = WS;							// Velikost okna
-	const int PRECOMP_SZ = 1 << (WINDOW_SZ-1);			// Počet bodů, které je nutné předpočítat
+	int ret = 0;
+	for (unsigned int i = start;i <= end;i++)
+	{
+		ret += bits[i]*(1 << (i-start));
+	}
+
+	return ret;
+}
+
+// Výpočet pomocí double-and-add pro křivky s a=1
+__global__ void windowE(void* pY,void* pPc,void* swAux,void* swCoeff)
+{
+	PREPARE();
+	VOL digit_t* Qd	  = ((digit_t*)pY)+idx; 
+	
+	// Nakopírování pracovních dat pro Y
+	c_x1[threadIdx.x] = *(Qd+threadIdx.x+0*NB_DIGITS); // prvních 32 cifer patří k X
+	c_y1[threadIdx.x] = *(Qd+threadIdx.x+1*NB_DIGITS); // dalších 32 cifer patří k Y
+	c_z1[threadIdx.x] = *(Qd+threadIdx.x+2*NB_DIGITS); // dalších 32 k souřadnici Z
+	c_t1[threadIdx.x] = *(Qd+threadIdx.x+3*NB_DIGITS); // ... a poslední k souřadnici T
+
+	char* Cf = (char*)swCoeff;
+	for (int i = ax->nafLen-1,u;i >= 0;--i)
+	{
+		edwardsDbl();
+		u = (int)Cf[i];
+		if (u > 0)
+		{
+		  Qd = ((digit_t*)pPc)+idx+u*NUM_CURVES*4*NB_DIGITS;
+		  edwardsAdd();
+		}
+		else if (u < 0)
+		{ 
+		  Qd = ((digit_t*)pPc)+idx+(-u)*NUM_CURVES*4*NB_DIGITS;
+		  edwardsSub(); 
+		} 
+	}
+
+	// Nakopírování pracovních dat zpátky do Y
+	Qd = ((digit_t*)pY) + idx;
+
+	*(Qd+threadIdx.x+0*NB_DIGITS) = c_x1[threadIdx.x];  // prvních 32 cifer patří k X
+	*(Qd+threadIdx.x+1*NB_DIGITS) = c_y1[threadIdx.x];  // dalších 32 cifer patří k Y
+	*(Qd+threadIdx.x+2*NB_DIGITS) = c_z1[threadIdx.x];  // dalších 32 k souřadnici Z
+	*(Qd+threadIdx.x+3*NB_DIGITS) = c_t1[threadIdx.x];  // ... a poslední k souřadnici T
+
+	__syncthreads();
+}
+
+// Výpočet pomocí double-and-add pro křivky s a=-1
+__global__ void windowT(void* pY,void* pPc,void* swAux,void* swCoeff)
+{
+	PREPARE();
+	VOL digit_t* Qd	  = ((digit_t*)pY)+idx; 
+	
+	// Nakopírování pracovních dat pro Y
+	c_x1[threadIdx.x] = *(Qd+threadIdx.x+0*NB_DIGITS); // prvních 32 cifer patří k X
+	c_y1[threadIdx.x] = *(Qd+threadIdx.x+1*NB_DIGITS); // dalších 32 cifer patří k Y
+	c_z1[threadIdx.x] = *(Qd+threadIdx.x+2*NB_DIGITS); // dalších 32 k souřadnici Z
+	c_t1[threadIdx.x] = *(Qd+threadIdx.x+3*NB_DIGITS); // ... a poslední k souřadnici T
+
+	char* Cf = (char*)swCoeff;
+	for (int i = ax->nafLen-1,u;i >= 0;--i)
+	{
+		twistedDbl();
+		u = (int)Cf[i];
+		if (u > 0)
+		{
+		  Qd = ((digit_t*)pPc)+idx+u*NUM_CURVES*4*NB_DIGITS;
+		  twistedAdd();
+		}
+		else if (u < 0)
+		{ 
+		  Qd = ((digit_t*)pPc)+idx+(-u)*NUM_CURVES*4*NB_DIGITS;
+		  twistedSub(); 
+		} 
+	}
+
+	// Nakopírování pracovních dat zpátky do Y
+	Qd = ((digit_t*)pY) + idx;
+
+	*(Qd+threadIdx.x+0*NB_DIGITS) = c_x1[threadIdx.x];  // prvních 32 cifer patří k X
+	*(Qd+threadIdx.x+1*NB_DIGITS) = c_y1[threadIdx.x];  // dalších 32 cifer patří k Y
+	*(Qd+threadIdx.x+2*NB_DIGITS) = c_z1[threadIdx.x];  // dalších 32 k souřadnici Z
+	*(Qd+threadIdx.x+3*NB_DIGITS) = c_t1[threadIdx.x];  // ... a poslední k souřadnici T
+
+	__syncthreads();
+}
+
+// Výpočet pomocí sliding window pro křivky s a=1
+__global__ void slidingWindowE(void* pY,void* pPc,void* swAux,void* swCoeff)
+{
+	PREPARE();
+
+	VOL digit_t* Qd		 = ((digit_t*)pY)+idx; 
+	
+	// Nakopírování pracovních dat pro Y
+	c_x1[threadIdx.x] = *(Qd+threadIdx.x+0*NB_DIGITS); // prvních 32 cifer patří k X
+	c_y1[threadIdx.x] = *(Qd+threadIdx.x+1*NB_DIGITS); // dalších 32 cifer patří k Y
+	c_z1[threadIdx.x] = *(Qd+threadIdx.x+2*NB_DIGITS); // dalších 32 k souřadnici Z
+	c_t1[threadIdx.x] = *(Qd+threadIdx.x+3*NB_DIGITS); // ... a poslední k souřadnici T
+
+	char* Cf = (char*)swCoeff;
+	for (int i = ax->nafLen-1,u,s = 0;i >= 0;)
+	{
+		if (Cf[i] == 0)
+		{
+		  edwardsDbl(); 
+		  --i;
+		}
+		else {
+			s = i - ax->windowSz + 1;
+			s = s > 0 ? s : 0;
+
+			while (!Cf[s]) ++s;
+			for (int h = 1;h <= i-s+1;++h) 
+			{
+			  edwardsDbl();
+			}
+
+			u = build(Cf,s,i);
+			if (u > 0){
+			  Qd = ((digit_t*)pPc)+idx+((u-1)/2)*NUM_CURVES*4*NB_DIGITS;
+			  edwardsAdd();
+			}
+			else { 
+			  Qd = ((digit_t*)pPc)+idx+((-u-1)/2)*NUM_CURVES*4*NB_DIGITS;
+			  edwardsSub(); 
+			} 
+			i = s-1;
+		}
+	}
+
+	// Nakopírování pracovních dat zpátky do Y
+	Qd = ((digit_t*)pY) + idx;
+
+	*(Qd+threadIdx.x+0*NB_DIGITS) = c_x1[threadIdx.x];  // prvních 32 cifer patří k X
+	*(Qd+threadIdx.x+1*NB_DIGITS) = c_y1[threadIdx.x];  // dalších 32 cifer patří k Y
+	*(Qd+threadIdx.x+2*NB_DIGITS) = c_z1[threadIdx.x];  // dalších 32 k souřadnici Z
+	*(Qd+threadIdx.x+3*NB_DIGITS) = c_t1[threadIdx.x];  // ... a poslední k souřadnici T
+
+	__syncthreads();
+}
+
+// Výpočet pomocí sliding window pro křivky s a=-1
+__global__ void slidingWindowT(void* pY,void* pPc,void* swAux,void* swCoeff)
+{
+	PREPARE();
+
+	VOL digit_t* Qd		 = ((digit_t*)pY)+idx; 
+	
+	// Nakopírování pracovních dat pro Y
+	c_x1[threadIdx.x] = *(Qd+threadIdx.x+0*NB_DIGITS); // prvních 32 cifer patří k X
+	c_y1[threadIdx.x] = *(Qd+threadIdx.x+1*NB_DIGITS); // dalších 32 cifer patří k Y
+	c_z1[threadIdx.x] = *(Qd+threadIdx.x+2*NB_DIGITS); // dalších 32 k souřadnici Z
+	c_t1[threadIdx.x] = *(Qd+threadIdx.x+3*NB_DIGITS); // ... a poslední k souřadnici T
+
+	char* Cf = (char*)swCoeff;
+	for (int i = ax->nafLen-1,u,s = 0;i >= 0;)
+	{
+		if (Cf[i] == 0)
+		{
+		  twistedDbl(); 
+		  --i;
+		}
+		else {
+			s = i - ax->windowSz + 1;
+			s = s > 0 ? s : 0;
+
+			while (!Cf[s]) ++s;
+			for (int h = 1;h <= i-s+1;++h) 
+			{
+			  twistedDbl();
+			}
+
+			u = build(Cf,s,i);
+			if (u > 0){
+			  Qd = ((digit_t*)pPc)+idx+((u-1)/2)*NUM_CURVES*4*NB_DIGITS;
+			  twistedAdd();
+			}
+			else { 
+			  Qd = ((digit_t*)pPc)+idx+((-u-1)/2)*NUM_CURVES*4*NB_DIGITS;
+			  twistedSub(); 
+			} 
+			i = s-1;
+		}
+	}
+
+	// Nakopírování pracovních dat zpátky do Y
+	Qd = ((digit_t*)pY) + idx;
+
+	*(Qd+threadIdx.x+0*NB_DIGITS) = c_x1[threadIdx.x];  // prvních 32 cifer patří k X
+	*(Qd+threadIdx.x+1*NB_DIGITS) = c_y1[threadIdx.x];  // dalších 32 cifer patří k Y
+	*(Qd+threadIdx.x+2*NB_DIGITS) = c_z1[threadIdx.x];  // dalších 32 k souřadnici Z
+	*(Qd+threadIdx.x+3*NB_DIGITS) = c_t1[threadIdx.x];  // ... a poslední k souřadnici T
+
+	__syncthreads();
+}
+
+
+__global__ void precomputeE(void* pX,void* pCube,void* swAux)
+{
+	PREPARE();
+
+	VOL digit_t* Qd    = ((digit_t*)pX)    + idx; 
+	VOL digit_t* out   = ((digit_t*)pCube) + idx;
+
+	// Nakopírování pracovních dat pro Y
+	c_x1[threadIdx.x] = *(Qd+threadIdx.x+0*NB_DIGITS); // prvních 32 cifer patří k X
+	c_y1[threadIdx.x] = *(Qd+threadIdx.x+1*NB_DIGITS); // dalších 32 cifer patří k Y
+	c_z1[threadIdx.x] = *(Qd+threadIdx.x+2*NB_DIGITS); // dalších 32 k souřadnici Z
+	c_t1[threadIdx.x] = *(Qd+threadIdx.x+3*NB_DIGITS); // ... a poslední k souřadnici T
+
+	edwardsDbl();
+	for (int i = 1; i < (1 << (ax->windowSz-1));++i)
+	{ 
+		edwardsAdd();
+
+		// Výsledek na své místo
+		*(out+threadIdx.x+0*NB_DIGITS) = c_x1[threadIdx.x];  // prvních 32 cifer patří k X
+		*(out+threadIdx.x+1*NB_DIGITS) = c_y1[threadIdx.x];  // dalších 32 cifer patří k Y
+		*(out+threadIdx.x+2*NB_DIGITS) = c_z1[threadIdx.x];  // dalších 32 k souřadnici Z
+		*(out+threadIdx.x+3*NB_DIGITS) = c_t1[threadIdx.x];  // ... a poslední k souřadnici T
+		out += NUM_CURVES*4*NB_DIGITS;
+		__syncthreads();
+
+		edwardsAdd();
+	}
+}
+
+__global__ void precomputeT(void* pX,void* pCube,void* swAux)
+{
+	PREPARE();
+
+	VOL digit_t* Qd    = ((digit_t*)pX)    + idx; 
+	VOL digit_t* out   = ((digit_t*)pCube) + idx;
+
+	// Nakopírování pracovních dat pro Y
+	c_x1[threadIdx.x] = *(Qd+threadIdx.x+0*NB_DIGITS); // prvních 32 cifer patří k X
+	c_y1[threadIdx.x] = *(Qd+threadIdx.x+1*NB_DIGITS); // dalších 32 cifer patří k Y
+	c_z1[threadIdx.x] = *(Qd+threadIdx.x+2*NB_DIGITS); // dalších 32 k souřadnici Z
+	c_t1[threadIdx.x] = *(Qd+threadIdx.x+3*NB_DIGITS); // ... a poslední k souřadnici T
+
+	twistedDbl();
+	for (int i = 1; i < (1 << (ax->windowSz-1));++i)
+	{ 
+		twistedAdd();
+
+		// Výsledek na své místo
+		*(out+threadIdx.x+0*NB_DIGITS) = c_x1[threadIdx.x];  // prvních 32 cifer patří k X
+		*(out+threadIdx.x+1*NB_DIGITS) = c_y1[threadIdx.x];  // dalších 32 cifer patří k Y
+		*(out+threadIdx.x+2*NB_DIGITS) = c_z1[threadIdx.x];  // dalších 32 k souřadnici Z
+		*(out+threadIdx.x+3*NB_DIGITS) = c_t1[threadIdx.x];  // ... a poslední k souřadnici T
+		out += NUM_CURVES*4*NB_DIGITS;
+		__syncthreads();
+
+		twistedAdd();
+	}
+}
+
+cudaError_t compute(const ComputeConfig& cfg,const ExtendedPoint* neutral,ExtendedPoint* initPoints,const NAF& coeff)
+{		
+	const int PRECOMP_SZ = (1 << (cfg.windowSz-1));		// Počet bodů, které je nutné předpočítat
+	const int NUM_CURVES = cfg.numCurves;				// Počet načtených křivek
+	
+	int blcks = NUM_CURVES/CURVES_PER_BLOCK;
+	const int NUM_BLOCKS = (blcks == 0 ? 1 : blcks);	// Počet použitých bloků
 	
 	cudaEvent_t start,stop;
 	float totalTime = 0;
-	void *swQw = NULL,*swPc = NULL,*swAx = NULL;
+	void *swQw = NULL,*swPc = NULL,*swAx = NULL,*swCf = NULL;
 	gpuErrchk(cudaSetDevice(0));
 	
 	gpuErrchk(cudaEventCreate(&start));
@@ -27,10 +285,14 @@ cudaError_t compute(const Aux h_input,const ExtendedPoint* neutral,ExtendedPoint
 	// Alokace potřebných dat
 	cuda_Malloc((void**)&swPc,NUM_CURVES*PRECOMP_SZ*4*MAX_BYTES); // Předpočítané body
 	cuda_Malloc((void**)&swQw,NUM_CURVES*4*MAX_BYTES);			  // Pomocný bod
-	cuda_Malloc((void**)&swAx,sizeof(Aux));						  // Pomocná struktura
+	cuda_Malloc((void**)&swAx,sizeof(ComputeConfig));			  // Pomocná struktura
+	cuda_Malloc((void**)&swCf,cfg.nafLen);						  // NAF rozvoj koeficientu
 	
 	// Pomocná struktura
-	cuda_Memcpy(swAx,(void*)&h_input,sizeof(Aux),cudaMemcpyHostToDevice);
+	cuda_Memcpy(swAx,(void*)&cfg,sizeof(ComputeConfig),cudaMemcpyHostToDevice);
+
+	// NAF rozvoj koeficientu
+	cuda_Memcpy(swCf,(void*)coeff.bits,cfg.nafLen,cudaMemcpyHostToDevice);
 	
 	// Počáteční body
 	VOL digit_t* iter = (digit_t*)swPc;
@@ -42,19 +304,24 @@ cudaError_t compute(const Aux h_input,const ExtendedPoint* neutral,ExtendedPoint
 	   iter += 4*NB_DIGITS;	
 	}
 
-	// Další předpočítané body
+	// Konfigurace kernelů
 	dim3 threadsPerBlock(NB_DIGITS,CURVES_PER_BLOCK);
+	printf("Execution configuration: %d x %d x %d\n",NUM_BLOCKS,CURVES_PER_BLOCK,NB_DIGITS);
 	
-	START_MEASURE(start);
-	curvesDbl<<<NUM_BLOCKS,threadsPerBlock>>> ((void*)swQw,(void*)swPc,(void*)swAx);
-	for (int i = 1; i < PRECOMP_SZ;++i){ // Tady už je iter nastavené na pozici prvních lichých mocnin
-		curvesAdd<<<NUM_BLOCKS,threadsPerBlock>>> ((void*)iter,(void*)swQw,(void*)swPc,(void*)swAx); 
-		curvesAdd<<<NUM_BLOCKS,threadsPerBlock>>> ((void*)swQw,(void*)iter,(void*)swPc,(void*)swAx);
-		iter += NUM_CURVES*4*NB_DIGITS;
-	} 
-	STOP_MEASURE("Precomputation phase",start,stop,totalTime);
-
-
+	// Další předpočítané body
+	if (cfg.minus1)
+	{
+		START_MEASURE(start);
+		precomputeT<<<NUM_BLOCKS,threadsPerBlock>>>((void*)swPc,(void*)iter,(void*)swAx);
+		STOP_MEASURE("Precomputation phase",start,stop,totalTime);
+	}
+	else
+	{
+		START_MEASURE(start);
+		precomputeE<<<NUM_BLOCKS,threadsPerBlock>>>((void*)swPc,(void*)iter,(void*)swAx);
+		STOP_MEASURE("Precomputation phase",start,stop,totalTime);
+	
+	}
 	// Do swQw nakopírovat neutrální prvek
 	iter = (digit_t*)swQw;
 	for (int i = 0;i < NUM_CURVES;++i){
@@ -65,35 +332,38 @@ cudaError_t compute(const Aux h_input,const ExtendedPoint* neutral,ExtendedPoint
 		iter += 4*NB_DIGITS;
 	}
 	
-	// Provést výpočet (sliding window)
-	START_MEASURE(start);
-	for (int i = coeff.l-1,u,s = 0;i >= 0;)
+	if (cfg.minus1)
 	{
-		if (coeff.bits[i] == 0){
-		  curvesDbl<<<NUM_BLOCKS,threadsPerBlock>>>(swQw,swQw,swAx);
-		  --i;
+		if (cfg.useDblAdd)
+		{
+			START_MEASURE(start);
+			windowT<<<NUM_BLOCKS,threadsPerBlock>>>((void*)swQw,(void*)swPc,(void*)swAx,(void*)swCf);
+			STOP_MEASURE("Computation phase",start,stop,totalTime);
 		}
-		else {
-			s = i - WINDOW_SZ + 1;
-			s = s > 0 ? s : 0;
-
-			while (!coeff.bits[s]) ++s;
-			for (int h = 1;h <= i-s+1;++h)  
-			  curvesDbl<<<NUM_BLOCKS,threadsPerBlock>>>(swQw,swQw,swAx);
-
-			u = coeff.build(s,i);
-			if (u > 0){
-			  iter = ((digit_t*)swPc)+((u-1)/2)*NUM_CURVES*4*NB_DIGITS;
-			  curvesAdd<<<NUM_BLOCKS,threadsPerBlock>>>(swQw,swQw,(void*)iter,swAx);
-			}
-			else { 
-			  iter = ((digit_t*)swPc)+((-u-1)/2)*NUM_CURVES*4*NB_DIGITS;
-			  curvesSub<<<NUM_BLOCKS,threadsPerBlock>>>(swQw,swQw,(void*)iter,swAx); 
-			} 
-			i = s-1;
+		else 
+		{
+			START_MEASURE(start);
+			slidingWindowT<<<NUM_BLOCKS,threadsPerBlock>>>((void*)swQw,(void*)swPc,(void*)swAx,(void*)swCf);
+			STOP_MEASURE("Computation phase",start,stop,totalTime);
+		}
+	
+	}
+	else
+	{
+		if (cfg.useDblAdd)
+		{
+			START_MEASURE(start);
+			windowE<<<NUM_BLOCKS,threadsPerBlock>>>((void*)swQw,(void*)swPc,(void*)swAx,(void*)swCf);
+			STOP_MEASURE("Computation phase",start,stop,totalTime);
+		}
+		else 
+		{
+			START_MEASURE(start);
+			slidingWindowE<<<NUM_BLOCKS,threadsPerBlock>>>((void*)swQw,(void*)swPc,(void*)swAx,(void*)swCf);
+			STOP_MEASURE("Computation phase",start,stop,totalTime);
 		}
 	}
-	STOP_MEASURE("Computation phase",start,stop,totalTime);
+	
 	printf("--------------------------\n");
 	printf("Total time: %.3f ms\n",totalTime);
 
@@ -121,6 +391,7 @@ cudaError_t compute(const Aux h_input,const ExtendedPoint* neutral,ExtendedPoint
 	cuda_Free(swAx);
 	cuda_Free(swQw);
 	cuda_Free(swPc);
+	cuda_Free(swCf);
 
 	gpuErrchk(cudaEventDestroy(start));
 	gpuErrchk(cudaEventDestroy(stop));

@@ -18,8 +18,10 @@
 	#define ASM asm volatile
 #endif
 
-#include "cuda_runtime.h"
-#include "device_launch_parameters.h"
+#include <cuda.h>
+#include <cuda_runtime.h>
+#include <cuda_profiler_api.h>
+#include <device_launch_parameters.h>
 
 #define NB_DIGITS 32 
 #define SIZE_DIGIT 32
@@ -34,7 +36,5 @@ typedef int carry_t;
 
 typedef digit_t VOL biguint_t[NB_DIGITS];
 typedef carry_t VOL bigint_t[NB_DIGITS];
-
-#define USE_TWISTED
 
 #endif

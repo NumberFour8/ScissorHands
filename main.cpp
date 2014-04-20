@@ -1,117 +1,91 @@
-#include <iostream>
-#include <fstream>
 #include <stdio.h>
-#include <string>
-#include <vector>
-#include <algorithm>
 #include <set>
+
+#include <boost/program_options.hpp>
+namespace po = boost::program_options;
 
 #include "kernel.h"
 
-using namespace std;
+// Struktura uchovavajici konfiguraci prectenou z parametru nebo ze vstupu
+struct progArgs {
+	string N;
+	string curveFile;
+	unsigned int B1;
+	unsigned short windowSize;
+	bool useDoubleAndAdd;
+	bool verbose;
+	bool noLCM;
+	bool exitOnFinish;
+	
+	progArgs() : verbose(false), noLCM(false), useDoubleAndAdd(false) { }
+};
 
-// Přečte počáteční body křivek v afinních souřadnicích ze souboru
-int readCurves(string file,mpz_t N,ExtendedPoint** pInit)
+// Precte parametry programu
+void parseArguments(int argc,char** argv,progArgs& args)
 {
-	ifstream fp;
-	if (file.length() < 2) 
-	{
-		#ifdef USE_TWISTED
-			file = "curves_twisted.txt";
-		#else 
-			file = "curves_edwards.txt";
-		#endif
-		cout << "INFO: Defaulting to " << file  << endl;	
-	}
+	po::options_description desc("List of supported options");
+	desc.add_options()
+		("help", "Print usage information.")
+		("verbose", po::value<bool>(&args.verbose)->default_value(false),
+			"More verbose output.")
+		("double-add", po::value<bool>(&args.useDoubleAndAdd)->default_value(false),
+			"Use double-and-add instead sliding window.")
+		("dont-compute-bound", po::value<bool>(&args.noLCM)->default_value(false),
+			"True for s = B1, false for s = lcm(1,2...B1).")
+		("no-restart", po::value<bool>(&args.exitOnFinish)->default_value(false),
+			"When set, program terminates automatically after finishing.")
+		("N-to-factor", po::value<string>(),
+			"Number to factor.")
+		("curve-file", po::value<string>(),
+			"Path to file containing curves used for factoring.")
+		("stage1-bound", po::value<unsigned int>(&args.B1)->default_value(4096),
+			"Bound for ECM stage 1.")
+		("window-size", po::value<unsigned short>(&args.windowSize)->default_value(4),
+			"Size of sliding window or NAF width (in case of double-and-add).");
 	
-	// Pokud se nepodaří otevřít soubor, skonči
-	fp.open(file);
-	if (!fp.is_open())
-	{
-		cout << "ERROR: Cannot open file." << endl;
-		return 0;
-	} 
+	po::variables_map vm;
+	po::store(po::parse_command_line(argc,argv,desc),vm);
+	po::notify(vm);
 	
-	// Inicializace racionálních souřadnic
-	mpq_t qX,qY;
-	mpq_intz(qX,qY);
-
-	// Inicializace celočíselných souřadnic
-	mpz_t zX,zY;
-	mpz_init_set_ui(zX,0);
-	mpz_init_set_ui(zY,0);
-	
-	string ln;
-	vector<ExtendedPoint> v;
-	bool minus1 = true;
-	cout << "Loading curves..." << endl;
-	while (getline(fp,ln))
-	{
-		// Přeskoč segment, který nezačíná #
-		if (ln.find("#") == string::npos) continue;
-		
-		// Je to překroucená Edwardsova křivka s a = -1 ? 
-		fp >> ln; 
-		minus1 = (ln == "-1");
-		
-		// Přečti racionální X-ovou souřadnici a zkrať
-		fp >> ln;
-		mpq_set_str(qX,ln.c_str(),10);
-		mpq_canonicalize(qX);
-		
-		// Přečti racionální Y-ovou souřadnici a zkrať
-		fp >> ln;
-		mpq_set_str(qY,ln.c_str(),10);
-		mpq_canonicalize(qY);
-
-		// Pokus se X-ovou a Y-ovou souřadnici rekudovat modulo N
-		if (!reduce_mod(zX,qX,N) || !reduce_mod(zY,qY,N))
-		{
-			cout << "ERROR: Cannot reduce on curve #" << v.size() << endl;
-			if (mpz_cmp_ui(zX,0) != 0) // Byl nalezen faktor?
-			{
-				cout << "Factor found: " << mpz_to_string(zX) << endl;
-			}
-			else if (mpz_cmp_ui(zY,0) != 0)
-			{
-				cout << "Factor found: " << mpz_to_string(zY) << endl;
-			}
-			
-			fp.close();
-			mpz_clrs(zX,zY);
-			mpq_clrs(qX,qY);
-
-			return 0;
-		}
-
-		// Vytvoř bod v Extended souřadnicích z redukovaných afinních bodů modulo N
-		v.push_back(ExtendedPoint(zX,zY,N)); 
-	}
-
-	// Překroucené Edwardsovy křivky přijdou na začátek
-	std::sort(v.begin(), v.end(), [](const ExtendedPoint& a, const ExtendedPoint & b) -> bool { return a.minusOne && !b.minusOne; });
-
-	// Překopíruj body z vektoru do paměti
-	*pInit = new ExtendedPoint[v.size()];
-	std::copy(v.begin(),v.end(),*pInit);
-
-	// Vyčisti paměť
-	fp.close();
-	mpz_clrs(zX,zY);
-	mpq_clrs(qX,qY);
-
-	return (int)v.size();
+	if (vm.count("N-to-factor"))
+	  args.N = vm["N-to-factor"].as<string>();
+	if (vm.count("curve-file"))
+	  args.curveFile = vm["curve-file"].as<string>();
+	if (vm.count("help"))
+	  cout << endl << desc << endl << "-----------------------------------------" << endl;
 }
 
-bool parseArguments(int argc,char** argv,string& N,string& CF,unsigned int& B1,unsigned int& WS)
+// Zkontroluje uplnost prametru, pripadne pozada o doplneni
+void validateArguments(progArgs& args)
 {
-	if (argc != 5) return false;
-	N  = string(argv[1]);
-	CF = string(argv[2]);
-	WS = atoi(argv[3]);
-	B1 = atoi(argv[4]);
-	
-	return true;
+	if (args.N.empty())
+	{
+		// Načíst N
+		cout << "Enter N:" << endl;
+		cin  >> args.N;
+		cout << endl;
+	}
+	if (args.curveFile.empty())
+	{
+	  	// Načíst název souboru s křivkami
+		cout << "Enter path to curve file:" << endl;
+		cin  >> args.curveFile;
+		cout << endl;
+	}
+	if (args.B1 <= 1)
+	{
+		// Načíst hranici první fáze
+		cout << "Enter stage 1 bound B1:" << endl;
+		cin  >> args.B1;
+		cout << endl;
+	}
+	if (args.windowSize < 2)
+	{
+		// Velikost okna
+		cout << "Enter window size:" << endl;
+		cin  >> args.windowSize;
+		cout << endl;
+	}
 }
 
 struct factor {
@@ -123,51 +97,36 @@ struct factor {
 
 int main(int argc,char** argv)
 {
-	cout << "ECM using ";
-	#ifdef USE_TWISTED
-	  cout << "Twisted Edwards curves" << endl;
-	#else 
-	  cout << "Edwards curves" << endl;
-	#endif
-
-	string inpN,curveFile;
-	unsigned int exitCode = 0,read_curves = 0,inpB1 = 0,windowSize = 0;
+	cout << "ECM using Twisted Edwards curves" << endl;
+	
+	progArgs args;
+	int read_curves = 0,exitCode = 0;
 	char c = 0;
 
 	// Množina nalezených faktorů s vlastním uspořádnáním
 	set<factor,bool(*)(factor x, factor y)> foundFactors([](factor x, factor y){ return x.fac < y.fac; });
 
 	// Jsou-li předány parametry, použij je. Jinak se na ně zeptej.
-	if (!parseArguments(argc,argv,inpN,curveFile,inpB1,windowSize))
-	{
-		// Načíst N
-		cout << "Enter N:" << endl;
-		cin >> inpN;
-		cout << endl;
+	parseArguments(argc,argv,args);
+	validateArguments(args);
 
-		// Načíst křivky ze souboru
-		cout << "Enter path to curve file:" << endl;
-		cin >> curveFile;
-		cout << endl;
-	}
-
-	
 	// Inicializace N
 	mpz_t zN;
-	mpz_init_set_str(zN,inpN.c_str(),10);
+	mpz_init_set_str(zN,args.N.c_str(),10);
 
 	// Inicializace proměnných
 	ExtendedPoint infty(zN); // Neutrální prvek
-	Aux ax(zN);			     // Pomocná struktura
-	NAF S(2);				 // NAF rozvoj šířky 2
+	ComputeConfig ax(zN);    // Pomocná struktura
+	NAF S;					 // NAF rozvoj
 	mpz_t zS,zInvW,zX,zY,zF; // Pomocné proměnné
 	cudaError_t cudaStatus;	 // Proměnná pro chybové kódy GPU
 	ExtendedPoint *PP;		 // Adresa všech bodů
+	bool minusOne;			 // Pracujeme s křivkami s a =-1 ?
 
 	restart_bound:
 
 	PP = NULL;
-	read_curves = readCurves(curveFile,zN,&PP);
+	read_curves = readCurves(args.curveFile,zN,&PP,minusOne);
 
 	// Zkontroluj počet načtených křivek
 	if (read_curves <= 0)
@@ -176,49 +135,34 @@ int main(int argc,char** argv)
 		exitCode = 1;
 		goto end;
 	}
-	else if (read_curves != NUM_CURVES)
-	{
-		cout << "ERROR: Invalid number of curves in file."  
-			 << "Required: " << NUM_CURVES << ". Got: " << read_curves 
-			 << endl;
-		exitCode = 1;
-		goto end;
-	}
-	cout << "Loaded " << read_curves << " curves." << endl << endl;
+	cout << "Loaded " << read_curves << " curves with a = " << (minusOne ? "-1" : "1")  << endl << endl;
 
-	// Přečti B1 pokud ho nemame
-	if (inpB1 <= 1)
-	{
-	  cout << "Enter B1: " << endl;
-	  cin >> inpB1;
-	  cout << endl;
-	}
-
-	// Velikost okna pro sliding window
-	if (windowSize <= 1)
-	{
-		cout << "Sliding window size:" << endl;
-		cin >> windowSize;
-		cout << endl;
-	}
 
 	// Spočti S = lcm(1,2,3...,B1) a jeho NAF rozvoj
 	mpz_init(zS);
-	
-	//mpz_set_ui(zS,(unsigned int)std::stoul(ln));
 	cout << "Computing coefficient..." << endl;
-	lcmToN(zS,inpB1);
-	S.initialize(zS);
 	
+	if (args.noLCM)
+	  mpz_set_ui(zS,args.B1);
+	else lcmToN(zS,args.B1);
+	
+	S.initialize(zS,(unsigned char)args.windowSize);
 	mpz_clear(zS);	
 	
-	cout << endl << "Trying to factor " << inpN << " with B1 = "<< inpB1 << " using " << read_curves << " curves..." << endl << endl;
+	cout << endl << "Trying to factor " << args.N << " with B1 = "<< args.B1 << " using " << read_curves << " curves..." << endl << endl;
+
+	// Nastavit hodnoty do konfigurace
+	ax.windowSz  = args.windowSize;
+	ax.nafLen    = S.l;
+	ax.numCurves = read_curves;
+	ax.minus1	 = minusOne; 
+	ax.useDblAdd = args.useDoubleAndAdd;
 
 	// Proveď výpočet
-	cudaStatus = compute(ax,&infty,PP,S,windowSize);
+	cudaStatus = compute(ax,&infty,PP,S);
     if (cudaStatus != cudaSuccess) 
     {
-        fprintf(stderr, "CUDA compute failed!");
+        cout << "ERROR: CUDA compute failed!" << endl;
 		exitCode = 1;
         goto end;
     }
@@ -231,20 +175,15 @@ int main(int argc,char** argv)
 	mpz_ui_pow_ui(zInvW, 2, SIZE_DIGIT); 
 	mpz_invert(zInvW, zInvW, zN);
 
-	cout << endl;
-	cout << "Print also affine coordinates? (y/n)" << endl;
-	cin >> c;
-	cout << endl;
-
 	// Analyzuj výsledky
 	foundFactors.clear();
-	for (int i = 0; i < NUM_CURVES;++i)
+	for (int i = 0; i < read_curves;++i)
 	{
 		cout << "Curve #" << i+1 << ":\t"; 
 		if (PP[i].toAffine(zX,zY,zN,zInvW,zF)) 
 		{
 			cout << "No factor found." << endl;
-			if (c == 'y')
+			if (args.verbose)
 			  cout << endl << "sP = (" << mpz_to_string(zX) << "," << mpz_to_string(zY) << ")" << endl;
 		}
 		else if (mpz_cmp_ui(zF,0) != 0) // Máme faktor!
@@ -262,11 +201,11 @@ int main(int argc,char** argv)
 	{
 	  cout << endl << foundFactors.size() << " FACTORS FOUND:" << endl << endl;
 	  std::for_each(foundFactors.begin(),foundFactors.end(),
-				    [](const factor f)
-					{ 
-						cout << (f.prime ? "Prime:\t" : "Composite:\t") << f.fac << " (#" << f.curveId << ")" <<  endl; 
-					}
-				   );
+		[](const factor f)
+		{ 
+			cout << (f.prime ? "Prime:\t" : "Composite:\t") << f.fac << " (#" << f.curveId << ")" <<  endl; 
+		}
+	   );
 	}
 	else cout << endl << "No factors found." << endl << endl;
 
@@ -274,14 +213,17 @@ int main(int argc,char** argv)
 	mpz_clrs(zInvW,zX,zY);
 	delete[] PP;
 
-	cout << endl << "Type 'r' to restart with new bound B1 or 'q' to quit..." << endl;
-	while (1)
+	while (!args.exitOnFinish)
 	{
-	   cin >> c;
+	   cout << endl << "Type 'r' to restart with new configuration or 'q' to quit..." << endl;
+	   cin  >> c;
 	   if (c == 'q') break;
 	   else if (c == 'r')
 	   {
-		  inpB1 = windowSize = 0;
+		  args.B1 = args.windowSize = 0;
+		  args.curveFile.clear();
+		  
+		  validateArguments(args);
 		  goto restart_bound;
 		}
 	}
