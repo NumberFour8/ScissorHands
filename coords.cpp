@@ -92,7 +92,7 @@ bool ExtendedPoint::toAffine(mpz_t x,mpz_t y,mpz_t N,mpz_t invB,mpz_t fact)
 	return ret;
 }
 
-int readCurves(string file,mpz_t N,ExtendedPoint** pInit,bool& minus1)
+int readCurves(string file,mpz_t N,ExtendedPoint** pInit)
 {
 	ifstream fp;
 	
@@ -115,7 +115,7 @@ int readCurves(string file,mpz_t N,ExtendedPoint** pInit,bool& minus1)
 	
 	string ln;
 	vector<ExtendedPoint> v;
-	minus1 = true;
+	bool minus1 = true;
 	cout << "Loading curves..." << endl;
 	while (getline(fp,ln))
 	{

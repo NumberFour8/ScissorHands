@@ -93,10 +93,7 @@ public:
 	
 	unsigned short windowSz;	 // Velikost okna
 	unsigned long  nafLen;		 // Sirka NAF
-	
-	unsigned long numCurves;	 // Pocet krivek
-	bool		  minus1;		 // Typ krivek 
-	bool 		  useDblAdd;	 // Pouzit double-and-add misto sliding window?
+	unsigned long  numCurves;	 // Pocet krivek
 
 	void initialize(mpz_t zN);
 };

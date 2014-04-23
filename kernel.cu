@@ -15,86 +15,6 @@ __device__ int build(char* bits,unsigned int start,unsigned int end)
 	return ret;
 }
 
-// Výpočet pomocí double-and-add pro křivky s a=1
-__global__ void windowE(void* pY,void* pPc,void* swAux,void* swCoeff)
-{
-	PREPARE();
-	VOL digit_t* Qd	  = ((digit_t*)pY)+idx; 
-	
-	// Nakopírování pracovních dat pro Y
-	c_x1[threadIdx.x] = *(Qd+threadIdx.x+0*NB_DIGITS); // prvních 32 cifer patří k X
-	c_y1[threadIdx.x] = *(Qd+threadIdx.x+1*NB_DIGITS); // dalších 32 cifer patří k Y
-	c_z1[threadIdx.x] = *(Qd+threadIdx.x+2*NB_DIGITS); // dalších 32 k souřadnici Z
-	c_t1[threadIdx.x] = *(Qd+threadIdx.x+3*NB_DIGITS); // ... a poslední k souřadnici T
-
-	char* Cf = (char*)swCoeff;
-	for (int i = ax->nafLen-1,u;i >= 0;--i)
-	{
-		edwardsDbl();
-		u = (int)Cf[i];
-		if (u > 0)
-		{
-		  Qd = ((digit_t*)pPc)+idx+u*NUM_CURVES*4*NB_DIGITS;
-		  edwardsAdd();
-		}
-		else if (u < 0)
-		{ 
-		  Qd = ((digit_t*)pPc)+idx+(-u)*NUM_CURVES*4*NB_DIGITS;
-		  edwardsSub(); 
-		} 
-	}
-
-	// Nakopírování pracovních dat zpátky do Y
-	Qd = ((digit_t*)pY) + idx;
-
-	*(Qd+threadIdx.x+0*NB_DIGITS) = c_x1[threadIdx.x];  // prvních 32 cifer patří k X
-	*(Qd+threadIdx.x+1*NB_DIGITS) = c_y1[threadIdx.x];  // dalších 32 cifer patří k Y
-	*(Qd+threadIdx.x+2*NB_DIGITS) = c_z1[threadIdx.x];  // dalších 32 k souřadnici Z
-	*(Qd+threadIdx.x+3*NB_DIGITS) = c_t1[threadIdx.x];  // ... a poslední k souřadnici T
-
-	__syncthreads();
-}
-
-// Výpočet pomocí double-and-add pro křivky s a=-1
-__global__ void windowT(void* pY,void* pPc,void* swAux,void* swCoeff)
-{
-	PREPARE();
-	VOL digit_t* Qd	  = ((digit_t*)pY)+idx; 
-	
-	// Nakopírování pracovních dat pro Y
-	c_x1[threadIdx.x] = *(Qd+threadIdx.x+0*NB_DIGITS); // prvních 32 cifer patří k X
-	c_y1[threadIdx.x] = *(Qd+threadIdx.x+1*NB_DIGITS); // dalších 32 cifer patří k Y
-	c_z1[threadIdx.x] = *(Qd+threadIdx.x+2*NB_DIGITS); // dalších 32 k souřadnici Z
-	c_t1[threadIdx.x] = *(Qd+threadIdx.x+3*NB_DIGITS); // ... a poslední k souřadnici T
-
-	char* Cf = (char*)swCoeff;
-	for (int i = ax->nafLen-1,u;i >= 0;--i)
-	{
-		twistedDbl();
-		u = (int)Cf[i];
-		if (u > 0)
-		{
-		  Qd = ((digit_t*)pPc)+idx+u*NUM_CURVES*4*NB_DIGITS;
-		  twistedAdd();
-		}
-		else if (u < 0)
-		{ 
-		  Qd = ((digit_t*)pPc)+idx+(-u)*NUM_CURVES*4*NB_DIGITS;
-		  twistedSub(); 
-		} 
-	}
-
-	// Nakopírování pracovních dat zpátky do Y
-	Qd = ((digit_t*)pY) + idx;
-
-	*(Qd+threadIdx.x+0*NB_DIGITS) = c_x1[threadIdx.x];  // prvních 32 cifer patří k X
-	*(Qd+threadIdx.x+1*NB_DIGITS) = c_y1[threadIdx.x];  // dalších 32 cifer patří k Y
-	*(Qd+threadIdx.x+2*NB_DIGITS) = c_z1[threadIdx.x];  // dalších 32 k souřadnici Z
-	*(Qd+threadIdx.x+3*NB_DIGITS) = c_t1[threadIdx.x];  // ... a poslední k souřadnici T
-
-	__syncthreads();
-}
-
 // Výpočet pomocí sliding window pro křivky s a=1
 __global__ void slidingWindowE(void* pY,void* pPc,void* swAux,void* swCoeff)
 {
@@ -291,6 +211,7 @@ cudaError_t compute(const ComputeConfig& cfg,const ExtendedPoint* neutral,Extend
 		return cudaErrorLaunchOutOfResources;
 	}
 
+	// Vytvořit eventy pro měření času
 	gpuErrchk(cudaEventCreate(&start));
 	gpuErrchk(cudaEventCreate(&stop));
 
@@ -322,14 +243,14 @@ cudaError_t compute(const ComputeConfig& cfg,const ExtendedPoint* neutral,Extend
 	printf("Execution configuration: %d x %d x %d\n",NUM_BLOCKS,CURVES_PER_BLOCK,NB_DIGITS);
 	printf("--------------------------\n");
 
-	// Konfigurace streamů
-	cudaStream edwardsStream,twistedStream;
-	gpuErrchk(cudaStreamCreate(&edwardsStream,0));
-	gpuErrchk(cudaStreamCreate(&twistedStream,0));
+	// Vytvoření streamů
+	cudaStream_t edwardsStream,twistedStream;
+	gpuErrchk(cudaStreamCreate(&edwardsStream));
+	gpuErrchk(cudaStreamCreate(&twistedStream));
 
-
-	void* swPcE = ((digit_t*)swPc)+NUM_CURVES*2*NB_DIGITS;
-	digit_t* iterE = iter+NUM_CURVES*2*NB_DIGITS;
+	// Startovací adresy pro stream s Edwardsovými křivkami
+	void* swPcE		   = ((digit_t*)swPc)+NUM_CURVES*2*NB_DIGITS;
+	VOL digit_t* iterE = iter+NUM_CURVES*2*NB_DIGITS;
 
 	// Další předpočítané body
 	START_MEASURE(start);
@@ -349,7 +270,8 @@ cudaError_t compute(const ComputeConfig& cfg,const ExtendedPoint* neutral,Extend
 		iter += 4*NB_DIGITS;
 	}
 	
-	void* swPcE = ((digit_t*)swPc)+NUM_CURVES*2*NB_DIGITS;
+	// Startovací adresy pro stream s Edwardsovými křivkami
+	swPcE		= ((digit_t*)swPc)+NUM_CURVES*2*NB_DIGITS;
 	void* swQwE = ((digit_t*)swQw)+NUM_CURVES*2*NB_DIGITS;
 	
 	START_MEASURE(start);

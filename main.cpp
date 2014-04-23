@@ -16,13 +16,12 @@ struct progArgs {
 	string curveFile;
 	unsigned int B1;
 	unsigned short windowSize;
-	bool useDoubleAndAdd;
 	bool verbose;
 	bool noLCM;
 	bool exitOnFinish;
 	
 	progArgs() 
-	 : verbose(false), noLCM(false), useDoubleAndAdd(false), B1(0), windowSize(0) 
+	 : verbose(false), noLCM(false), B1(0), windowSize(0) 
 	{ }
 };
 
@@ -49,7 +48,6 @@ void parseArguments(int argc,char** argv,progArgs& args)
 	po::store(po::parse_command_line(argc,argv,desc),vm);
 	po::notify(vm);
 	
-	args.useDoubleAndAdd = vm.count("use-double-add") != 0;
 	args.verbose		 = vm.count("verbose") != 0;
 	args.noLCM			 = vm.count("dont-compute-bound") != 0;
 	args.exitOnFinish	 = vm.count("no-restart") != 0;
@@ -78,7 +76,8 @@ void validateArguments(progArgs& args)
 	
 	if (!args.curveFile.empty() && args.curveFile.length() < 2) 
 	{
-		args.curveFile = args.curveFile == "E" ? "curves_edwards.txt" : "curves_twisted.txt";
+		args.curveFile = args.curveFile == "E" ? "curves_edwards.txt" :
+					     args.curveFile == "M" ? "curves_mixed.txt"   : "curves_twisted.txt";
 		cout << "INFO: Defaulting to " << args.curveFile  << endl << endl;	
 	}
 	else if (args.curveFile.empty())
@@ -156,7 +155,6 @@ int main(int argc,char** argv)
 	mpz_t zS,zInvW,zX,zY,zF,zChk; 	// Pomocné proměnné
 	cudaError_t cudaStatus;	 		// Proměnná pro chybové kódy GPU
 	ExtendedPoint *PP;		 		// Adresa všech bodů
-	bool minusOne;			 		// Pracujeme s křivkami s a =-1 ?
 
 	restart_bound:
 	
@@ -172,7 +170,7 @@ int main(int argc,char** argv)
 	ax.initialize(zN);
 
 	PP = NULL;
-	read_curves = readCurves(args.curveFile,zN,&PP,minusOne);
+	read_curves = readCurves(args.curveFile,zN,&PP);
 
 	// Zkontroluj počet načtených křivek
 	if (read_curves <= 0)
@@ -181,7 +179,13 @@ int main(int argc,char** argv)
 		exitCode = 1;
 		goto end;
 	}
-	cout << "Loaded " << read_curves << " curves with a = " << (minusOne ? "-1 (twisted " : "1 (")  << "Edwards curves)" << endl << endl;
+	else if (read_curves < CURVES_PER_BLOCK*2)
+	{
+		cout << "ERROR: Minimum number of curves is " << CURVES_PER_BLOCK*2 << endl;
+		exitCode = 1;
+		goto end;
+	}
+	cout << "Loaded " << read_curves << " curves." << endl << endl;
 
 
 	// Spočti S = lcm(1,2,3...,B1) a jeho NAF rozvoj
@@ -195,7 +199,7 @@ int main(int argc,char** argv)
 	}
 	else lcmToN(zS,args.B1);
 	
-	S.initialize(zS,args.useDoubleAndAdd ? (unsigned char)args.windowSize : 2);
+	S.initialize(zS,2);
 	mpz_clear(zS);	
 	
 	cout << endl << "Trying to factor " << args.N << " with B1 = "<< args.B1 << " using " << read_curves << " curves..." << endl << endl;
@@ -204,11 +208,6 @@ int main(int argc,char** argv)
 	ax.windowSz  = args.windowSize;
 	ax.nafLen    = S.l;
 	ax.numCurves = read_curves;
-	ax.minus1	 = minusOne; 
-	ax.useDblAdd = args.useDoubleAndAdd;
-
-	if (args.useDoubleAndAdd)
-	  cout << "NOTE: Using double-and-add algorithm." << endl;
 	
 	// Proveď výpočet
 	cudaStatus = compute(ax,&infty,PP,S);
@@ -272,7 +271,7 @@ int main(int argc,char** argv)
 		mpz_divexact(zChk,zN,zChk);
 		if (is_almost_surely_prime(zChk))
 		{
-			cout << "REMAINING UNFACTORED PART " << mpz_to_string(zChk) << " IS A PRIME." endl;
+			cout << "REMAINING UNFACTORED PART " << mpz_to_string(zChk) << " IS A PRIME." << endl;
 			cout << mpz_to_string(zN) << " HAS BEEN FACTORED TOTALLY!" << endl;
 			args.exitOnFinish = true; 
 		}

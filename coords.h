@@ -52,7 +52,7 @@ public:
  * krivky s parametrem a = 1.
  * Vraci pocet uspesne prectenych krivek. 
 */
-int readCurves(string file,mpz_t N,ExtendedPoint** pInit,bool& minus1);
+int readCurves(string file,mpz_t N,ExtendedPoint** pInit);
 
 
 #endif
