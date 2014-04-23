@@ -92,10 +92,11 @@ bool ExtendedPoint::toAffine(mpz_t x,mpz_t y,mpz_t N,mpz_t invB,mpz_t fact)
 	return ret;
 }
 
-int readCurves(string file,mpz_t N,ExtendedPoint** pInit)
+int readCurves(string file,mpz_t N,ExtendedPoint** pInit,int& edwards,int& twisted)
 {
 	ifstream fp;
-	
+	edwards = twisted = 0;
+
 	// Pokud se nepodari otevrit soubor, skonci
 	fp.open(file);
 	if (!fp.is_open())
@@ -124,8 +125,18 @@ int readCurves(string file,mpz_t N,ExtendedPoint** pInit)
 		
 		// Je to prekroucena Edwardsova krivka s a = -1 ? 
 		fp >> ln;
+		if (ln != "-1" && ln != "1")
+		{
+			cout << "ERROR: Unsupported curve type." << endl;
+			fp.close();
+			mpz_clrs(zX,zY);
+			mpq_clrs(qX,qY);
+			return 0;
+		}
+
 		minus1 = (ln == "-1");
-		
+		minus1 ? twisted++ : edwards++;
+
 		// Precti racionalni X-ovou souradnici a zkrat
 		fp >> ln;
 		mpq_set_str(qX,ln.c_str(),10);

@@ -48,11 +48,10 @@ public:
  * ze souboru a provede jejich redukci modulo N.
  * Nactene pocatecni body v Extended souradnicich jsou ulozeny do pInit,
  * který je poté nutno uvolnit pomoci delete[].
- * Indikator minus1 je nastaven v pripade, ze se jedna o prekroucene Edwardsovy
- * krivky s parametrem a = 1.
+ * Parametry edwards a twisted jsou počty příslušných typů načtených křivek.
  * Vraci pocet uspesne prectenych krivek. 
 */
-int readCurves(string file,mpz_t N,ExtendedPoint** pInit);
+int readCurves(string file,mpz_t N,ExtendedPoint** pInit,int& edwards,int& twisted);
 
 
 #endif

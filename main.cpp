@@ -154,6 +154,7 @@ int main(int argc,char** argv)
 	mpz_t zS,zInvW,zX,zY,zF,zChk; 	// Pomocné proměnné
 	cudaError_t cudaStatus;	 		// Proměnná pro chybové kódy GPU
 	ExtendedPoint *PP;		 		// Adresa všech bodů
+	int edwards,twisted;			// Počty načtených typů křivek
 
 	restart_bound:
 	
@@ -169,7 +170,7 @@ int main(int argc,char** argv)
 	ax.initialize(zN);
 
 	PP = NULL;
-	read_curves = readCurves(args.curveFile,zN,&PP);
+	read_curves = readCurves(args.curveFile,zN,&PP,edwards,twisted);
 
 	// Zkontroluj počet načtených křivek
 	if (read_curves <= 0)
@@ -178,13 +179,19 @@ int main(int argc,char** argv)
 		exitCode = 1;
 		goto end;
 	}
-	else if (read_curves < CURVES_PER_BLOCK*2)
+	else if (read_curves%(CURVES_PER_BLOCK*2) != 0)
 	{
-		cout << "ERROR: Minimum number of curves is " << CURVES_PER_BLOCK*2 << endl;
+		cout << "ERROR: Number of curves must be divisible by " << CURVES_PER_BLOCK*2 << endl;
 		exitCode = 1;
 		goto end;
 	}
-	cout << "Loaded " << read_curves << " curves." << endl << endl;
+	else if (edwards != twisted)
+	{
+		cout << "ERROR: There has to be the same number of Edwards (" << edwards << ") and Twisted Edwards (" << twisted << ") curves." << endl;
+		exitCode = 1;
+		goto end;
+	}
+	cout << "Loaded " << read_curves << " curves: " << edwards << " Edwards curves, " << twisted << " Twisted Edwards curves." << endl << endl;
 
 
 	// Spočti S = lcm(1,2,3...,B1) a jeho NAF rozvoj
