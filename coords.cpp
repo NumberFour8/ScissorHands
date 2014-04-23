@@ -6,28 +6,29 @@ using namespace std;
 
 #include "coords.h"
 
-void ExtendedPoint::initAll()
+void ExtendedPoint::initAll(bool minusOne)
 {
 	reset(X);
 	reset(Y);
 	reset(Z);
 	reset(T);
+	isMinus1 = minusOne;
 }
 
-ExtendedPoint::ExtendedPoint()
+ExtendedPoint::ExtendedPoint(bool minusOne)
 {
-	initAll();
+	initAll(minusOne);
 }
 	
-ExtendedPoint::ExtendedPoint(mpz_t x,mpz_t y,mpz_t N) 
+ExtendedPoint::ExtendedPoint(mpz_t x,mpz_t y,mpz_t N,bool minusOne) 
 {
-	initAll();
+	initAll(minusOne);
 	fromAffine(x,y,N);
 }
 
-ExtendedPoint::ExtendedPoint(mpz_t N) 
+ExtendedPoint::ExtendedPoint(mpz_t N,bool minusOne) 
 {
-	initAll();
+	initAll(minusOne);
 	infinity(N);
 }
 
@@ -123,16 +124,6 @@ int readCurves(string file,mpz_t N,ExtendedPoint** pInit,bool& minus1)
 		
 		// Je to prekroucena Edwardsova krivka s a = -1 ? 
 		fp >> ln;
-		if (v.size() > 0 && (ln == "-1") != minus1)
-		{
-			cout << "ERROR: Cannot mix curves with a = 1 and curves with a = -1." << endl; 
-		
-			fp.close();
-			mpz_clrs(zX,zY);
-			mpq_clrs(qX,qY);
-
-			return 0;
-		}
 		minus1 = (ln == "-1");
 		
 		// Precti racionalni X-ovou souradnici a zkrat
@@ -166,8 +157,11 @@ int readCurves(string file,mpz_t N,ExtendedPoint** pInit,bool& minus1)
 		}
 
 		// Vytvor bod v Extended souradnicích z redukovanych afinnich bodu modulo N
-		v.push_back(ExtendedPoint(zX,zY,N)); 
+		v.push_back(ExtendedPoint(zX,zY,N,minus1)); 
 	}
+
+	// Prekroucene Edwardsovy krivky prijdou na zacatek
+    std::sort(v.begin(), v.end(), [](const ExtendedPoint& a, const ExtendedPoint & b) -> bool { return a.isMinus1 && !b.isMinus1; });
 
 	// Prekopiruj body z vektoru do pameti
 	*pInit = new ExtendedPoint[v.size()];

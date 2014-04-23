@@ -8,20 +8,23 @@
 class ExtendedPoint {
 private:
 
-	void initAll();
+	void initAll(bool minusOne);
 public:	
+
+	// Je to křivka s a = -1?
+	bool isMinus1;
 
 	// Všechny souřadnice bodu v Extended souřadnicích
 	biguint_t X,Y,Z,T;
 	
 	// Vytvoří prázdný bod v Extended souřadnicích
-	ExtendedPoint();
+	ExtendedPoint(bool minusOne = true);
 	
 	// Vytvoří bod v Extended souřadnicích inicializovaný daným afinním bodem
-	ExtendedPoint(mpz_t x,mpz_t y,mpz_t N);
+	ExtendedPoint(mpz_t x,mpz_t y,mpz_t N,bool minusOne = true);
 
 	// Vytvoří bod v nekonečnu v Extended souřadnicích
-	ExtendedPoint(mpz_t N);
+	ExtendedPoint(mpz_t N,bool minusOne = true);
 		
 	// Nastaví na neutrální prvek na Edwardsově křivce
 	void infinity(mpz_t N);

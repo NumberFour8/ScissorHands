@@ -272,7 +272,7 @@ cudaError_t compute(const ComputeConfig& cfg,const ExtendedPoint* neutral,Extend
 	const int NUM_CURVES = cfg.numCurves;				// Počet načtených křivek
 	
 	int blcks = NUM_CURVES/CURVES_PER_BLOCK;
-	const int NUM_BLOCKS = (blcks == 0 ? 1 : blcks);	// Počet použitých bloků
+	const int NUM_BLOCKS = (blcks == 0 ? 1 : blcks)/2;	// Počet použitých bloků
 	const int USE_DEVICE = 0;							// ID zařízení, které bude použito
 
 	cudaEvent_t start,stop;
@@ -322,20 +322,23 @@ cudaError_t compute(const ComputeConfig& cfg,const ExtendedPoint* neutral,Extend
 	printf("Execution configuration: %d x %d x %d\n",NUM_BLOCKS,CURVES_PER_BLOCK,NB_DIGITS);
 	printf("--------------------------\n");
 
+	// Konfigurace streamů
+	cudaStream edwardsStream,twistedStream;
+	gpuErrchk(cudaStreamCreate(&edwardsStream,0));
+	gpuErrchk(cudaStreamCreate(&twistedStream,0));
+
+
+	void* swPcE = ((digit_t*)swPc)+NUM_CURVES*2*NB_DIGITS;
+	digit_t* iterE = iter+NUM_CURVES*2*NB_DIGITS;
+
 	// Další předpočítané body
-	if (cfg.minus1)
-	{
-		START_MEASURE(start);
-		precomputeT<<<NUM_BLOCKS,threadsPerBlock>>>((void*)swPc,(void*)iter,(void*)swAx);
-		STOP_MEASURE("Precomputation phase",start,stop,totalTime);
-	}
-	else
-	{
-		START_MEASURE(start);
-		precomputeE<<<NUM_BLOCKS,threadsPerBlock>>>((void*)swPc,(void*)iter,(void*)swAx);
-		STOP_MEASURE("Precomputation phase",start,stop,totalTime);
+	START_MEASURE(start);
+	precomputeT<<<NUM_BLOCKS,threadsPerBlock,0,twistedStream>>>((void*)swPc, (void*)iter, (void*)swAx);
+	precomputeE<<<NUM_BLOCKS,threadsPerBlock,0,edwardsStream>>>((void*)swPcE,(void*)iterE,(void*)swAx);
+	STOP_MEASURE("Precomputation phase",start,stop,totalTime);
 	
-	}
+	gpuErrchk(cudaDeviceSynchronize());
+	
 	// Do swQw nakopírovat neutrální prvek
 	iter = (digit_t*)swQw;
 	for (int i = 0;i < NUM_CURVES;++i){
@@ -346,40 +349,20 @@ cudaError_t compute(const ComputeConfig& cfg,const ExtendedPoint* neutral,Extend
 		iter += 4*NB_DIGITS;
 	}
 	
-	if (cfg.minus1)
-	{
-		if (cfg.useDblAdd)
-		{
-			START_MEASURE(start);
-			windowT<<<NUM_BLOCKS,threadsPerBlock>>>((void*)swQw,(void*)swPc,(void*)swAx,(void*)swCf);
-			STOP_MEASURE("Computation phase",start,stop,totalTime);
-		}
-		else 
-		{
-			START_MEASURE(start);
-			slidingWindowT<<<NUM_BLOCKS,threadsPerBlock>>>((void*)swQw,(void*)swPc,(void*)swAx,(void*)swCf);
-			STOP_MEASURE("Computation phase",start,stop,totalTime);
-		}
+	void* swPcE = ((digit_t*)swPc)+NUM_CURVES*2*NB_DIGITS;
+	void* swQwE = ((digit_t*)swQw)+NUM_CURVES*2*NB_DIGITS;
 	
-	}
-	else
-	{
-		if (cfg.useDblAdd)
-		{
-			START_MEASURE(start);
-			windowE<<<NUM_BLOCKS,threadsPerBlock>>>((void*)swQw,(void*)swPc,(void*)swAx,(void*)swCf);
-			STOP_MEASURE("Computation phase",start,stop,totalTime);
-		}
-		else 
-		{
-			START_MEASURE(start);
-			slidingWindowE<<<NUM_BLOCKS,threadsPerBlock>>>((void*)swQw,(void*)swPc,(void*)swAx,(void*)swCf);
-			STOP_MEASURE("Computation phase",start,stop,totalTime);
-		}
-	}
+	START_MEASURE(start);
+	slidingWindowT<<<NUM_BLOCKS,threadsPerBlock,0,twistedStream>>>((void*)swQw, (void*)swPc, (void*)swAx,(void*)swCf);
+	slidingWindowE<<<NUM_BLOCKS,threadsPerBlock,0,edwardsStream>>>((void*)swQwE,(void*)swPcE,(void*)swAx,(void*)swCf);
+	STOP_MEASURE("Computation phase",start,stop,totalTime);
 	
 	printf("--------------------------\n");
 	printf("Total time: %.3f ms\n",totalTime);
+
+	gpuErrchk(cudaDeviceSynchronize());
+	gpuErrchk(cudaStreamDestroy(twistedStream));
+	gpuErrchk(cudaStreamDestroy(edwardsStream));
 
 	// Nakopírovat výsledky zpátky do paměti počítače
 	iter = (digit_t*)swQw;
