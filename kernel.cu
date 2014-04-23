@@ -272,7 +272,7 @@ cudaError_t compute(const ComputeConfig& cfg,const ExtendedPoint* neutral,Extend
 	const int NUM_CURVES = cfg.numCurves;				// Počet načtených křivek
 	
 	int blcks = NUM_CURVES/CURVES_PER_BLOCK;
-	const int NUM_BLOCKS = (blcks == 0 ? 1 : blcks);	// Počet použitých bloků
+	const int NUM_BLOCKS = (blcks == 0 ? 1 : blcks)/2;	// Počet použitých bloků
 	const int USE_DEVICE = 0;							// ID zařízení, které bude použito
 
 	cudaEvent_t start,stop;
@@ -327,10 +327,14 @@ cudaError_t compute(const ComputeConfig& cfg,const ExtendedPoint* neutral,Extend
 	gpuErrchk(cudaStreamCreate(&edwardsStream,0));
 	gpuErrchk(cudaStreamCreate(&twistedStream,0));
 
+
+	void* swPcE = ((digit_t*)swPc)+NUM_CURVES*2*NB_DIGITS;
+	digit_t* iterE = iter+NUM_CURVES*2*NB_DIGITS;
+
 	// Další předpočítané body
 	START_MEASURE(start);
-	precomputeT<<<NUM_BLOCKS,threadsPerBlock,0,twistedStream>>>((void*)swPc,(void*)iter,(void*)swAx);
-	precomputeE<<<NUM_BLOCKS,threadsPerBlock,0,edwardsStream>>>((void*)swPc,(void*)iter,(void*)swAx);
+	precomputeT<<<NUM_BLOCKS,threadsPerBlock,0,twistedStream>>>((void*)swPc, (void*)iter, (void*)swAx);
+	precomputeE<<<NUM_BLOCKS,threadsPerBlock,0,edwardsStream>>>((void*)swPcE,(void*)iterE,(void*)swAx);
 	STOP_MEASURE("Precomputation phase",start,stop,totalTime);
 	
 	gpuErrchk(cudaDeviceSynchronize());
@@ -345,9 +349,12 @@ cudaError_t compute(const ComputeConfig& cfg,const ExtendedPoint* neutral,Extend
 		iter += 4*NB_DIGITS;
 	}
 	
+	void* swPcE = ((digit_t*)swPc)+NUM_CURVES*2*NB_DIGITS;
+	void* swQwE = ((digit_t*)swQw)+NUM_CURVES*2*NB_DIGITS;
+	
 	START_MEASURE(start);
-	slidingWindowT<<<NUM_BLOCKS,threadsPerBlock,0,twistedStream>>>((void*)swQw,(void*)swPc,(void*)swAx,(void*)swCf);
-	slidingWindowE<<<NUM_BLOCKS,threadsPerBlock,0,edwardsStream>>>((void*)swQw,(void*)swPc,(void*)swAx,(void*)swCf);
+	slidingWindowT<<<NUM_BLOCKS,threadsPerBlock,0,twistedStream>>>((void*)swQw, (void*)swPc, (void*)swAx,(void*)swCf);
+	slidingWindowE<<<NUM_BLOCKS,threadsPerBlock,0,edwardsStream>>>((void*)swQwE,(void*)swPcE,(void*)swAx,(void*)swCf);
 	STOP_MEASURE("Computation phase",start,stop,totalTime);
 	
 	printf("--------------------------\n");
