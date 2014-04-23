@@ -334,8 +334,8 @@ cudaError_t compute(const ComputeConfig& cfg,const ExtendedPoint* neutral,Extend
 		START_MEASURE(start);
 		precomputeE<<<NUM_BLOCKS,threadsPerBlock>>>((void*)swPc,(void*)iter,(void*)swAx);
 		STOP_MEASURE("Precomputation phase",start,stop,totalTime);
-	
 	}
+
 	// Do swQw nakopírovat neutrální prvek
 	iter = (digit_t*)swQw;
 	for (int i = 0;i < NUM_CURVES;++i){
@@ -348,34 +348,15 @@ cudaError_t compute(const ComputeConfig& cfg,const ExtendedPoint* neutral,Extend
 	
 	if (cfg.minus1)
 	{
-		if (cfg.useDblAdd)
-		{
-			START_MEASURE(start);
-			windowT<<<NUM_BLOCKS,threadsPerBlock>>>((void*)swQw,(void*)swPc,(void*)swAx,(void*)swCf);
-			STOP_MEASURE("Computation phase",start,stop,totalTime);
-		}
-		else 
-		{
-			START_MEASURE(start);
-			slidingWindowT<<<NUM_BLOCKS,threadsPerBlock>>>((void*)swQw,(void*)swPc,(void*)swAx,(void*)swCf);
-			STOP_MEASURE("Computation phase",start,stop,totalTime);
-		}
-	
+		START_MEASURE(start);
+		slidingWindowT<<<NUM_BLOCKS,threadsPerBlock>>>((void*)swQw,(void*)swPc,(void*)swAx,(void*)swCf);
+		STOP_MEASURE("Computation phase",start,stop,totalTime);
 	}
 	else
 	{
-		if (cfg.useDblAdd)
-		{
-			START_MEASURE(start);
-			windowE<<<NUM_BLOCKS,threadsPerBlock>>>((void*)swQw,(void*)swPc,(void*)swAx,(void*)swCf);
-			STOP_MEASURE("Computation phase",start,stop,totalTime);
-		}
-		else 
-		{
-			START_MEASURE(start);
-			slidingWindowE<<<NUM_BLOCKS,threadsPerBlock>>>((void*)swQw,(void*)swPc,(void*)swAx,(void*)swCf);
-			STOP_MEASURE("Computation phase",start,stop,totalTime);
-		}
+		START_MEASURE(start);
+		slidingWindowE<<<NUM_BLOCKS,threadsPerBlock>>>((void*)swQw,(void*)swPc,(void*)swAx,(void*)swCf);
+		STOP_MEASURE("Computation phase",start,stop,totalTime);
 	}
 	
 	printf("--------------------------\n");

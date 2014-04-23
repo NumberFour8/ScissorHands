@@ -16,13 +16,12 @@ struct progArgs {
 	string curveFile;
 	unsigned int B1;
 	unsigned short windowSize;
-	bool useDoubleAndAdd;
 	bool verbose;
 	bool noLCM;
 	bool exitOnFinish;
 	
 	progArgs() 
-	 : verbose(false), noLCM(false), useDoubleAndAdd(false), B1(0), windowSize(0) 
+	 : verbose(false), noLCM(false), B1(0), windowSize(0) 
 	{ }
 };
 
@@ -33,7 +32,6 @@ void parseArguments(int argc,char** argv,progArgs& args)
 	desc.add_options()
 		("help", "Print usage information.")
 		("verbose", "More verbose output.")
-		("use-double-add", "Use double-and-add instead sliding window.")
 		("dont-compute-bound", "Coefficient s = B1 when set, otherwise s = lcm(1,2...B1).")
 		("no-restart", "When set, program terminates automatically after finishing.")
 		("N-to-factor", po::value<string>(),
@@ -49,7 +47,6 @@ void parseArguments(int argc,char** argv,progArgs& args)
 	po::store(po::parse_command_line(argc,argv,desc),vm);
 	po::notify(vm);
 	
-	args.useDoubleAndAdd = vm.count("use-double-add") != 0;
 	args.verbose		 = vm.count("verbose") != 0;
 	args.noLCM			 = vm.count("dont-compute-bound") != 0;
 	args.exitOnFinish	 = vm.count("no-restart") != 0;
@@ -195,7 +192,7 @@ int main(int argc,char** argv)
 	}
 	else lcmToN(zS,args.B1);
 	
-	S.initialize(zS,args.useDoubleAndAdd ? (unsigned char)args.windowSize : 2);
+	S.initialize(zS,2);
 	mpz_clear(zS);	
 	
 	cout << endl << "Trying to factor " << args.N << " with B1 = "<< args.B1 << " using " << read_curves << " curves..." << endl << endl;
@@ -205,11 +202,7 @@ int main(int argc,char** argv)
 	ax.nafLen    = S.l;
 	ax.numCurves = read_curves;
 	ax.minus1	 = minusOne; 
-	ax.useDblAdd = args.useDoubleAndAdd;
 
-	if (args.useDoubleAndAdd)
-	  cout << "NOTE: Using double-and-add algorithm." << endl;
-	
 	// Proveď výpočet
 	cudaStatus = compute(ax,&infty,PP,S);
     if (cudaStatus != cudaSuccess) 
@@ -272,7 +265,7 @@ int main(int argc,char** argv)
 		mpz_divexact(zChk,zN,zChk);
 		if (is_almost_surely_prime(zChk))
 		{
-			cout << "REMAINING UNFACTORED PART " << mpz_to_string(zChk) << " IS A PRIME." endl;
+			cout << "REMAINING UNFACTORED PART " << mpz_to_string(zChk) << " IS A PRIME." << endl;
 			cout << mpz_to_string(zN) << " HAS BEEN FACTORED TOTALLY!" << endl;
 			args.exitOnFinish = true; 
 		}
