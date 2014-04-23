@@ -32,7 +32,6 @@ void parseArguments(int argc,char** argv,progArgs& args)
 	desc.add_options()
 		("help", "Print usage information.")
 		("verbose", "More verbose output.")
-		("use-double-add", "Use double-and-add instead sliding window.")
 		("dont-compute-bound", "Coefficient s = B1 when set, otherwise s = lcm(1,2...B1).")
 		("no-restart", "When set, program terminates automatically after finishing.")
 		("N-to-factor", po::value<string>(),
