@@ -242,24 +242,26 @@ int main(int argc,char** argv)
 	mpz_init_set_ui(zChk,1);
 	for (int i = 0; i < read_curves;++i)
 	{
-		cout << "Curve #" << i+1 << ":\t"; 
+		if (args.verbose) cout << "Curve #" << i+1 << ":\t"; 
 		if (PP[i].toAffine(zX,zY,zN,zInvW,zF)) 
 		{
-			cout << "No factor found." << endl;
 			if (args.verbose)
+			{
+			  cout << "No factor found." << endl;
 			  cout << endl << "sP = (" << mpz_to_string(zX) << "," << mpz_to_string(zY) << ")" << endl;
+			}
 		}
 		else if (mpz_cmp_ui(zF,0) != 0) // Máme faktor!
 		{
 		   bool isPrime = is_almost_surely_prime(zF);
 		   string fact  = mpz_to_string(zF);
 
-		   cout << "Factor found: " << fact << endl;
+		   if (args.verbose) cout << "Factor found: " << fact << endl;
 		   if (foundFactors.insert(factor(fact,isPrime,i)).second && isPrime) 
 			 mpz_mul(zChk,zChk,zF);
 		}
-		else cout << "Error during conversion." << endl;
-		cout << endl << "------------" << endl;
+		else if (args.verbose) cout << "Error during conversion." << endl;
+		if (args.verbose) cout << endl << "------------" << endl;
     }
 	
 	// Vypiš všechny nalezené faktory
