@@ -93,7 +93,6 @@ public:
 	
 	unsigned short windowSz;	 // Velikost okna
 	unsigned long  nafLen;		 // Sirka NAF
-
 	unsigned long  numCurves;	 // Pocet krivek
 	int			   deviceId;	 // ID zarizeni pro vypocet
 	bool		   minus1;		 // Ktere krivky pouzit v single rezimu?
