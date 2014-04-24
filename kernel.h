@@ -10,8 +10,11 @@
 #define CURVE_MEMORY_SIZE 1536
 #define CURVES_PER_BLOCK 16
 
-// Hlavní výpočetní metoda 
-cudaError_t compute(const ComputeConfig& cfg,const ExtendedPoint* neutral,ExtendedPoint* initPoints,const NAF& coeff);
+// Hlavní výpočetní metoda pro jeden typ křivek
+cudaError_t computeSingle(const ComputeConfig& cfg,const ExtendedPoint* neutral,ExtendedPoint* initPoints,const NAF& coeff);
+
+// Hlavní výpočetní metoda pro oba typy křivek
+cudaError_t computeMixed(const ComputeConfig& cfg,const ExtendedPoint* neutral,ExtendedPoint* initPoints,const NAF& coeff);
 
 //////////////////////////////////////////// INTERNÍ MAKRA KERNELŮ ////////////////////////////////////////////
 

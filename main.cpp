@@ -19,9 +19,10 @@ struct progArgs {
 	bool verbose;
 	bool noLCM;
 	bool exitOnFinish;
+	int whichDevice;
 	
 	progArgs() 
-	 : verbose(false), noLCM(false), B1(0), windowSize(0) 
+	 : verbose(false), noLCM(false), B1(0), windowSize(0), whichDevice(0) 
 	{ }
 };
 
@@ -34,6 +35,8 @@ void parseArguments(int argc,char** argv,progArgs& args)
 		("verbose", "More verbose output.")
 		("dont-compute-bound", "Coefficient s = B1 when set, otherwise s = lcm(1,2...B1).")
 		("no-restart", "When set, program terminates automatically after finishing.")
+		("device-id", po::value<int>(&args.whichDevice)->default_value(0),
+			"ID of a CUDA device used for computation.")
 		("N-to-factor", po::value<string>(),
 			"Number to factor.")
 		("curve-file", po::value<string>(),
@@ -132,7 +135,8 @@ int main(int argc,char** argv)
 	cout << "ECM using Twisted Edwards curves" << endl;
 	
 	progArgs args;
-	int read_curves = 0,exitCode = 0;
+	int exitCode = 0;
+	bool useMixedStrategy = false;
 	char c = 0;
 
 	// Množina nalezených faktorů s vlastním uspořádnáním
@@ -148,13 +152,14 @@ int main(int argc,char** argv)
 	mpz_init_set_str(zN,args.N.c_str(),10);
 	
 	// Inicializace proměnných
-	ExtendedPoint infty;			// Neutrální prvek
-	ComputeConfig ax;	    		// Pomocná struktura
-	NAF S;					 		// NAF rozvoj
-	mpz_t zS,zInvW,zX,zY,zF,zChk; 	// Pomocné proměnné
-	cudaError_t cudaStatus;	 		// Proměnná pro chybové kódy GPU
-	ExtendedPoint *PP;		 		// Adresa všech bodů
-	int edwards,twisted;			// Počty načtených typů křivek
+	ExtendedPoint infty;			 // Neutrální prvek
+	ComputeConfig ax;	    		 // Pomocná struktura
+	NAF S;					 		 // NAF rozvoj
+	mpz_t zS,zInvW,zX,zY,zF,zChk; 	 // Pomocné proměnné
+	cudaError_t cudaStatus;	 		 // Proměnná pro chybové kódy GPU
+	ExtendedPoint *PP;		 		 // Adresa všech bodů
+	int read_curves,edwards,twisted; // Počty načtených typů křivek
+	computeStrategy strategy;		 // Strategie výpočtu
 
 	restart_bound:
 	
@@ -170,30 +175,17 @@ int main(int argc,char** argv)
 	ax.initialize(zN);
 
 	PP = NULL;
-	read_curves = readCurves(args.curveFile,zN,&PP,edwards,twisted);
-
-	// Zkontroluj počet načtených křivek
-	if (read_curves <= 0)
+	read_curves = edwards = twisted = CS = 0;
+	
+	// Načti křivky a zvol vhodnou strategii
+	strategy = readCurves(args.curveFile,zN,&PP,edwards,twisted,read_curves);
+	if (strategy == computeStrategy::csNone)
 	{
-		cout << "ERROR: No curves read." << endl;
+		cout << "ERROR: No suitable compute strategy found." << endl;
 		exitCode = 1;
 		goto end;
-	}
-	else if (read_curves%(CURVES_PER_BLOCK*2) != 0)
-	{
-		cout << "ERROR: Number of curves must be divisible by " << CURVES_PER_BLOCK*2 << endl;
-		exitCode = 1;
-		goto end;
-	}
-	else if (edwards != twisted)
-	{
-		cout << "ERROR: There has to be the same number of Edwards (" << edwards << ") and Twisted Edwards (" << twisted << ") curves." << endl;
-		exitCode = 1;
-		goto end;
-	}
-	cout << "Loaded " << read_curves << " curves: " << edwards << " Edwards curves, " << twisted << " Twisted Edwards curves." << endl << endl;
-
-
+	} 
+	
 	// Spočti S = lcm(1,2,3...,B1) a jeho NAF rozvoj
 	mpz_init(zS);
 	cout << "Computing coefficient..." << endl;
@@ -216,8 +208,18 @@ int main(int argc,char** argv)
 	ax.numCurves = read_curves;
 	
 	// Proveď výpočet
-	cudaStatus = compute(ax,&infty,PP,S);
-    if (cudaStatus != cudaSuccess) 
+	if (strategy == computeStrategy::csMixed)
+	{
+		cout << "NOTE: Using mixed compute strategy." << endl;
+		cudaStatus = computeMixed(ax,&infty,PP,S);
+	}
+	else 
+	{
+		cout << "NOTE: Using single compute strategy." << end;
+		cudaStatus = computeSingle(ax,&infty,PP,S);
+	}
+	
+	if (cudaStatus != cudaSuccess) 
     {
         cout << "ERROR: CUDA compute failed!" << endl;
 		exitCode = 1;

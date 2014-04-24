@@ -44,6 +44,9 @@ public:
 
 };
 
+// Možné strategie výpočtu podle typu načtených křivek
+typedef enum { csMixed, csEdwards, csTwisted, csNone = 0 } computeStrategy;
+
 /* Nacte krivky a jejich pocatecni body v racionalnich afinnich souradnicich 
  * ze souboru a provede jejich redukci modulo N.
  * Nactene pocatecni body v Extended souradnicich jsou ulozeny do pInit,
@@ -51,7 +54,7 @@ public:
  * Parametry edwards a twisted jsou počty příslušných typů načtených křivek.
  * Vraci pocet uspesne prectenych krivek. 
 */
-int readCurves(string file,mpz_t N,ExtendedPoint** pInit,int& edwards,int& twisted);
+computeStrategy readCurves(string file,mpz_t N,ExtendedPoint** pInit,int& edwards,int& twisted,int& usableCurves);
 
 
 #endif
