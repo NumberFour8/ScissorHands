@@ -132,7 +132,9 @@ struct factor {
 
 int main(int argc,char** argv)
 {
-	cout << "ECM using Twisted Edwards curves" << endl;
+	cout << "ScissorHands ECM Factorization" << endl;
+	cout << "by Lukas Pohanka, FNSPE CTU, 2014" << endl;
+	cout << endl;
 	
 	progArgs args;
 	int exitCode = 0;
