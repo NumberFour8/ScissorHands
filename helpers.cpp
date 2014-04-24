@@ -204,7 +204,8 @@ void ComputeConfig::initialize(mpz_t zN)
 	reset(N);
 	reset(N3);
 	invN = 0;
-	
+	deviceId = 0;
+
 	mpz_t z3N,zW,zInvN;
 	mpz_intz(z3N,zW,zInvN);
 	

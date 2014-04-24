@@ -179,7 +179,7 @@ int main(int argc,char** argv)
 	strategy	= computeStrategy::csNone;
 	
 	// Načti křivky a zvol vhodnou strategii
-	strategy = readCurves(args.curveFile,zN,&PP,edwards,twisted,read_curves);
+	strategy	= readCurves(args.curveFile,zN,&PP,edwards,twisted,read_curves);
 	if (strategy == computeStrategy::csNone)
 	{
 		cout << "ERROR: No suitable compute strategy found." << endl;
@@ -208,6 +208,7 @@ int main(int argc,char** argv)
 	ax.nafLen    = S.l;
 	ax.numCurves = read_curves;
 	ax.minus1	 = (strategy == computeStrategy::csTwisted);
+	ax.deviceId	 = args.whichDevice;
 	
 	// Proveď výpočet
 	if (strategy == computeStrategy::csMixed)

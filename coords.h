@@ -45,7 +45,7 @@ public:
 };
 
 // Možné strategie výpočtu podle typu načtených křivek
-typedef enum { csMixed, csEdwards, csTwisted, csNone = 0 } computeStrategy;
+typedef enum { csMixed, csEdwards, csTwisted, csNone } computeStrategy;
 
 /* Nacte krivky a jejich pocatecni body v racionalnich afinnich souradnicich 
  * ze souboru a provede jejich redukci modulo N.
