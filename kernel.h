@@ -7,9 +7,6 @@
 #include "coords.h"
 #include "helpers.h"
 
-#define CURVE_MEMORY_SIZE 1536
-#define CURVES_PER_BLOCK 16
-
 // Hlavní výpočetní metoda pro jeden typ křivek
 cudaError_t computeSingle(const ComputeConfig& cfg,const ExtendedPoint* neutral,ExtendedPoint* initPoints,const NAF& coeff);
 

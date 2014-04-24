@@ -175,7 +175,8 @@ int main(int argc,char** argv)
 	ax.initialize(zN);
 
 	PP = NULL;
-	read_curves = edwards = twisted = CS = 0;
+	read_curves = edwards = twisted = 0;
+	strategy	= computeStrategy::csNone;
 	
 	// Načti křivky a zvol vhodnou strategii
 	strategy = readCurves(args.curveFile,zN,&PP,edwards,twisted,read_curves);
@@ -206,6 +207,7 @@ int main(int argc,char** argv)
 	ax.windowSz  = args.windowSize;
 	ax.nafLen    = S.l;
 	ax.numCurves = read_curves;
+	ax.minus1	 = (strategy == computeStrategy::csTwisted);
 	
 	// Proveď výpočet
 	if (strategy == computeStrategy::csMixed)
@@ -215,7 +217,7 @@ int main(int argc,char** argv)
 	}
 	else 
 	{
-		cout << "NOTE: Using single compute strategy." << end;
+		cout << "NOTE: Using single compute strategy." << endl;
 		cudaStatus = computeSingle(ax,&infty,PP,S);
 	}
 	
