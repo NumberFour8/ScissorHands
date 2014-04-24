@@ -19,9 +19,10 @@ struct progArgs {
 	bool verbose;
 	bool noLCM;
 	bool exitOnFinish;
+	int whichDevice;
 	
 	progArgs() 
-	 : verbose(false), noLCM(false), B1(0), windowSize(0) 
+	 : verbose(false), noLCM(false), B1(0), windowSize(0), whichDevice(0) 
 	{ }
 };
 
@@ -34,6 +35,8 @@ void parseArguments(int argc,char** argv,progArgs& args)
 		("verbose", "More verbose output.")
 		("dont-compute-bound", "Coefficient s = B1 when set, otherwise s = lcm(1,2...B1).")
 		("no-restart", "When set, program terminates automatically after finishing.")
+		("device-id", po::value<int>(&args.whichDevice)->default_value(0),
+			"ID of a CUDA device used for computation.")
 		("N-to-factor", po::value<string>(),
 			"Number to factor.")
 		("curve-file", po::value<string>(),
@@ -75,7 +78,8 @@ void validateArguments(progArgs& args)
 	
 	if (!args.curveFile.empty() && args.curveFile.length() < 2) 
 	{
-		args.curveFile = args.curveFile == "E" ? "curves_edwards.txt" : "curves_twisted.txt";
+		args.curveFile = args.curveFile == "E" ? "curves_edwards.txt" :
+					     args.curveFile == "M" ? "curves_mixed.txt"   : "curves_twisted.txt";
 		cout << "INFO: Defaulting to " << args.curveFile  << endl << endl;	
 	}
 	else if (args.curveFile.empty())
@@ -131,7 +135,8 @@ int main(int argc,char** argv)
 	cout << "ECM using Twisted Edwards curves" << endl;
 	
 	progArgs args;
-	int read_curves = 0,exitCode = 0;
+	int exitCode = 0;
+	bool useMixedStrategy = false;
 	char c = 0;
 
 	// Množina nalezených faktorů s vlastním uspořádnáním
@@ -147,13 +152,14 @@ int main(int argc,char** argv)
 	mpz_init_set_str(zN,args.N.c_str(),10);
 	
 	// Inicializace proměnných
-	ExtendedPoint infty;			// Neutrální prvek
-	ComputeConfig ax;	    		// Pomocná struktura
-	NAF S;					 		// NAF rozvoj
-	mpz_t zS,zInvW,zX,zY,zF,zChk; 	// Pomocné proměnné
-	cudaError_t cudaStatus;	 		// Proměnná pro chybové kódy GPU
-	ExtendedPoint *PP;		 		// Adresa všech bodů
-	bool minusOne;			 		// Pracujeme s křivkami s a =-1 ?
+	ExtendedPoint infty;			 // Neutrální prvek
+	ComputeConfig ax;	    		 // Pomocná struktura
+	NAF S;					 		 // NAF rozvoj
+	mpz_t zS,zInvW,zX,zY,zF,zChk; 	 // Pomocné proměnné
+	cudaError_t cudaStatus;	 		 // Proměnná pro chybové kódy GPU
+	ExtendedPoint *PP;		 		 // Adresa všech bodů
+	int read_curves,edwards,twisted; // Počty načtených typů křivek
+	computeStrategy strategy;		 // Strategie výpočtu
 
 	restart_bound:
 	
@@ -169,18 +175,18 @@ int main(int argc,char** argv)
 	ax.initialize(zN);
 
 	PP = NULL;
-	read_curves = readCurves(args.curveFile,zN,&PP,minusOne);
-
-	// Zkontroluj počet načtených křivek
-	if (read_curves <= 0)
+	read_curves = edwards = twisted = 0;
+	strategy	= computeStrategy::csNone;
+	
+	// Načti křivky a zvol vhodnou strategii
+	strategy	= readCurves(args.curveFile,zN,&PP,edwards,twisted,read_curves);
+	if (strategy == computeStrategy::csNone)
 	{
-		cout << "ERROR: No curves read." << endl;
+		cout << "ERROR: No suitable compute strategy found." << endl;
 		exitCode = 1;
 		goto end;
-	}
-	cout << "Loaded " << read_curves << " curves with a = " << (minusOne ? "-1 (twisted " : "1 (")  << "Edwards curves)" << endl << endl;
-
-
+	} 
+	
 	// Spočti S = lcm(1,2,3...,B1) a jeho NAF rozvoj
 	mpz_init(zS);
 	cout << "Computing coefficient..." << endl;
@@ -201,11 +207,22 @@ int main(int argc,char** argv)
 	ax.windowSz  = args.windowSize;
 	ax.nafLen    = S.l;
 	ax.numCurves = read_curves;
-	ax.minus1	 = minusOne; 
-
+	ax.minus1	 = (strategy == computeStrategy::csTwisted);
+	ax.deviceId	 = args.whichDevice;
+	
 	// Proveď výpočet
-	cudaStatus = compute(ax,&infty,PP,S);
-    if (cudaStatus != cudaSuccess) 
+	if (strategy == computeStrategy::csMixed)
+	{
+		cout << "NOTE: Using mixed compute strategy." << endl;
+		cudaStatus = computeMixed(ax,&infty,PP,S);
+	}
+	else 
+	{
+		cout << "NOTE: Using single compute strategy." << endl;
+		cudaStatus = computeSingle(ax,&infty,PP,S);
+	}
+	
+	if (cudaStatus != cudaSuccess) 
     {
         cout << "ERROR: CUDA compute failed!" << endl;
 		exitCode = 1;
@@ -225,24 +242,26 @@ int main(int argc,char** argv)
 	mpz_init_set_ui(zChk,1);
 	for (int i = 0; i < read_curves;++i)
 	{
-		cout << "Curve #" << i+1 << ":\t"; 
+		if (args.verbose) cout << "Curve #" << i+1 << ":\t"; 
 		if (PP[i].toAffine(zX,zY,zN,zInvW,zF)) 
 		{
-			cout << "No factor found." << endl;
 			if (args.verbose)
+			{
+			  cout << "No factor found." << endl;
 			  cout << endl << "sP = (" << mpz_to_string(zX) << "," << mpz_to_string(zY) << ")" << endl;
+			}
 		}
 		else if (mpz_cmp_ui(zF,0) != 0) // Máme faktor!
 		{
 		   bool isPrime = is_almost_surely_prime(zF);
 		   string fact  = mpz_to_string(zF);
 
-		   cout << "Factor found: " << fact << endl;
+		   if (args.verbose) cout << "Factor found: " << fact << endl;
 		   if (foundFactors.insert(factor(fact,isPrime,i)).second && isPrime) 
 			 mpz_mul(zChk,zChk,zF);
 		}
-		else cout << "Error during conversion." << endl;
-		cout << endl << "------------" << endl;
+		else if (args.verbose) cout << "Error during conversion." << endl;
+		if (args.verbose) cout << endl << "------------" << endl;
     }
 	
 	// Vypiš všechny nalezené faktory

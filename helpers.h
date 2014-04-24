@@ -93,10 +93,11 @@ public:
 	
 	unsigned short windowSz;	 // Velikost okna
 	unsigned long  nafLen;		 // Sirka NAF
-	
+
 	unsigned long  numCurves;	 // Pocet krivek
-	bool		   minus1;		 // Typ krivek 
-	
+	int			   deviceId;	 // ID zarizeni pro vypocet
+	bool		   minus1;		 // Ktere krivky pouzit v single rezimu?
+
 	void initialize(mpz_t zN);
 };
 

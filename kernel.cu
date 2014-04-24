@@ -186,19 +186,174 @@ __global__ void precomputeT(void* pX,void* pCube,void* swAux)
 	}
 }
 
-cudaError_t compute(const ComputeConfig& cfg,const ExtendedPoint* neutral,ExtendedPoint* initPoints,const NAF& coeff)
+cudaError_t computeMixed(const ComputeConfig& cfg,const ExtendedPoint* neutral,ExtendedPoint* initPoints,const NAF& coeff)
+{		
+	const int PRECOMP_SZ = (1 << (cfg.windowSz-1));		// Počet bodů, které je nutné předpočítat
+	const int NUM_CURVES = cfg.numCurves;				// Počet načtených křivek
+	
+	int blcks = NUM_CURVES/CURVES_PER_BLOCK;
+	const int NUM_BLOCKS = (blcks == 0 ? 1 : blcks)/2;	// Počet použitých bloků
+	const int USE_DEVICE = cfg.deviceId;				// ID zařízení, které bude použito
+
+	int devs = 0;
+	gpuErrchk(cudaGetDeviceCount(&devs));
+	if (USE_DEVICE < 0 || USE_DEVICE >= devs)
+	{
+		fprintf(stderr,"Launch failed: invalid device ID.\n");
+		return cudaErrorInvalidDevice;
+	} 
+
+	cudaEvent_t start,stop;
+	float totalTime = 0;
+	void *swQw = NULL,*swPc = NULL,*swAx = NULL,*swCf = NULL;
+	gpuErrchk(cudaSetDevice(USE_DEVICE));
+	
+	// Zjištění vlastností zařízení
+	cudaDeviceProp prop;
+    gpuErrchk(cudaGetDeviceProperties(&prop, 0));
+
+	// Ověření, že se všechny křivky vejdou do sdílené paměti
+	if ((int)prop.sharedMemPerBlock*prop.multiProcessorCount < NUM_CURVES*CURVE_MEMORY_SIZE)
+	{
+		fprintf(stderr,"Launch failed: cannot fit curves into the shared memory.\n");
+		return cudaErrorLaunchOutOfResources;
+	}
+
+	// Vytvořit eventy pro měření času
+	gpuErrchk(cudaEventCreate(&start));
+	gpuErrchk(cudaEventCreate(&stop));
+
+	// Alokace potřebných dat
+	cuda_Malloc((void**)&swPc,NUM_CURVES*PRECOMP_SZ*4*MAX_BYTES); // Předpočítané body
+	cuda_Malloc((void**)&swQw,NUM_CURVES*4*MAX_BYTES);			  // Pomocný bod
+	cuda_Malloc((void**)&swAx,sizeof(ComputeConfig));			  // Pomocná struktura
+	cuda_Malloc((void**)&swCf,cfg.nafLen);						  // NAF rozvoj koeficientu
+	
+	// Pomocná struktura
+	cuda_Memcpy(swAx,(void*)&cfg,sizeof(ComputeConfig),cudaMemcpyHostToDevice);
+
+	// NAF rozvoj koeficientu
+	cuda_Memcpy(swCf,(void*)coeff.bits,cfg.nafLen,cudaMemcpyHostToDevice);
+	
+	// Počáteční body
+	VOL digit_t* iter = (digit_t*)swPc;
+	for (int i = 0;i < NUM_CURVES;i++){
+	   cuda_Memcpy((void*)(iter+0*NB_DIGITS),(void*)initPoints[i].X,MAX_BYTES,cudaMemcpyHostToDevice);
+	   cuda_Memcpy((void*)(iter+1*NB_DIGITS),(void*)initPoints[i].Y,MAX_BYTES,cudaMemcpyHostToDevice);
+	   cuda_Memcpy((void*)(iter+2*NB_DIGITS),(void*)initPoints[i].Z,MAX_BYTES,cudaMemcpyHostToDevice);
+	   cuda_Memcpy((void*)(iter+3*NB_DIGITS),(void*)initPoints[i].T,MAX_BYTES,cudaMemcpyHostToDevice);
+	   iter += 4*NB_DIGITS;	
+	}
+
+	// Konfigurace kernelů
+	dim3 threadsPerBlock(NB_DIGITS,CURVES_PER_BLOCK);
+	printf("Device name and ID : %s (%d)\n",prop.name,USE_DEVICE);
+	printf("Execution configuration: %d x %d x %d\n",NUM_BLOCKS,CURVES_PER_BLOCK,NB_DIGITS);
+	printf("--------------------------\n");
+
+	// Vytvoření streamů
+	cudaStream_t edwardsStream,twistedStream;
+	gpuErrchk(cudaStreamCreate(&edwardsStream));
+	gpuErrchk(cudaStreamCreate(&twistedStream));
+
+	// Startovací adresy pro stream s Edwardsovými křivkami
+	void* swPcE		   = ((digit_t*)swPc)+NUM_CURVES*2*NB_DIGITS;
+	VOL digit_t* iterE = iter+NUM_CURVES*2*NB_DIGITS;
+
+	// Další předpočítané body
+	START_MEASURE(start);
+	precomputeT<<<NUM_BLOCKS,threadsPerBlock,0,twistedStream>>>((void*)swPc, (void*)iter, (void*)swAx);
+	precomputeE<<<NUM_BLOCKS,threadsPerBlock,0,edwardsStream>>>((void*)swPcE,(void*)iterE,(void*)swAx);
+	STOP_MEASURE("Precomputation phase",start,stop,totalTime);
+	
+	gpuErrchk(cudaDeviceSynchronize());
+	
+	// Do swQw nakopírovat neutrální prvek
+	iter = (digit_t*)swQw;
+	for (int i = 0;i < NUM_CURVES;++i){
+		cuda_Memcpy((void*)(iter+0*NB_DIGITS),(void*)neutral->X,MAX_BYTES,cudaMemcpyHostToDevice);
+		cuda_Memcpy((void*)(iter+1*NB_DIGITS),(void*)neutral->Y,MAX_BYTES,cudaMemcpyHostToDevice);
+		cuda_Memcpy((void*)(iter+2*NB_DIGITS),(void*)neutral->Z,MAX_BYTES,cudaMemcpyHostToDevice);
+		cuda_Memcpy((void*)(iter+3*NB_DIGITS),(void*)neutral->T,MAX_BYTES,cudaMemcpyHostToDevice);
+		iter += 4*NB_DIGITS;
+	}
+	
+	// Startovací adresy pro stream s Edwardsovými křivkami
+	swPcE		= ((digit_t*)swPc)+NUM_CURVES*2*NB_DIGITS;
+	void* swQwE = ((digit_t*)swQw)+NUM_CURVES*2*NB_DIGITS;
+	
+	START_MEASURE(start);
+	slidingWindowT<<<NUM_BLOCKS,threadsPerBlock,0,twistedStream>>>((void*)swQw, (void*)swPc, (void*)swAx,(void*)swCf);
+	slidingWindowE<<<NUM_BLOCKS,threadsPerBlock,0,edwardsStream>>>((void*)swQwE,(void*)swPcE,(void*)swAx,(void*)swCf);
+	STOP_MEASURE("Computation phase",start,stop,totalTime);
+	
+	printf("--------------------------\n");
+	printf("Total time: %.3f ms\n",totalTime);
+
+	gpuErrchk(cudaDeviceSynchronize());
+	gpuErrchk(cudaStreamDestroy(twistedStream));
+	gpuErrchk(cudaStreamDestroy(edwardsStream));
+
+	// Nakopírovat výsledky zpátky do paměti počítače
+	iter = (digit_t*)swQw;
+	for (int i = 0;i < NUM_CURVES;i++){
+	   cuda_Memcpy((void*)initPoints[i].X,(void*)(iter+0*NB_DIGITS),MAX_BYTES,cudaMemcpyDeviceToHost);
+	   cuda_Memcpy((void*)initPoints[i].Y,(void*)(iter+1*NB_DIGITS),MAX_BYTES,cudaMemcpyDeviceToHost);
+	   cuda_Memcpy((void*)initPoints[i].Z,(void*)(iter+2*NB_DIGITS),MAX_BYTES,cudaMemcpyDeviceToHost);
+	   cuda_Memcpy((void*)initPoints[i].T,(void*)(iter+3*NB_DIGITS),MAX_BYTES,cudaMemcpyDeviceToHost);
+	   iter += 4*NB_DIGITS;	
+	}
+ 
+    // Zkontroluj chyby
+    cudaError_t cudaStatus = cudaGetLastError();
+    if (cudaStatus != cudaSuccess)
+      fprintf(stderr, "Launch failed: %s\n", cudaGetErrorString(cudaStatus));
+    
+    // Synchronizovat vše
+    cudaStatus = cudaDeviceSynchronize();
+    if (cudaStatus != cudaSuccess)
+	  fprintf(stderr, "Launch failed: %s\n", cudaGetErrorString(cudaStatus));
+ 
+	// Uvolnit paměť 
+	cuda_Free(swAx);
+	cuda_Free(swQw);
+	cuda_Free(swPc);
+	cuda_Free(swCf);
+
+	gpuErrchk(cudaEventDestroy(start));
+	gpuErrchk(cudaEventDestroy(stop));
+
+	cudaStatus = cudaDeviceReset();
+    if (cudaStatus != cudaSuccess) 
+	{
+        fprintf(stderr, "cudaDeviceReset failed!\n");
+		return cudaStatus;
+    }
+
+    return cudaStatus;
+}
+
+cudaError_t computeSingle(const ComputeConfig& cfg,const ExtendedPoint* neutral,ExtendedPoint* initPoints,const NAF& coeff)
 {		
 	const int PRECOMP_SZ = (1 << (cfg.windowSz-1));		// Počet bodů, které je nutné předpočítat
 	const int NUM_CURVES = cfg.numCurves;				// Počet načtených křivek
 	
 	int blcks = NUM_CURVES/CURVES_PER_BLOCK;
 	const int NUM_BLOCKS = (blcks == 0 ? 1 : blcks);	// Počet použitých bloků
-	const int USE_DEVICE = 0;							// ID zařízení, které bude použito
+	const int USE_DEVICE = cfg.deviceId;				// ID zařízení, které bude použito
+
+	int devs = 0;
+	gpuErrchk(cudaGetDeviceCount(&devs));
+	if (USE_DEVICE < 0 || USE_DEVICE >= devs)
+	{
+		fprintf(stderr,"Launch failed: invalid device ID.\n");
+		return cudaErrorInvalidDevice;
+	} 
 
 	cudaEvent_t start,stop;
 	float totalTime = 0;
 	void *swQw = NULL,*swPc = NULL,*swAx = NULL,*swCf = NULL;
-	gpuErrchk(cudaSetDevice(0));
+	gpuErrchk(cudaSetDevice(USE_DEVICE));
 	
 	// Zjištění vlastností zařízení
 	cudaDeviceProp prop;

@@ -6,28 +6,29 @@ using namespace std;
 
 #include "coords.h"
 
-void ExtendedPoint::initAll()
+void ExtendedPoint::initAll(bool minusOne)
 {
 	reset(X);
 	reset(Y);
 	reset(Z);
 	reset(T);
+	isMinus1 = minusOne;
 }
 
-ExtendedPoint::ExtendedPoint()
+ExtendedPoint::ExtendedPoint(bool minusOne)
 {
-	initAll();
+	initAll(minusOne);
 }
 	
-ExtendedPoint::ExtendedPoint(mpz_t x,mpz_t y,mpz_t N) 
+ExtendedPoint::ExtendedPoint(mpz_t x,mpz_t y,mpz_t N,bool minusOne) 
 {
-	initAll();
+	initAll(minusOne);
 	fromAffine(x,y,N);
 }
 
-ExtendedPoint::ExtendedPoint(mpz_t N) 
+ExtendedPoint::ExtendedPoint(mpz_t N,bool minusOne) 
 {
-	initAll();
+	initAll(minusOne);
 	infinity(N);
 }
 
@@ -91,16 +92,56 @@ bool ExtendedPoint::toAffine(mpz_t x,mpz_t y,mpz_t N,mpz_t invB,mpz_t fact)
 	return ret;
 }
 
-int readCurves(string file,mpz_t N,ExtendedPoint** pInit,bool& minus1)
+// Zvoli vhodnou strategii vzpoctu podle poctu nactenzch typu krivek 
+computeStrategy chooseStrategy(int edwardsRead,int twistedRead,int& usableCurves)
+{
+
+	int curvesRead 	    = edwardsRead+twistedRead;
+	if (curvesRead <= 0)
+	{
+		cout << "ERROR: No curves read." << endl;
+		usableCurves = 0;
+		return computeStrategy::csNone;
+	}
+	
+	if (edwardsRead > 0 && twistedRead < edwardsRead && edwardsRead%CURVES_PER_BLOCK == 0)
+	{
+		cout << "INFO: Using " << edwardsRead << " Edwards curves." << endl;
+		usableCurves = edwardsRead;
+		return computeStrategy::csEdwards;
+	}
+	
+	if (twistedRead > 0 && edwardsRead < twistedRead && twistedRead%CURVES_PER_BLOCK == 0)
+	{
+		cout << "INFO: Using " << twistedRead << " twisted Edwards curves." << endl;
+		usableCurves = twistedRead;
+		return computeStrategy::csTwisted;
+	}
+	
+	if (twistedRead*edwardsRead > 0 && twistedRead == edwardsRead && curvesRead%(2*CURVES_PER_BLOCK) == 0)
+	{
+		cout << "INFO: Using " << edwardsRead << " Edwards curves and " << twistedRead << " twisted Edwards curves." << endl;
+		usableCurves = curvesRead;
+		return computeStrategy::csMixed; 
+	}
+	
+	cout << "ERROR: Inappropriate number of curves: " << edwardsRead << " Edwards curves, " << twistedRead << " twisted Edwards curves." << endl;
+	usableCurves = 0;
+	return computeStrategy::csNone;
+}
+
+computeStrategy readCurves(string file,mpz_t N,ExtendedPoint** pInit,int& edwards,int& twisted,int &usableCurves)
 {
 	ifstream fp;
-	
+	edwards = twisted = 0;
+	computeStrategy strat = computeStrategy::csNone;
+
 	// Pokud se nepodari otevrit soubor, skonci
 	fp.open(file);
 	if (!fp.is_open())
 	{
 		cout << "ERROR: Cannot open file." << endl;
-		return 0;
+		return strat;
 	} 
 	
 	// Inicializace racionalnich souradnic
@@ -114,7 +155,7 @@ int readCurves(string file,mpz_t N,ExtendedPoint** pInit,bool& minus1)
 	
 	string ln;
 	vector<ExtendedPoint> v;
-	minus1 = true;
+	bool minus1 = true;
 	cout << "Loading curves..." << endl;
 	while (getline(fp,ln))
 	{
@@ -123,18 +164,15 @@ int readCurves(string file,mpz_t N,ExtendedPoint** pInit,bool& minus1)
 		
 		// Je to prekroucena Edwardsova krivka s a = -1 ? 
 		fp >> ln;
-		if (v.size() > 0 && (ln == "-1") != minus1)
+		if (ln != "-1" && ln != "1")
 		{
-			cout << "ERROR: Cannot mix curves with a = 1 and curves with a = -1." << endl; 
-		
-			fp.close();
-			mpz_clrs(zX,zY);
-			mpq_clrs(qX,qY);
-
-			return 0;
+			cout << "ERROR: Unsupported curve type." << endl;
+			goto read_finish;
 		}
+
 		minus1 = (ln == "-1");
-		
+		minus1 ? twisted++ : edwards++;
+
 		// Precti racionalni X-ovou souradnici a zkrat
 		fp >> ln;
 		mpq_set_str(qX,ln.c_str(),10);
@@ -157,26 +195,30 @@ int readCurves(string file,mpz_t N,ExtendedPoint** pInit,bool& minus1)
 			{
 				cout << "Factor found: " << mpz_to_string(zY) << endl;
 			}
-			
-			fp.close();
-			mpz_clrs(zX,zY);
-			mpq_clrs(qX,qY);
-
-			return 0;
+			goto read_finish;
 		}
 
 		// Vytvor bod v Extended souradnicích z redukovanych afinnich bodu modulo N
-		v.push_back(ExtendedPoint(zX,zY,N)); 
+		v.push_back(ExtendedPoint(zX,zY,N,minus1)); 
 	}
 
+	// Prekroucene Edwardsovy krivky prijdou na zacatek
+    std::sort(v.begin(), v.end(), [](const ExtendedPoint& a, const ExtendedPoint & b) -> bool { return a.isMinus1 && !b.isMinus1; });
+
+	usableCurves = 0;
+	strat = chooseStrategy(edwards,twisted,usableCurves);
+	if (strat == computeStrategy::csNone) goto read_finish;
+
 	// Prekopiruj body z vektoru do pameti
-	*pInit = new ExtendedPoint[v.size()];
-	std::copy(v.begin(),v.end(),*pInit);
+	*pInit = new ExtendedPoint[usableCurves];
+	std::copy((strat == computeStrategy::csEdwards ? v.begin()+twisted : v.begin()),v.begin()+usableCurves,*pInit);
 
 	// Vycisti pamet
-	fp.close();
-	mpz_clrs(zX,zY);
-	mpq_clrs(qX,qY);
+	read_finish:
+		v.clear();
+		fp.close();
+		mpz_clrs(zX,zY);
+		mpq_clrs(qX,qY);
 
-	return (int)v.size();
+	return strat;
 }

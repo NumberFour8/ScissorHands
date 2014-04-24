@@ -23,13 +23,18 @@
 #include <cuda_profiler_api.h>
 #include <device_launch_parameters.h>
 
+#define VOL volatile
+
+// Konfigurace kernelù
+#define CURVE_MEMORY_SIZE 1536
+#define CURVES_PER_BLOCK 16
+
+// Konfigurace aritmetiky
 #define NB_DIGITS 32 
 #define SIZE_DIGIT 32
 
 typedef unsigned int digit_t;
 typedef int carry_t;
-
-#define VOL volatile
 
 #define MAX_BITS SIZE_DIGIT*NB_DIGITS
 #define MAX_BYTES MAX_BITS/8
