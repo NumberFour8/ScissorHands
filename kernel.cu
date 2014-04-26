@@ -212,6 +212,13 @@ cudaError_t computeMixed(const ComputeConfig& cfg,const ExtendedPoint* neutral,E
 	cudaDeviceProp prop;
     gpuErrchk(cudaGetDeviceProperties(&prop, 0));
 
+	// Ověření, že Compute Capability je alespoň 2.0
+	if (prop.major < 2)
+	{
+		fprintf(stderr,"Launch failed: compute capability of the device must be at least 2.0.\n");
+		return cudaErrorInitializationError;
+	}
+
 	// Ověření, že se všechny křivky vejdou do sdílené paměti
 	if ((int)prop.sharedMemPerBlock*prop.multiProcessorCount < NUM_CURVES*CURVE_MEMORY_SIZE)
 	{
