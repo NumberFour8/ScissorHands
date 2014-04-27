@@ -18,12 +18,12 @@ struct progArgs {
 	unsigned int B1;
 	unsigned short windowSize;
 	bool verbose;
-	bool noLCM,B1hasChanged;
+	bool noLCM;
 	bool exitOnFinish;
 	int whichDevice;
 	
 	progArgs() 
-	 : verbose(false), noLCM(false), B1(0), windowSize(0), whichDevice(0), B1hasChanged(false) 
+	 : verbose(false), noLCM(false), B1(0), windowSize(0), whichDevice(0)
 	{ }
 };
 
@@ -107,13 +107,8 @@ void validateArguments(progArgs& args)
 	{
 		// Načíst hranici první fáze
 		cout << "Enter stage 1 bound B1:" << endl;
-		string b1;
-		
-		cin >> b1;
+		cin  >> args.B1;
 		cout << endl;
-		
-		args.B1hasChanged = (args.B1 != b1);
-		args.B1 = b1;
 		recheck = true;
 	}
 
@@ -126,6 +121,14 @@ void validateArguments(progArgs& args)
 		recheck = true;
 	}
 	if (recheck) validateArguments(args);
+}
+
+void savePrimeFactors(stringstream& primeStream)
+{
+	ofstream pr("primes-found.txt",ofstream::out | ofstream::trunc);
+	pr << primeStream.str();
+	pr.close();
+	cout << "All found prime factors have been written to a file." << endl;
 }
 
 // Struktura obsahující informace o získaném faktoru
@@ -144,7 +147,7 @@ int main(int argc,char** argv)
 	
 	progArgs args;
 	stringstream primeStream;
-	int exitCode = 0;
+	int exitCode = 0,lastB1 = 0;
 	bool useMixedStrategy = false;
 	char c = 0;
 
@@ -159,6 +162,9 @@ int main(int argc,char** argv)
 	// Inicializace N
 	mpz_t zN;
 	mpz_init_set_str(zN,args.N.c_str(),10);
+	
+	primeStream << "# Found prime factors of " << args.N << "\n";
+	primeStream << "# FOUND FACTOR, CURVE ID\n";
 	
 	// Inicializace proměnných
 	ExtendedPoint infty;			 // Neutrální prvek
@@ -208,7 +214,7 @@ int main(int argc,char** argv)
 	} 
 	
 	// Spočti S = lcm(1,2,3...,B1) a jeho NAF rozvoj, pokud se B1 změnilo
-	if (args.B1hasChanged)
+	if (lastB1 != args.B1)
 	{
 		mpz_init(zS);
 		cout << "Recomputing coefficient..." << endl;
@@ -219,12 +225,14 @@ int main(int argc,char** argv)
 		  mpz_set_ui(zS,args.B1);
 		}
 		else lcmToN(zS,args.B1);
-		
+		lastB1 = args.B1;
+
 		S.initialize(zS,2);
 		mpz_clear(zS);	
 	}
+	else cout << "NOTE: B1 hasn't changed." << endl;  
 	
-	cout << endl << "Trying to factor " << args.N << " with B1 = "<< args.B1 << " using " << read_curves << " curves..." << endl << endl;
+	cout << endl << "Trying to factor " << mpz_to_string(zN) << " with B1 = "<< args.B1 << " using " << read_curves << " curves..." << endl << endl;
 
 	// Nastavit hodnoty do konfigurace
 	ax.windowSz  = args.windowSize;
@@ -281,9 +289,10 @@ int main(int argc,char** argv)
 
 		   if (args.verbose) cout << "Factor found: " << fact << endl;
 		   if (foundFactors.insert(factor(fact,isPrime,i)).second && isPrime) 
+		   {
 			 mpz_mul(zChk,zChk,zF);
-		   
-		   if (isPrime) primeStream << fact << "\t" << i << "\n";
+		     primeStream << fact << ", " << i << "\n";
+		   }
 		}
 		else if (args.verbose) cout << "Error during conversion." << endl;
 		if (args.verbose) cout << endl << "------------" << endl;
@@ -296,7 +305,7 @@ int main(int argc,char** argv)
 	  std::for_each(foundFactors.begin(),foundFactors.end(),
 		[](const factor f)
 		{ 
-			cout << (f.prime ? "Prime:\t" : "Composite:\t") << f.fac << " (#" << f.curveId << ")" <<  endl; 
+			cout << (f.prime ? "Prime:\t\t" : "Composite:\t") << f.fac << " (#" << f.curveId << ")" <<  endl; 
 		}
 	   );
 	}
@@ -314,7 +323,8 @@ int main(int argc,char** argv)
 			args.exitOnFinish = true; 
 		}
 		else {
-			cout << "REMAINING UNFACTORED PART: " << mpz_to_string(zChk) << endl; 
+			cout << "REMAINING UNFACTORED PART: " << mpz_to_string(zChk); 
+			cout << " (" << mpz_sizeinbase(zChk,2) << " bits)" << endl;
 			mpz_set(zN,zChk);
 		}
 	}
@@ -330,14 +340,16 @@ int main(int argc,char** argv)
 
 	while (!args.exitOnFinish)
 	{
-	   cout << endl << "Type 'r' to restart with new configuration, 'p' to print found factors so far or 'q' to quit..." << endl;
+	   cout << endl << "Type : " << endl;
+	   cout << "'r' to restart with new configuration." << endl;
+	   cout << "'p' to print all found prime factors so far." << endl;
+	   cout << "or 'q' to quit." << endl << endl;
 	   cin  >> c;
+	   cout << endl;
 	   if (c == 'q') break;
 	   else if (c == 'p')
 	   {
 		  cout << endl;
-		  cout << "Factors find so far by this session:" << endl;
-		  cout << "PRIME FACTOR\tCURVE ID" << endl;
 		  cout << primeStream.str() << endl;
 	   }
 	   else if (c == 'r')
@@ -347,8 +359,9 @@ int main(int argc,char** argv)
 		  
 		  validateArguments(args);
 		  goto restart_bound;
-		}
+	   }
 	}
+	savePrimeFactors(primeStream);
 	
 	end:
 	mpz_clear(zN);

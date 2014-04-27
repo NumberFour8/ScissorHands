@@ -273,9 +273,7 @@ cudaError_t computeMixed(const ComputeConfig& cfg,const ExtendedPoint* neutral,E
 	precomputeT<<<NUM_BLOCKS,threadsPerBlock,0,twistedStream>>>((void*)swPc, (void*)iter, (void*)swAx);
 	precomputeE<<<NUM_BLOCKS,threadsPerBlock,0,edwardsStream>>>((void*)swPcE,(void*)iterE,(void*)swAx);
 	STOP_MEASURE("Precomputation phase",start,stop,totalTime);
-	
-	gpuErrchk(cudaDeviceSynchronize());
-	
+		
 	// Do swQw nakopírovat neutrální prvek
 	iter = (digit_t*)swQw;
 	for (int i = 0;i < NUM_CURVES;++i){
@@ -286,6 +284,8 @@ cudaError_t computeMixed(const ComputeConfig& cfg,const ExtendedPoint* neutral,E
 		iter += 4*NB_DIGITS;
 	}
 	
+	gpuErrchk(cudaDeviceSynchronize());
+
 	// Startovací adresy pro stream s Edwardsovými křivkami
 	swPcE		= ((digit_t*)swPc)+NUM_CURVES*2*NB_DIGITS;
 	void* swQwE = ((digit_t*)swQw)+NUM_CURVES*2*NB_DIGITS;
@@ -367,6 +367,13 @@ cudaError_t computeSingle(const ComputeConfig& cfg,const ExtendedPoint* neutral,
 	cudaDeviceProp prop;
     gpuErrchk(cudaGetDeviceProperties(&prop, 0));
 
+	// Ověření, že Compute Capability je alespoň 2.0
+	if (prop.major < 2)
+	{
+		fprintf(stderr,"Launch failed: compute capability of the device must be at least 2.0.\n");
+		return cudaErrorInitializationError;
+	}
+
 	// Ověření, že se všechny křivky vejdou do sdílené paměti
 	if ((int)prop.sharedMemPerBlock*prop.multiProcessorCount < NUM_CURVES*CURVE_MEMORY_SIZE)
 	{
@@ -429,6 +436,8 @@ cudaError_t computeSingle(const ComputeConfig& cfg,const ExtendedPoint* neutral,
 		iter += 4*NB_DIGITS;
 	}
 	
+	gpuErrchk(cudaDeviceSynchronize());
+
 	if (cfg.minus1)
 	{
 		START_MEASURE(start);
