@@ -112,7 +112,7 @@ void validateArguments(progArgs& args)
 		recheck = true;
 	}
 
-	if (args.windowSize < 2)
+	if (args.windowSize < 2 || args.windowSize > 15)
 	{
 		// Velikost okna
 		cout << "Enter window size:" << endl;
@@ -291,7 +291,12 @@ int main(int argc,char** argv)
 		   if (foundFactors.insert(factor(fact,isPrime,i)).second && isPrime) 
 		   {
 			 mpz_mul(zChk,zChk,zF);
-		     primeStream << fact << ", " << i << "\n";
+		     primeStream << fact << ", " << i;
+			 if (strategy == computeStrategy::csEdwards)
+				primeStream << "E\n";
+			 else if (strategy == computeStrategy::csTwisted)
+				primeStream << "T\n";
+			 else primeStream << "M\n";
 		   }
 		}
 		else if (args.verbose) cout << "Error during conversion." << endl;
