@@ -161,6 +161,7 @@ int main(int argc,char** argv)
 	cudaError_t cudaStatus;	 		 // Proměnná pro chybové kódy GPU
 	ExtendedPoint *PP;		 		 // Adresa všech bodů
 	int read_curves,edwards,twisted; // Počty načtených typů křivek
+	int szBase2;					 // Počet bitů N
 	computeStrategy strategy;		 // Strategie výpočtu
 
 	restart_bound:
@@ -172,6 +173,16 @@ int main(int argc,char** argv)
 		exitCode = 1;
 		goto end;
 	}
+	
+	// Kontrola velikosti N
+	szBase2 = (int)mpz_sizeinbase(zN,2);
+	if (szBase2 > NB_DIGITS*SIZE_DIGIT)
+	{
+		cout << "ERROR: Cannot factor numbers longer than " << NB_DIGITS*SIZE_DIGIT << " bits." << endl;
+		exitCode = 1;
+		goto end;
+	}
+	cout << "NOTE: N is " << szBase2 << " bits long." << endl;
 
 	infty.infinity(zN);
 	ax.initialize(zN);
