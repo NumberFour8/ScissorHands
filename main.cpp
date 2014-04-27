@@ -123,6 +123,7 @@ void validateArguments(progArgs& args)
 	if (recheck) validateArguments(args);
 }
 
+// Uloží a přepíše výstupní soubor s nalezenými faktory
 void savePrimeFactors(stringstream& primeStream)
 {
 	ofstream pr("primes-found.txt",ofstream::out | ofstream::trunc);
