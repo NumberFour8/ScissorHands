@@ -255,6 +255,7 @@ cudaError_t computeMixed(const ComputeConfig& cfg,const ExtendedPoint* neutral,E
 	// Konfigurace kernelů
 	dim3 threadsPerBlock(NB_DIGITS,CURVES_PER_BLOCK);
 	printf("Device name and ID : %s (%d)\n",prop.name,USE_DEVICE);
+	printf("Device compute capability: %d.%d\n",prop.major,prop.minor);
 	printf("Execution configuration: %d x %d x %d\n",NUM_BLOCKS,CURVES_PER_BLOCK,NB_DIGITS);
 	printf("--------------------------\n");
 
