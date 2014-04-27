@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <sstream> 
 #include <set>
 
 #include <boost/regex.hpp>
@@ -17,12 +18,12 @@ struct progArgs {
 	unsigned int B1;
 	unsigned short windowSize;
 	bool verbose;
-	bool noLCM;
+	bool noLCM,B1hasChanged;
 	bool exitOnFinish;
 	int whichDevice;
 	
 	progArgs() 
-	 : verbose(false), noLCM(false), B1(0), windowSize(0), whichDevice(0) 
+	 : verbose(false), noLCM(false), B1(0), windowSize(0), whichDevice(0), B1hasChanged(false) 
 	{ }
 };
 
@@ -106,8 +107,13 @@ void validateArguments(progArgs& args)
 	{
 		// Načíst hranici první fáze
 		cout << "Enter stage 1 bound B1:" << endl;
-		cin  >> args.B1;
+		string b1;
+		
+		cin >> b1;
 		cout << endl;
+		
+		args.B1hasChanged = (args.B1 != b1);
+		args.B1 = b1;
 		recheck = true;
 	}
 
@@ -137,6 +143,7 @@ int main(int argc,char** argv)
 	cout << endl;
 	
 	progArgs args;
+	stringstream primeStream;
 	int exitCode = 0;
 	bool useMixedStrategy = false;
 	char c = 0;
@@ -161,7 +168,7 @@ int main(int argc,char** argv)
 	cudaError_t cudaStatus;	 		 // Proměnná pro chybové kódy GPU
 	ExtendedPoint *PP;		 		 // Adresa všech bodů
 	int read_curves,edwards,twisted; // Počty načtených typů křivek
-	int szBase2;					 // Počet bitů N
+	int bitCountN;					 // Počet bitů N
 	computeStrategy strategy;		 // Strategie výpočtu
 
 	restart_bound:
@@ -175,14 +182,14 @@ int main(int argc,char** argv)
 	}
 	
 	// Kontrola velikosti N
-	szBase2 = (int)mpz_sizeinbase(zN,2);
-	if (szBase2 > NB_DIGITS*SIZE_DIGIT)
+	bitCountN = (int)mpz_sizeinbase(zN,2);
+	if (bitCountN > NB_DIGITS*SIZE_DIGIT)
 	{
 		cout << "ERROR: Cannot factor numbers longer than " << NB_DIGITS*SIZE_DIGIT << " bits." << endl;
 		exitCode = 1;
 		goto end;
 	}
-	cout << "NOTE: N is " << szBase2 << " bits long." << endl;
+	cout << "NOTE: N is " << bitCountN << " bits long." << endl;
 
 	infty.infinity(zN);
 	ax.initialize(zN);
@@ -200,19 +207,22 @@ int main(int argc,char** argv)
 		goto end;
 	} 
 	
-	// Spočti S = lcm(1,2,3...,B1) a jeho NAF rozvoj
-	mpz_init(zS);
-	cout << "Computing coefficient..." << endl;
-	
-	if (args.noLCM)
+	// Spočti S = lcm(1,2,3...,B1) a jeho NAF rozvoj, pokud se B1 změnilo
+	if (args.B1hasChanged)
 	{
-	  cout << "NOTE: Using bound B1 as a coefficient directly." << endl; 
-	  mpz_set_ui(zS,args.B1);
+		mpz_init(zS);
+		cout << "Recomputing coefficient..." << endl;
+		
+		if (args.noLCM)
+		{
+		  cout << "NOTE: Using bound B1 as a coefficient directly." << endl; 
+		  mpz_set_ui(zS,args.B1);
+		}
+		else lcmToN(zS,args.B1);
+		
+		S.initialize(zS,2);
+		mpz_clear(zS);	
 	}
-	else lcmToN(zS,args.B1);
-	
-	S.initialize(zS,2);
-	mpz_clear(zS);	
 	
 	cout << endl << "Trying to factor " << args.N << " with B1 = "<< args.B1 << " using " << read_curves << " curves..." << endl << endl;
 
@@ -272,6 +282,8 @@ int main(int argc,char** argv)
 		   if (args.verbose) cout << "Factor found: " << fact << endl;
 		   if (foundFactors.insert(factor(fact,isPrime,i)).second && isPrime) 
 			 mpz_mul(zChk,zChk,zF);
+		   
+		   if (isPrime) primeStream << fact << "\t" << i << "\n";
 		}
 		else if (args.verbose) cout << "Error during conversion." << endl;
 		if (args.verbose) cout << endl << "------------" << endl;
@@ -318,9 +330,16 @@ int main(int argc,char** argv)
 
 	while (!args.exitOnFinish)
 	{
-	   cout << endl << "Type 'r' to restart with new configuration or 'q' to quit..." << endl;
+	   cout << endl << "Type 'r' to restart with new configuration, 'p' to print found factors so far or 'q' to quit..." << endl;
 	   cin  >> c;
 	   if (c == 'q') break;
+	   else if (c == 'p')
+	   {
+		  cout << endl;
+		  cout << "Factors find so far by this session:" << endl;
+		  cout << "PRIME FACTOR\tCURVE ID" << endl;
+		  cout << primeStream.str() << endl;
+	   }
 	   else if (c == 'r')
 	   {
 		  args.B1 = args.windowSize = 0;
