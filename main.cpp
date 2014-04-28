@@ -275,6 +275,7 @@ int main(int argc,char** argv)
     {
         cout << "ERROR: CUDA compute failed!" << endl;
 		exitCode = 1;
+		delete[] PP;
         goto end;
     }
 	cout << "Computation finished." << endl << endl;
