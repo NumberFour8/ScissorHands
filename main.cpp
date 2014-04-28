@@ -407,7 +407,7 @@ int main(int argc,char** argv)
 	   }
 	}
 	savePrimeFactors(primeStream);
-	cout << "Total GPU running time is : " << setprecision(3) << (cudaTimeCounter/3600) << " seconds." << endl;
+	cout << "Total GPU running time is : " << setprecision(3) << (cudaTimeCounter/60000) << " minutes." << endl;
 
 	end:
 	mpz_clear(zN);
