@@ -148,7 +148,7 @@ int main(int argc,char** argv)
 	
 	progArgs args;
 	stringstream primeStream;
-	int exitCode = 0,lastB1 = 0;
+	int exitCode = 0,lastB1 = 0,runNum = 0;
 	bool useMixedStrategy = false;
 	char c = 0;
 
@@ -241,7 +241,8 @@ int main(int argc,char** argv)
 	ax.numCurves = read_curves;
 	ax.minus1	 = (strategy == computeStrategy::csTwisted);
 	ax.deviceId	 = args.whichDevice;
-	
+	runNum++;
+
 	// Proveď výpočet
 	if (strategy == computeStrategy::csMixed)
 	{
@@ -307,7 +308,7 @@ int main(int argc,char** argv)
 	// Vypiš všechny nalezené faktory
 	if (foundFactors.size() > 0)
 	{
-	  cout << endl << foundFactors.size() << " FACTORS FOUND:" << endl << endl;
+	  cout << endl << foundFactors.size() << " FACTORS FOUND IN RUN #" << runNum << ":" << endl << endl;
 	  std::for_each(foundFactors.begin(),foundFactors.end(),
 		[](const factor f)
 		{ 
@@ -361,6 +362,8 @@ int main(int argc,char** argv)
 		  
 		  args.B1 += B1_inc;
 		  validateArguments(args);
+
+		  cout << "New B1 after increment: " << args.B1 << endl;
 		  goto restart_bound;
 	   }
 	   else if (c == 'p')
