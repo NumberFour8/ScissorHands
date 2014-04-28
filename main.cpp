@@ -349,10 +349,20 @@ int main(int argc,char** argv)
 	   cout << endl << "Type : " << endl;
 	   cout << "'r' to restart with new configuration." << endl;
 	   cout << "'p' to print all found prime factors so far." << endl;
+	   cout << "'a [number]' to increase B1 by [number] and restart with the same curve file." << endl; 
 	   cout << "or 'q' to quit." << endl << endl;
 	   cin  >> c;
 	   cout << endl;
 	   if (c == 'q') break;
+	   if (c == 'a')
+	   {
+		  unsigned int B1_inc;
+		  cin >> B1_inc;
+		  
+		  args.B1 += B1_inc;
+		  validateArguments(args);
+		  goto restart_bound;
+	   }
 	   else if (c == 'p')
 	   {
 		  cout << endl;
