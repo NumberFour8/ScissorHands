@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <iomanip>
 #include <sstream> 
 #include <set>
 
@@ -11,11 +12,13 @@ namespace po = boost::program_options;
 
 #include "kernel.h"
 
+const unsigned int MAX_STAGE1_BOUND = 500000;
+
 // Struktura uchovavajici konfiguraci prectenou z parametru nebo ze vstupu
 struct progArgs {
 	string N;
 	string curveFile;
-	unsigned int B1;
+	unsigned int B1,B1inc;
 	unsigned short windowSize;
 	bool verbose;
 	bool noLCM;
@@ -23,7 +26,7 @@ struct progArgs {
 	int whichDevice;
 	
 	progArgs() 
-	 : verbose(false), noLCM(false), B1(0), windowSize(0), whichDevice(0)
+	: verbose(false), noLCM(false), B1(0), B1inc(0), windowSize(0), whichDevice(0)
 	{ }
 };
 
@@ -44,6 +47,8 @@ void parseArguments(int argc,char** argv,progArgs& args)
 			"Path to file containing curves used for factoring.")
 		("stage1-bound,B", po::value<unsigned int>(&args.B1),
 			"Bound for ECM stage 1.")
+		("auto-increment,i", po::value<unsigned int>(&args.B1inc)->default_value(0),
+			"B1 will be automatically incremented by this value and session restarted until all factors have been found.")
 		("window-size,W", po::value<unsigned short>(&args.windowSize),
 			"Size of sliding window (or NAF width in case of double-and-add).");
 	
@@ -103,11 +108,20 @@ void validateArguments(progArgs& args)
 		}
 	}
 
-	if (args.B1 <= 2)
+	if (args.B1 <= 2 || args.B1 > MAX_STAGE1_BOUND)
 	{
 		// Načíst hranici první fáze
 		cout << "Enter stage 1 bound B1:" << endl;
 		cin  >> args.B1;
+		cout << endl;
+		recheck = true;
+	}
+
+	if (args.B1inc < 0 || args.B1inc >= MAX_STAGE1_BOUND)
+	{
+		// Načíst inkrement hranice první fáze
+		cout << "Enter increment of B1:" << endl;
+		cin  >> args.B1inc;
 		cout << endl;
 		recheck = true;
 	}
@@ -149,6 +163,7 @@ int main(int argc,char** argv)
 	progArgs args;
 	stringstream primeStream;
 	int exitCode = 0,lastB1 = 0,runNum = 0;
+	float cudaTimeCounter = 0;
 	bool useMixedStrategy = false;
 	char c = 0;
 
@@ -241,6 +256,7 @@ int main(int argc,char** argv)
 	ax.numCurves = read_curves;
 	ax.minus1	 = (strategy == computeStrategy::csTwisted);
 	ax.deviceId	 = args.whichDevice;
+	ax.cudaRunTime = 0;
 	runNum++;
 
 	// Proveď výpočet
@@ -262,6 +278,7 @@ int main(int argc,char** argv)
         goto end;
     }
 	cout << "Computation finished." << endl << endl;
+	cudaTimeCounter += ax.cudaRunTime;
 
 	// Inicializace pomocných proměnných
 	mpz_intz(zInvW,zX,zY,zF);
@@ -345,6 +362,15 @@ int main(int argc,char** argv)
 	mpz_clrs(zInvW,zX,zY,zChk);
 	delete[] PP;
 
+	// Kontrola, zda máme restartovat bez zeptání
+	if (args.B1inc > 0 && args.B1 <= MAX_STAGE1_BOUND-args.B1inc && !args.exitOnFinish)
+	{
+		args.B1 += args.B1inc;
+		cout << "B1 has been incremented to: " << args.B1 << endl;
+		goto restart_bound;
+	}
+
+	// Finální menu
 	while (!args.exitOnFinish)
 	{
 	   cout << endl << "Type : " << endl;
@@ -363,7 +389,7 @@ int main(int argc,char** argv)
 		  args.B1 += B1_inc;
 		  validateArguments(args);
 
-		  cout << "New B1 after increment: " << args.B1 << endl;
+		  cout << "B1 has been incremented to: " << args.B1 << endl;
 		  goto restart_bound;
 	   }
 	   else if (c == 'p')
@@ -381,7 +407,8 @@ int main(int argc,char** argv)
 	   }
 	}
 	savePrimeFactors(primeStream);
-	
+	cout << "Total GPU running time is : " << setprecision(3) << (cudaTimeCounter/3600) << " seconds." << endl;
+
 	end:
 	mpz_clear(zN);
 

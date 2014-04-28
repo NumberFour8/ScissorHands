@@ -97,6 +97,7 @@ public:
 	int			   deviceId;	 // ID zarizeni pro vypocet
 	bool		   minus1;		 // Ktere krivky pouzit v single rezimu?
 
+	mutable float  cudaRunTime;  // Po dobehnuti je hodnota nastavena na cas
 	void initialize(mpz_t zN);
 };
 

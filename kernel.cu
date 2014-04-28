@@ -297,6 +297,7 @@ cudaError_t computeMixed(const ComputeConfig& cfg,const ExtendedPoint* neutral,E
 	
 	printf("--------------------------\n");
 	printf("Total time: %.3f ms\n",totalTime);
+	cfg.cudaRunTime = totalTime;
 
 	gpuErrchk(cudaDeviceSynchronize());
 	gpuErrchk(cudaStreamDestroy(twistedStream));
@@ -453,6 +454,7 @@ cudaError_t computeSingle(const ComputeConfig& cfg,const ExtendedPoint* neutral,
 	
 	printf("--------------------------\n");
 	printf("Total time: %.3f ms\n",totalTime);
+	cfg.cudaRunTime = totalTime;
 
 	// Nakopírovat výsledky zpátky do paměti počítače
 	iter = (digit_t*)swQw;
