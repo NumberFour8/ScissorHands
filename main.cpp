@@ -32,19 +32,19 @@ void parseArguments(int argc,char** argv,progArgs& args)
 {
 	po::options_description desc("List of supported options");
 	desc.add_options()
-		("help", "Print usage information.")
-		("verbose", "More verbose output.")
-		("dont-compute-bound", "Coefficient s = B1 when set, otherwise s = lcm(1,2...B1).")
-		("no-restart", "When set, program terminates automatically after finishing.")
-		("device-id", po::value<int>(&args.whichDevice)->default_value(0),
+		("help,h", "Print usage information.")
+		("verbose,v", "More verbose output.")
+		("dont-compute-bound,b", "Coefficient s = B1 when set, otherwise s = lcm(1,2...B1).")
+		("no-restart,e", "When set, program terminates automatically after finishing.")
+		("device-id,D", po::value<int>(&args.whichDevice)->default_value(0),
 			"ID of a CUDA device used for computation.")
-		("N-to-factor", po::value<string>(),
+		("N-to-factor,N", po::value<string>(),
 			"Number to factor.")
-		("curve-file", po::value<string>(),
+		("curve-file,f", po::value<string>(),
 			"Path to file containing curves used for factoring.")
-		("stage1-bound", po::value<unsigned int>(&args.B1),
+		("stage1-bound,B", po::value<unsigned int>(&args.B1),
 			"Bound for ECM stage 1.")
-		("window-size", po::value<unsigned short>(&args.windowSize),
+		("window-size,W", po::value<unsigned short>(&args.windowSize),
 			"Size of sliding window (or NAF width in case of double-and-add).");
 	
 	po::variables_map vm;
