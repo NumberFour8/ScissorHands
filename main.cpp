@@ -4,6 +4,7 @@
 #include <set>
 
 #include <boost/regex.hpp>
+#include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
 
@@ -17,40 +18,44 @@ const unsigned int MAX_STAGE1_BOUND = 500000;
 // Struktura uchovavajici konfiguraci prectenou z parametru nebo ze vstupu
 struct progArgs {
 	string N;
-	string curveFile;
-	unsigned int B1,B1inc;
+	vector<string> curveFiles;
+	vector<unsigned int> B1;
+	unsigned int curB1;
 	unsigned short windowSize;
 	bool verbose;
 	bool noLCM;
 	bool exitOnFinish;
-	int whichDevice;
+	bool greedy;
+	unsigned short whichDevice;
+	string outputFile;
 	
 	progArgs() 
-	: verbose(false), noLCM(false), B1(0), B1inc(0), windowSize(0), whichDevice(0)
+	: verbose(false), noLCM(false), greedy(false), exitOnFinish(false), curB1(0), windowSize(0), whichDevice(0)
 	{ }
 };
 
-// Precte parametry programu
+// Přečte parametry programu
 void parseArguments(int argc,char** argv,progArgs& args)
 {
 	po::options_description desc("List of supported options");
 	desc.add_options()
 		("help,h", "Print usage information.")
 		("verbose,v", "More verbose output.")
-		("dont-compute-bound,b", "Coefficient s = B1 when set, otherwise s = lcm(1,2...B1).")
+		("dont-compute-bound,x", "Coefficient s = B1 when set, otherwise s = lcm(1,2...B1).")
 		("no-restart,e", "When set, program terminates automatically after finishing.")
-		("device-id,D", po::value<int>(&args.whichDevice)->default_value(0),
+		("device-id,D", po::value<unsigned short>(&args.whichDevice)->default_value(0),
 			"ID of a CUDA device used for computation.")
 		("N-to-factor,N", po::value<string>(),
 			"Number to factor.")
-		("curve-file,f", po::value<string>(),
-			"Path to file containing curves used for factoring.")
-		("stage1-bound,B", po::value<unsigned int>(&args.B1),
-			"Bound for ECM stage 1.")
-		("auto-increment,i", po::value<unsigned int>(&args.B1inc)->default_value(0),
-			"B1 will be automatically incremented by this value and session restarted until all factors have been found.")
+		("curve-files,f", po::value<vector<string>>()->multitoken(),
+			"Path to file(s) containing curves used for factoring.")
+		("stage1-bound,B", po::value<vector<unsigned int>>()->multitoken(),
+			"Bound for ECM stage 1 or range set by 'start stride end'")
+		("greedy,g", "If set, wait for input of another N to factor.") 
 		("window-size,W", po::value<unsigned short>(&args.windowSize),
-			"Size of sliding window (or NAF width in case of double-and-add).");
+			"Size of sliding window.")
+		("output-file,o",po::value<string>()->default_value("primes-found.txt"),
+			"File name where to output all found prime factors.");
 	
 	po::variables_map vm;
 	po::store(po::parse_command_line(argc,argv,desc),vm);
@@ -58,12 +63,17 @@ void parseArguments(int argc,char** argv,progArgs& args)
 	
 	args.verbose		 = vm.count("verbose") != 0;
 	args.noLCM			 = vm.count("dont-compute-bound") != 0;
-	args.exitOnFinish	 = vm.count("no-restart") != 0;
+	args.exitOnFinish	 = vm.count("no-restart") != 0 && vm.count("greedy") == 0;;
+	args.greedy			 = vm.count("greedy") != 0;
 
 	if (vm.count("N-to-factor"))
 	  args.N = vm["N-to-factor"].as<string>();
-	if (vm.count("curve-file"))
-	  args.curveFile = vm["curve-file"].as<string>();
+	if (vm.count("curve-files"))
+	  args.curveFile = vm["curve-files"].as<vector<string>>();
+	if (vm.count("stage1-bound"))
+	  args.B1 = vm["stage1-bound"].as<vector<unsigned int>>();
+	if (vm.count("output-file"))
+	  args.outputFile = vm["output-file"].as<string>();
 	if (vm.count("help"))
 	  cout << endl << desc << endl << "-----------------------------------------" << endl << endl;
 }
@@ -82,47 +92,85 @@ void validateArguments(progArgs& args)
 		recheck = true; 
 	}
 	
-	if (!args.curveFile.empty() && args.curveFile.length() < 2) 
+	if (args.curveFiles.size() > 0) 
 	{
-		args.curveFile = args.curveFile == "E" ? "curves_edwards.txt" :
-					     args.curveFile == "M" ? "curves_mixed.txt"   : "curves_twisted.txt";
-		cout << "INFO: Defaulting to " << args.curveFile  << endl << endl;	
-	}
-	else if (args.curveFile.empty())
-	{ 
-		cout << "Enter path to curve file:" << endl;
-		cin  >> args.curveFile;
-		cout << endl;
-		recheck = true;
+		for (int i = 0;i < args.curveFiles;++i)
+		{
+		   // Zkontrolovat a nahradit krátké zástupce souborů
+		   if (args.curveFiles[i].length() <= 3)
+		   {
+			  args.curveFiles[i] =  args.curveFiles[i] == "E" ? "curves_edwards.txt" :
+									args.curveFiles[i] == "M" ? "curves_mixed.txt"   : "curves_twisted.txt";
+			  cout << "INFO: Defaulting to " << args.curveFiles[i]  << endl;	
+		   }
+	
+		   // Zkontrolovat existenci souborů
+		   fs::path p(args.curveFiles[i]);
+		   if (!fs::exists(p) || !fs::is_regular_file(p))
+		   {
+			  // Načíst znovu název souboru s křivkami, pokud je neplatný
+			  cout << "Path to curve file " << args.curveFiles[i] << " is invalid, please re-enter path:" << endl;
+			  cin  >> args.curveFiles[i];
+			  cout << endl;
+			  recheck = true;
+		   }
+		}
 	}
 	else 
 	{ 
-		const fs::path p(args.curveFile);
-		if (!fs::exists(p) || !fs::is_regular_file(p))
-		{
-	  		// Načíst název souboru s křivkami
-			cout << "Enter path to curve file:" << endl;
-			cin  >> args.curveFile;
-			cout << endl;
-			recheck = true;
-		}
-	}
-
-	if (args.B1 <= 2 || args.B1 > MAX_STAGE1_BOUND)
-	{
-		// Načíst hranici první fáze
-		cout << "Enter stage 1 bound B1:" << endl;
-		cin  >> args.B1;
+		// Načíst soubory s křivkami, není-li žádný uveden
+		string files;
+		cout << "Enter path to at least one curve file:" << endl;
+		cin  >> files;
 		cout << endl;
+		
+		boost::split(args.curveFiles,files,boost::is_any_of(";, "));
 		recheck = true;
 	}
 
-	if (args.B1inc < 0 || args.B1inc >= MAX_STAGE1_BOUND)
+	if (args.B1.size() == 1 || args.B1.size() == 3)
 	{
-		// Načíst inkrement hranice první fáze
-		cout << "Enter increment of B1:" << endl;
-		cin  >> args.B1inc;
+		// Zkontrolovat velikost první hodnoty
+		if (args.B1[0] < 2 || args.B1[0] > MAX_STAGE1_BOUND)
+		{
+			cout << "Enter stage 1 bound B1:" << endl;
+			cin  >> args.B1[0];
+			cout << endl;
+			recheck = true;
+		}
+		if (args.B1.size() == 3)
+		{
+			// Zkontrolovat velikost poslední hodnoty
+			if (args.B1[0] >= args.B1[2] || args.B1[2] > MAX_STAGE1_BOUND) 
+			{
+				cout << "Enter stage 1 bound end:" << endl;
+				cin  >> args.B1[2];
+				cout << endl;
+				recheck = true;
+			} // Zkontrolovat velikost kroku
+			else if (args.B1[1] > args.B1[2] || args.B1[1] < 128)
+			{
+				cout << "Enter stage 1 bound stride:" << endl;
+				cin  >> args.B1[1];
+				cout << endl;
+				recheck = true;
+			}
+		}
+	}
+	else 
+	{
+		// Načíst hranice první fáze
+		string bounds;
+		cout << "Enter stage 1 bound B1 or [start stride end] for range:" << endl;
+		cin  >> bounds;
 		cout << endl;
+		
+		vector<string> bs;
+		boost::split(bs,files,boost::is_any_of(";, "));
+		
+		std::transform(bs.begin(),bs.end(),std::back_inserter(args.B1),
+					   [](const string& s) { return std::stoi(s); });
+		
 		recheck = true;
 	}
 
@@ -134,13 +182,15 @@ void validateArguments(progArgs& args)
 		cout << endl;
 		recheck = true;
 	}
+	
+	args.curB1 = args.B1[0];
 	if (recheck) validateArguments(args);
 }
 
 // Uloží a přepíše výstupní soubor s nalezenými faktory
-void savePrimeFactors(stringstream& primeStream)
+void savePrimeFactors(string fileName,stringstream& primeStream)
 {
-	ofstream pr("primes-found.txt",ofstream::out | ofstream::trunc);
+	ofstream pr(fileName,ofstream::out | ofstream::trunc);
 	pr << primeStream.str();
 	pr.close();
 	cout << "All found prime factors have been written to a file." << endl;
@@ -219,9 +269,10 @@ int main(int argc,char** argv)
 	PP = NULL;
 	read_curves = edwards = twisted = 0;
 	strategy	= computeStrategy::csNone;
+	runNum++;
 	
 	// Načti křivky a zvol vhodnou strategii
-	strategy	= readCurves(args.curveFile,zN,&PP,edwards,twisted,read_curves);
+	strategy	= readCurves(args.curveFiles[runNum % (int)args.curveFiles.size()],zN,&PP,edwards,twisted,read_curves);
 	if (strategy == computeStrategy::csNone)
 	{
 		cout << "ERROR: No suitable compute strategy found." << endl;
@@ -230,7 +281,7 @@ int main(int argc,char** argv)
 	} 
 	
 	// Spočti S = lcm(1,2,3...,B1) a jeho NAF rozvoj, pokud se B1 změnilo
-	if (lastB1 != args.B1)
+	if (lastB1 != args.curB1)
 	{
 		mpz_init(zS);
 		cout << "Recomputing coefficient..." << endl;
@@ -238,10 +289,10 @@ int main(int argc,char** argv)
 		if (args.noLCM)
 		{
 		  cout << "NOTE: Using bound B1 as a coefficient directly." << endl; 
-		  mpz_set_ui(zS,args.B1);
+		  mpz_set_ui(zS,args.curB1);
 		}
-		else lcmToN(zS,args.B1);
-		lastB1 = args.B1;
+		else lcmToN(zS,args.curB1);
+		lastB1 = args.curB1;
 
 		S.initialize(zS,2);
 		mpz_clear(zS);	
@@ -257,7 +308,6 @@ int main(int argc,char** argv)
 	ax.minus1	 = (strategy == computeStrategy::csTwisted);
 	ax.deviceId	 = args.whichDevice;
 	ax.cudaRunTime = 0;
-	runNum++;
 
 	// Proveď výpočet
 	if (strategy == computeStrategy::csMixed)
@@ -364,10 +414,10 @@ int main(int argc,char** argv)
 	delete[] PP;
 
 	// Kontrola, zda máme restartovat bez zeptání
-	if (args.B1inc > 0 && args.B1 <= MAX_STAGE1_BOUND-args.B1inc && !args.exitOnFinish)
+	if (args.B1.size() > 1 && curB1 <= args.B1[2]-args.B1[1] && !args.exitOnFinish)
 	{
-		args.B1 += args.B1inc;
-		cout << "B1 has been incremented to: " << args.B1 << endl;
+		args.curB1 += args.B1[1];
+		cout << "B1 has been incremented to: " << args.curB1 << endl;
 		goto restart_bound;
 	}
 
@@ -387,28 +437,42 @@ int main(int argc,char** argv)
 		  unsigned int B1_inc;
 		  cin >> B1_inc;
 		  
-		  args.B1 += B1_inc;
+		  args.curB1 += B1_inc;
 		  validateArguments(args);
 
-		  cout << "B1 has been incremented to: " << args.B1 << endl;
+		  cout << "B1 has been automatically incremented to: " << args.curB1 << endl;
 		  goto restart_bound;
 	   }
 	   else if (c == 'p')
 	   {
 		  cout << endl;
-		  cout << primeStream.str() << endl;
+		  cout << primeStream.str() << endl << endl;
 	   }
 	   else if (c == 'r')
 	   {
-		  args.B1 = args.windowSize = 0;
-		  args.curveFile.clear();
+		  args.B1.clear();
+		  args.curveFiles.clear();
 		  
 		  validateArguments(args);
 		  goto restart_bound;
 	   }
 	}
-	savePrimeFactors(primeStream);
+	
+	// Ulož výstup a vypiš celkový čas běhu
+	savePrimeFactors(args.outputFile,primeStream);
 	cout << "Total GPU running time is : " << setprecision(3) << (cudaTimeCounter/60000) << " minutes." << endl;
+
+	// Jsme-li v hladovém módu, chtěj další číslo k faktorizaci
+	if (args.greedy)
+	{
+		args.N = "";
+		runNum = lastB1 = 0;
+		cudaTimeCounter = 0;
+		primeStream.str(string(""));
+		
+		validateArguments(args);
+		goto restart_bound;
+	}
 
 	end:
 	mpz_clear(zN);
