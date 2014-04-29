@@ -290,6 +290,7 @@ cudaError_t computeMixed(const ComputeConfig& cfg,const ExtendedPoint* neutral,E
 	swPcE		= ((digit_t*)swPc)+NUM_CURVES*2*NB_DIGITS;
 	void* swQwE = ((digit_t*)swQw)+NUM_CURVES*2*NB_DIGITS;
 	
+	float pct = totalTime;
 	START_MEASURE(start);
 	slidingWindowT<<<NUM_BLOCKS,threadsPerBlock,0,twistedStream>>>((void*)swQw, (void*)swPc, (void*)swAx,(void*)swCf);
 	slidingWindowE<<<NUM_BLOCKS,threadsPerBlock,0,edwardsStream>>>((void*)swQwE,(void*)swPcE,(void*)swAx,(void*)swCf);
@@ -297,7 +298,7 @@ cudaError_t computeMixed(const ComputeConfig& cfg,const ExtendedPoint* neutral,E
 	
 	printf("--------------------------\n");
 	printf("Total time: %.3f ms\n",totalTime);
-	cfg.cudaRunTime = totalTime;
+	cfg.cudaRunTime = totalTime-pct;
 
 	gpuErrchk(cudaDeviceSynchronize());
 	gpuErrchk(cudaStreamDestroy(twistedStream));
@@ -438,6 +439,7 @@ cudaError_t computeSingle(const ComputeConfig& cfg,const ExtendedPoint* neutral,
 	}
 	
 	gpuErrchk(cudaDeviceSynchronize());
+	float pct = totalTime;
 
 	if (cfg.minus1)
 	{
@@ -454,7 +456,7 @@ cudaError_t computeSingle(const ComputeConfig& cfg,const ExtendedPoint* neutral,
 	
 	printf("--------------------------\n");
 	printf("Total time: %.3f ms\n",totalTime);
-	cfg.cudaRunTime = totalTime;
+	cfg.cudaRunTime = totalTime-pct;
 
 	// Nakopírovat výsledky zpátky do paměti počítače
 	iter = (digit_t*)swQw;
