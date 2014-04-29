@@ -51,7 +51,7 @@ void parseArguments(int argc,char** argv,progArgs& args)
 			"Path to file(s) containing curves used for factoring.")
 		("stage1-bound,B", po::value<vector<unsigned int>>()->multitoken(),
 			"Bound for ECM stage 1 or range set by 'start stride end'")
-		("greedy,g", "If set, wait for input of another N to factor.") 
+		("greedy,g", "If set, wait for input of another N to factor after finishing.") 
 		("window-size,W", po::value<unsigned short>(&args.windowSize),
 			"Size of sliding window.")
 		("output-file,o",po::value<string>()->default_value("primes-found.txt"),
