@@ -20,7 +20,7 @@ struct progArgs {
 	string N;
 	vector<string> curveFiles;
 	vector<unsigned int> B1;
-	unsigned int curB1;
+	unsigned int curB1,curCur;
 	unsigned short windowSize;
 	bool verbose;
 	bool noLCM;
@@ -30,7 +30,7 @@ struct progArgs {
 	string outputFile;
 	
 	progArgs() 
-	: verbose(false), noLCM(false), greedy(false), exitOnFinish(false), curB1(0), windowSize(0), whichDevice(0)
+	: verbose(false), noLCM(false), greedy(false), exitOnFinish(false), curB1(0), curCur(0), windowSize(0), whichDevice(0)
 	{ }
 };
 
@@ -52,7 +52,7 @@ void parseArguments(int argc,char** argv,progArgs& args)
 		("stage1-bound,B", po::value<vector<unsigned int>>()->multitoken(),
 			"Bound for ECM stage 1 or range set by 'start stride end'")
 		("greedy,g", "If set, wait for input of another N to factor after finishing.") 
-		("window-size,W", po::value<unsigned short>(&args.windowSize),
+		("window-size,W", po::value<unsigned short>(&args.windowSize)->default_value(4),
 			"Size of sliding window.")
 		("output-file,o",po::value<string>()->default_value("primes-found.txt"),
 			"File name where to output all found prime factors.");
@@ -63,13 +63,13 @@ void parseArguments(int argc,char** argv,progArgs& args)
 	
 	args.verbose		 = vm.count("verbose") != 0;
 	args.noLCM			 = vm.count("dont-compute-bound") != 0;
-	args.exitOnFinish	 = vm.count("no-restart") != 0 && vm.count("greedy") == 0;;
+	args.exitOnFinish	 = vm.count("no-restart") != 0 || vm.count("greedy") != 0;;
 	args.greedy			 = vm.count("greedy") != 0;
 
 	if (vm.count("N-to-factor"))
 	  args.N = vm["N-to-factor"].as<string>();
 	if (vm.count("curve-files"))
-	  args.curveFile = vm["curve-files"].as<vector<string>>();
+	  args.curveFiles = vm["curve-files"].as<vector<string>>();
 	if (vm.count("stage1-bound"))
 	  args.B1 = vm["stage1-bound"].as<vector<unsigned int>>();
 	if (vm.count("output-file"))
@@ -94,7 +94,7 @@ void validateArguments(progArgs& args)
 	
 	if (args.curveFiles.size() > 0) 
 	{
-		for (int i = 0;i < args.curveFiles;++i)
+		for (unsigned int i = 0;i < args.curveFiles.size();++i)
 		{
 		   // Zkontrolovat a nahradit krátké zástupce souborů
 		   if (args.curveFiles[i].length() <= 3)
@@ -120,11 +120,11 @@ void validateArguments(progArgs& args)
 	{ 
 		// Načíst soubory s křivkami, není-li žádný uveden
 		string files;
-		cout << "Enter path to at least one curve file:" << endl;
-		cin  >> files;
+		cout << "Enter path to at least one curve file (comma separated):" << endl;
+		cin  >>  files;
 		cout << endl;
 		
-		boost::split(args.curveFiles,files,boost::is_any_of(";, "));
+		boost::split(args.curveFiles,files,boost::is_any_of(";,"));
 		recheck = true;
 	}
 
@@ -161,12 +161,12 @@ void validateArguments(progArgs& args)
 	{
 		// Načíst hranice první fáze
 		string bounds;
-		cout << "Enter stage 1 bound B1 or [start stride end] for range:" << endl;
+		cout << "Enter stage 1 bound B1 or Start,Stride,End for range:" << endl;
 		cin  >> bounds;
 		cout << endl;
 		
 		vector<string> bs;
-		boost::split(bs,files,boost::is_any_of(";, "));
+		boost::split(bs,bounds,boost::is_any_of(";,:"));
 		
 		std::transform(bs.begin(),bs.end(),std::back_inserter(args.B1),
 					   [](const string& s) { return std::stoi(s); });
@@ -183,7 +183,8 @@ void validateArguments(progArgs& args)
 		recheck = true;
 	}
 	
-	args.curB1 = args.B1[0];
+	args.curB1  = args.B1[0];
+	args.curCur = 0;
 	if (recheck) validateArguments(args);
 }
 
@@ -193,7 +194,7 @@ void savePrimeFactors(string fileName,stringstream& primeStream)
 	ofstream pr(fileName,ofstream::out | ofstream::trunc);
 	pr << primeStream.str();
 	pr.close();
-	cout << "All found prime factors have been written to a file." << endl;
+	cout << "All found prime factors have been written to file: " << fileName << endl;
 }
 
 // Struktura obsahující informace o získaném faktoru
@@ -214,7 +215,7 @@ int main(int argc,char** argv)
 	stringstream primeStream;
 	int exitCode = 0,lastB1 = 0,runNum = 0;
 	float cudaTimeCounter = 0;
-	bool useMixedStrategy = false;
+	bool useMixedStrategy = false,fullFactorizationFound = false;
 	char c = 0;
 
 	// Množina nalezených faktorů s vlastním uspořádnáním
@@ -269,10 +270,9 @@ int main(int argc,char** argv)
 	PP = NULL;
 	read_curves = edwards = twisted = 0;
 	strategy	= computeStrategy::csNone;
-	runNum++;
 	
 	// Načti křivky a zvol vhodnou strategii
-	strategy	= readCurves(args.curveFiles[runNum % (int)args.curveFiles.size()],zN,&PP,edwards,twisted,read_curves);
+	strategy	= readCurves(args.curveFiles[args.curCur],zN,&PP,edwards,twisted,read_curves);
 	if (strategy == computeStrategy::csNone)
 	{
 		cout << "ERROR: No suitable compute strategy found." << endl;
@@ -299,7 +299,7 @@ int main(int argc,char** argv)
 	}
 	else cout << "NOTE: B1 hasn't changed." << endl;  
 	
-	cout << endl << "Trying to factor " << mpz_to_string(zN) << " with B1 = "<< args.B1 << " using " << read_curves << " curves..." << endl << endl;
+	cout << endl << "Trying to factor " << mpz_to_string(zN) << " with B1 = "<< args.curB1 << " using " << read_curves << " curves..." << endl << endl;
 
 	// Nastavit hodnoty do konfigurace
 	ax.windowSz  = args.windowSize;
@@ -308,6 +308,7 @@ int main(int argc,char** argv)
 	ax.minus1	 = (strategy == computeStrategy::csTwisted);
 	ax.deviceId	 = args.whichDevice;
 	ax.cudaRunTime = 0;
+	runNum++;
 
 	// Proveď výpočet
 	if (strategy == computeStrategy::csMixed)
@@ -395,7 +396,8 @@ int main(int argc,char** argv)
 		{
 			cout << "REMAINING UNFACTORED PART " << mpz_to_string(zChk) << " IS A PRIME." << endl;
 			cout << mpz_to_string(zN) << " HAS BEEN FACTORED TOTALLY!" << endl;
-			args.exitOnFinish = true; 
+			args.exitOnFinish = true;
+			fullFactorizationFound = true;
 		}
 		else {
 			cout << "REMAINING UNFACTORED PART: " << mpz_to_string(zChk); 
@@ -407,17 +409,27 @@ int main(int argc,char** argv)
 	{
 		cout << mpz_to_string(zN) << " HAS BEEN FACTORED TOTALLY!" << endl;
 		args.exitOnFinish = true; 
+		fullFactorizationFound = true;
 	}
 
 	// Vyčisti proměnné
 	mpz_clrs(zInvW,zX,zY,zChk);
 	delete[] PP;
 
-	// Kontrola, zda máme restartovat bez zeptání
-	if (args.B1.size() > 1 && curB1 <= args.B1[2]-args.B1[1] && !args.exitOnFinish)
+	// Kontrola,zda ještě můžeme použít nějaký soubor s křivkami
+	if (args.curCur < args.curveFiles.size()-1 && !fullFactorizationFound)
+	{
+		args.curB1 = args.B1[0];
+		args.curCur += 1;
+		cout << endl << "NOTE: Trying a different curve file." << endl;
+		goto restart_bound;
+	}
+
+	// Kontrola, zda máme restartovat bez zeptání a zvýšit B1
+	if (args.B1.size() > 1 && args.curB1 <= args.B1[2]-args.B1[1] && !fullFactorizationFound)
 	{
 		args.curB1 += args.B1[1];
-		cout << "B1 has been incremented to: " << args.curB1 << endl;
+		cout << "NOTE: B1 has been automatically incremented to: " << args.curB1 << endl;
 		goto restart_bound;
 	}
 
@@ -437,10 +449,10 @@ int main(int argc,char** argv)
 		  unsigned int B1_inc;
 		  cin >> B1_inc;
 		  
-		  args.curB1 += B1_inc;
+		  args.B1[0] += B1_inc;
 		  validateArguments(args);
 
-		  cout << "B1 has been automatically incremented to: " << args.curB1 << endl;
+		  cout << "B1 has been incremented to: " << args.curB1 << endl;
 		  goto restart_bound;
 	   }
 	   else if (c == 'p')
@@ -452,7 +464,7 @@ int main(int argc,char** argv)
 	   {
 		  args.B1.clear();
 		  args.curveFiles.clear();
-		  
+
 		  validateArguments(args);
 		  goto restart_bound;
 	   }
@@ -466,9 +478,10 @@ int main(int argc,char** argv)
 	if (args.greedy)
 	{
 		args.N = "";
-		runNum = lastB1 = 0;
+		lastB1 = runNum = 0;
 		cudaTimeCounter = 0;
 		primeStream.str(string(""));
+		fullFactorizationFound = false; 
 		
 		validateArguments(args);
 		goto restart_bound;
