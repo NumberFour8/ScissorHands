@@ -420,7 +420,6 @@ int main(int argc,char** argv)
 	// Kontrola,zda ještě můžeme použít nějaký soubor s křivkami
 	if (args.curCur < args.curveFiles.size()-1 && !fullFactorizationFound)
 	{
-		args.curB1 = args.B1[0];
 		args.curCur += 1;
 		cout << endl << "NOTE: Trying a different curve file." << endl;
 		goto restart_bound;
@@ -430,6 +429,7 @@ int main(int argc,char** argv)
 	if (args.B1.size() > 1 && args.curB1 <= args.B1[2]-args.B1[1] && !fullFactorizationFound)
 	{
 		args.curB1 += args.B1[1];
+		args.curCur = 0;
 		cout << "NOTE: B1 has been automatically incremented to: " << args.curB1 << endl;
 		goto restart_bound;
 	}
@@ -485,6 +485,7 @@ int main(int argc,char** argv)
 		primeStream.str(string(""));
 		fullFactorizationFound = false; 
 		
+		cout << endl; 
 		validateArguments(args);
 		goto restart_bound;
 	}
