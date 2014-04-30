@@ -213,7 +213,7 @@ int main(int argc,char** argv)
 	
 	progArgs args;
 	stringstream primeStream;
-	int exitCode = 0,lastB1 = 0,runNum = 0;
+	int exitCode = 0,lastB1 = 0,runNum = 0,factorCount = 0;
 	float cudaTimeCounter = 0;
 	bool useMixedStrategy = false,fullFactorizationFound = false;
 	char c = 0;
@@ -368,6 +368,7 @@ int main(int argc,char** argv)
 			 else if (strategy == computeStrategy::csTwisted)
 				primeStream << "T\n";
 			 else primeStream << "M\n";
+			 factorCount++;
 		   }
 		}
 		else if (args.verbose) cout << "Error during conversion." << endl;
@@ -471,6 +472,7 @@ int main(int argc,char** argv)
 	}
 	
 	// Ulož výstup a vypiš celkový čas běhu
+	primeStream << "Found prime factors: " << factorCount;
 	savePrimeFactors(args.outputFile,primeStream);
 	cout << "Total GPU running time is : " << setprecision(3) << (cudaTimeCounter/60000) << " minutes." << endl;
 
@@ -478,7 +480,7 @@ int main(int argc,char** argv)
 	if (args.greedy)
 	{
 		args.N = "";
-		lastB1 = runNum = 0;
+		lastB1 = runNum = factorCount = 0;
 		cudaTimeCounter = 0;
 		primeStream.str(string(""));
 		fullFactorizationFound = false; 
