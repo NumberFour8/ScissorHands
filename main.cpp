@@ -80,7 +80,7 @@ void parseArguments(int argc,char** argv,progArgs& args)
 }
 
 // Zkontroluje úplnost parametrů, případně požádá o doplnění
-void validateArguments(progArgs& args)
+int validateArguments(progArgs& args)
 {
 	bool recheck = false; 
 	const static boost::regex numVal("^[0-9]+$");
@@ -88,7 +88,8 @@ void validateArguments(progArgs& args)
 	{
 		// Načíst N
 		cout << "Enter N:" << endl;
-		cin  >> args.N;
+		if (!(cin  >> args.N))
+			return 1;
 		cout << endl;
 		recheck = true; 
 	}
@@ -186,16 +187,18 @@ void validateArguments(progArgs& args)
 	
 	args.curB1  = args.B1[0];
 	args.curCur = 0;
-	if (recheck) validateArguments(args);
+	if (recheck) return validateArguments(args);
+	return 0;
 }
 
 // Uloží a přepíše výstupní soubor s nalezenými faktory
 void savePrimeFactors(string fileName,int id,stringstream& primeStream)
 {
-	ofstream pr((boost::format("%s-%d.txt") % fileName % id).str(),ofstream::out | ofstream::trunc);
+	string fname = (boost::format("%s-%d.txt") % fileName % id).str();
+	ofstream pr(fname,ofstream::out | ofstream::trunc);
 	pr << primeStream.str();
 	pr.close();
-	cout << "All found prime factors have been written to file: " << fileName << endl;
+	cout << "All found prime factors have been written to file: " << fname << endl;
 }
 
 // Struktura obsahující informace o získaném faktoru
@@ -487,7 +490,7 @@ int main(int argc,char** argv)
 		fullFactorizationFound = false; 
 		
 		cout << endl; 
-		validateArguments(args);
+		if (validateArguments(args) != 0) goto end;
 		Ncount++;
 		goto restart_bound;
 	}
