@@ -4,11 +4,12 @@
 #include <set>
 
 #include <boost/regex.hpp>
+#include <boost/format.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
-namespace fs = boost::filesystem;
-
 #include <boost/program_options.hpp>
+
+namespace fs = boost::filesystem;
 namespace po = boost::program_options;
 
 #include "kernel.h"
@@ -54,7 +55,7 @@ void parseArguments(int argc,char** argv,progArgs& args)
 		("greedy,g", "If set, wait for input of another N to factor after finishing.") 
 		("window-size,W", po::value<unsigned short>(&args.windowSize)->default_value(4),
 			"Size of sliding window.")
-		("output-file,o",po::value<string>()->default_value("primes-found.txt"),
+		("output-file,o",po::value<string>()->default_value("factors-of"),
 			"File name where to output all found prime factors.");
 	
 	po::variables_map vm;
@@ -189,9 +190,9 @@ void validateArguments(progArgs& args)
 }
 
 // Uloží a přepíše výstupní soubor s nalezenými faktory
-void savePrimeFactors(string fileName,stringstream& primeStream)
+void savePrimeFactors(string fileName,int id,stringstream& primeStream)
 {
-	ofstream pr(fileName,ofstream::out | ofstream::trunc);
+	ofstream pr((boost::format("%s-%d.txt") % fileName % id).str(),ofstream::out | ofstream::trunc);
 	pr << primeStream.str();
 	pr.close();
 	cout << "All found prime factors have been written to file: " << fileName << endl;
@@ -213,7 +214,7 @@ int main(int argc,char** argv)
 	
 	progArgs args;
 	stringstream primeStream;
-	int exitCode = 0,lastB1 = 0,runNum = 0,factorCount = 0;
+	int exitCode = 0,lastB1 = 0,runNum = 0,factorCount = 0,Ncount = 1;
 	float cudaTimeCounter = 0;
 	bool useMixedStrategy = false,fullFactorizationFound = false;
 	char c = 0;
@@ -473,7 +474,7 @@ int main(int argc,char** argv)
 	
 	// Ulož výstup a vypiš celkový čas běhu
 	primeStream << "Found prime factors: " << factorCount;
-	savePrimeFactors(args.outputFile,primeStream);
+	savePrimeFactors(args.outputFile,Ncount,primeStream);
 	cout << "Total GPU running time is : " << setprecision(3) << (cudaTimeCounter/60000) << " minutes." << endl;
 
 	// Jsme-li v hladovém módu, chtěj další číslo k faktorizaci
@@ -487,6 +488,7 @@ int main(int argc,char** argv)
 		
 		cout << endl; 
 		validateArguments(args);
+		Ncount++;
 		goto restart_bound;
 	}
 
