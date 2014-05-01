@@ -194,7 +194,7 @@ int validateArguments(progArgs& args)
 // Uloží a přepíše výstupní soubor s nalezenými faktory
 void savePrimeFactors(string fileName,int id,stringstream& primeStream)
 {
-	string fname = (boost::format("%s-%d.txt") % fileName % id).str();
+	string fname = (boost::format("%s-#%d.txt") % fileName % id).str();
 	ofstream pr(fname,ofstream::out | ofstream::trunc);
 	pr << primeStream.str();
 	pr.close();
@@ -492,6 +492,7 @@ int main(int argc,char** argv)
 		cout << endl; 
 		if (validateArguments(args) != 0) goto end;
 		Ncount++;
+		mpz_init_set_str(zN,args.N.c_str(),10);
 		goto restart_bound;
 	}
 
