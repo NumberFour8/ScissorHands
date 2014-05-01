@@ -88,7 +88,7 @@ int validateArguments(progArgs& args)
 	{
 		// Načíst N
 		cout << "Enter N:" << endl;
-		if (!(cin  >> args.N))
+		if (!getline(cin,args.N))
 			return 1;
 		cout << endl;
 		recheck = true; 
