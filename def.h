@@ -10,13 +10,13 @@
 #ifndef _MSC_VER
 	#include <unistd.h>
 	#include <sys/resource.h>
-	#include <gmp.h>
 	#define ASM asm __volatile__
 #else
 	#include <windows.h>
-	#include <mpir.h>
 	#define ASM asm volatile
 #endif
+
+#include <gmp.h>
 
 #include <cuda.h>
 #include <cuda_runtime.h>
