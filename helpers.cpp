@@ -134,6 +134,14 @@ bool reduce_mod(mpz_t r,mpq_t q,mpz_t n)
 	return true;
 }
 
+bool reduce_rational_point(mpz_t zX,mpz_t zY,mpq_t qX,mpq_t qY,const mpz_t N)
+{
+	mpq_canonicalize(qX);	
+	mpq_canonicalize(qY);
+		
+	return reduce_mod(zX,qX,N) && reduce_mod(zY,qY,N);
+}
+
 void NAF::initialize(mpz_t N,unsigned char W)
 {
 	mpz_t number;

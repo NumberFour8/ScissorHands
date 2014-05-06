@@ -173,18 +173,16 @@ computeStrategy readCurves(string file,mpz_t N,ExtendedPoint** pInit,int& edward
 		minus1 = (ln == "-1");
 		minus1 ? twisted++ : edwards++;
 
-		// Precti racionalni X-ovou souradnici a zkrat
+		// Precti racionalni X-ovou souradnici 
 		fp >> ln;
 		mpq_set_str(qX,ln.c_str(),10);
-		mpq_canonicalize(qX);
 		
-		// Precti racionalni Y-ovou souradnici a zkrat
+		// Precti racionalni Y-ovou souradnici 
 		fp >> ln;
 		mpq_set_str(qY,ln.c_str(),10);
-		mpq_canonicalize(qY);
-
+	
 		// Pokus se X-ovou a Y-ovou souradnici rekudovat modulo N
-		if (!reduce_mod(zX,qX,N) || !reduce_mod(zY,qY,N))
+		if (!reduce_rational_point(zX,zY,qX,qY,N))
 		{
 			cout << "ERROR: Cannot reduce on curve #" << v.size() << endl;
 			if (mpz_cmp_ui(zX,0) != 0) // Byl nalezen faktor?
