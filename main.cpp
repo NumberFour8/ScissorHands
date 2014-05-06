@@ -202,8 +202,8 @@ void savePrimeFactors(string fileName,int id,bool append,stringstream& primeStre
 	string fname = "";
 	if (append)
 	{
-		fname = (boost::format("%s.txt") % fileName).str();
-		md |= ofstream:app;
+		fname = (boost::format("%s-all.txt") % fileName).str();
+		md |= ofstream::app;
 	}
 	else 
 	{
@@ -249,7 +249,7 @@ int main(int argc,char** argv)
 	// Inicializace N
 	mpz_t zN;
 	mpz_init_set_str(zN,args.N.c_str(),10);
-	
+
 	primeStream << "# Found prime factors of " << args.N << "\n";
 	primeStream << "# FOUND FACTOR, CURVE ID\n";
 	
@@ -492,9 +492,9 @@ int main(int argc,char** argv)
 	}
 	
 	// Ulož výstup a vypiš celkový čas běhu
-	primeStream << boost::format("Found prime factors: %d\n-------------------------------------\n") % factorCount;
-	savePrimeFactors(args.outputFile,args.onePrimeFile,Ncount,primeStream);
-	cout << "Total GPU running time was : " << boost::format("%.3f minutes") % (cudaTimeCounter/60000) << endl;
+	primeStream << boost::format("\n# Found prime factors: %d\n# -------------------------------------\n\n") % factorCount;
+	savePrimeFactors(args.outputFile,Ncount,args.onePrimeFile,primeStream);
+	cout << "Total GPU running time was: " << boost::format("%.3f minutes") % (cudaTimeCounter/60000) << endl;
 	totalFactors  += factorCount;
 	cudaTotalTime += cudaTimeCounter;
 	
@@ -510,7 +510,11 @@ int main(int argc,char** argv)
 		cout << endl; 
 		if (validateArguments(args) != 0) goto end;
 		Ncount++;
+
 		mpz_init_set_str(zN,args.N.c_str(),10);
+		primeStream << "# Found prime factors of " << args.N << "\n";
+		primeStream << "# FOUND FACTOR, CURVE ID\n";
+		
 		goto restart_bound;
 	}
 
