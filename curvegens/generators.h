@@ -70,16 +70,18 @@ protected:
 	bool next(ReducedPoint& P);
 };
 
+enum Torsion { Z12,Z2xZ8,Z6,Z8,Z2xZ4 };
+
 class EdwardsGenerator : public CurveGenerator {
 
 private:
-	EllipticCurve C;
-	ReducedPoint G;
+	EllipticCurve* C;
+	ReducedPoint* G;
+	Torsion tor;
 	
 public:
-	enum EdwardsTorsion { C12,C2x8 };
 
-	EdwardsGenerator(mpz_t n,EdwardsTorsion T);
+	EdwardsGenerator(mpz_t n,Torsion T);
 	~EdwardsGenerator();
 	
 protected:
@@ -89,13 +91,13 @@ protected:
 class TwistedGenerator : public CurveGenerator {
 
 private:
-	EllipticCurve C;
-	ReducedPoint G;
+	EllipticCurve* C;
+	ReducedPoint* G;
+	Torsion tor;
 	
 public:
-	enum TwistedTorsion { C6,C2x4,C8 };
-
-	TwistedGenerator(mpz_t n,TwistedTorsion T);
+	
+	TwistedGenerator(mpz_t n,Torsion T);
 	~TwistedGenerator();
 	
 protected:

@@ -105,7 +105,7 @@ bool try_invert_mod(mpz_t invx,mpz_t x,mpz_t N)
 	return ret;
 }
 
-bool reduce_mod(mpz_t r,mpq_t q,mpz_t n)
+void reduce_mod(mpz_t r,mpq_t q,mpz_t n)
 {
 	mpz_t den,num;
 	mpz_init_set(den,mpq_denref(q));
@@ -124,22 +124,22 @@ bool reduce_mod(mpz_t r,mpq_t q,mpz_t n)
 	{
 	  // Pri selhani je v r zapsan faktor cisla N nebo 0, viz try_invert_mod().
 	  mpz_clear(num);
-	  return false; 
+	  throw r;
 	}
 	
 	mpz_mul(r,r,num);
 	mpz_mod(r,r,n);
 
 	mpz_clear(num);
-	return true;
 }
 
-bool reduce_rational_point(mpz_t zX,mpz_t zY,mpq_t qX,mpq_t qY,const mpz_t N)
+void reduce_rational_point(mpz_t zX,mpz_t zY,mpq_t qX,mpq_t qY,const mpz_t N)
 {
 	mpq_canonicalize(qX);	
 	mpq_canonicalize(qY);
 		
-	return reduce_mod(zX,qX,N) && reduce_mod(zY,qY,N);
+	reduce_mod(zX,qX,N);
+	reduce_mod(zY,qY,N);
 }
 
 void NAF::initialize(mpz_t N,unsigned char W)

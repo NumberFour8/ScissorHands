@@ -50,22 +50,22 @@ bool FileGenerator::next(ReducedPoint& P)
 	mpq_set_str(qY,ln.c_str(),10);
 
 	// Pokus se X-ovou a Y-ovou souradnici rekudovat modulo N
-	if (!reduce_rational_point(P.X,P.Y,qX,qY,N))
+	try 
+	{
+		reduce_rational_point(P.X,P.Y,qX,qY,N));
+		s++;
+	}
+	catch (mpz_t f)
 	{
 		cout << "ERROR: Cannot reduce on curve #" << s << endl;
-		if (mpz_cmp_ui(P.X,0) != 0) // Byl nalezen faktor?
+		if (mpz_cmp_ui(f,0) != 0) // Byl nalezen faktor?
 		{
-			cout << "Factor found: " << mpz_to_string(P.X) << endl;
-		}
-		else if (mpz_cmp_ui(P.Y,0) != 0)
-		{
-			cout << "Factor found: " << mpz_to_string(P.Y) << endl;
+			cout << "Factor found: " << mpz_to_string(f) << endl;
 		}
 		ret = false;
 		currentA = 0;
 		goto read_finish;
 	}
-	s++;
 
 	read_finish:
 	mpq_clrs(qX,qY);

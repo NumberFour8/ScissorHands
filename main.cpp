@@ -293,7 +293,9 @@ int main(int argc,char** argv)
 	strategy	= computeStrategy::csNone;
 	
 	// Načti křivky a zvol vhodnou strategii
-	strategy	= readCurves(args.curveFiles[args.curCur],zN,&PP,edwards,twisted,read_curves);
+	FileGenerator gen(zN,args.curveFiles[args.curCur]);
+	
+	strategy	= readCurves(gen,&PP,edwards,twisted,read_curves);
 	if (strategy == computeStrategy::csNone)
 	{
 		cout << "ERROR: No suitable compute strategy found." << endl;
