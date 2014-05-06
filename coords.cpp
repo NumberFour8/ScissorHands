@@ -92,7 +92,7 @@ bool ExtendedPoint::toAffine(mpz_t x,mpz_t y,mpz_t N,mpz_t invB,mpz_t fact)
 	return ret;
 }
 
-// Zvoli vhodnou strategii vzpoctu podle poctu nactenzch typu krivek 
+// Zvoli vhodnou strategii vypoctu podle poctu nactenych typu krivek 
 computeStrategy chooseStrategy(int edwardsRead,int twistedRead,int& usableCurves)
 {
 
@@ -132,10 +132,7 @@ computeStrategy chooseStrategy(int edwardsRead,int twistedRead,int& usableCurves
 
 computeStrategy readCurves(CurveGenerator& source,ExtendedPoint** pInit,int& edwards,int& twisted,int &usableCurves)
 {
-	ifstream fp;
 	computeStrategy strat = computeStrategy::csNone;
-	
-	string ln;
 	vector<ExtendedPoint> v;
 	
 	cout << "Loading curves..." << endl;
@@ -144,13 +141,16 @@ computeStrategy readCurves(CurveGenerator& source,ExtendedPoint** pInit,int& edw
 	while (source.next_base_point(P))
 	{
 		// Vytvor bod v Extended souradnicích z redukovanych afinnich bodu modulo N
-		v.push_back(ExtendedPoint(P.X,P.Y,source.N,source.getCurrentA() == -1)); 
+		v.push_back(ExtendedPoint(P.X,P.Y,source.N,source.getA() == -1)); 
 	}
+
+	twisted = source.countTwisted();
+	edwards = source.countEdwards();
 	cout << "Curve generation finished." << endl;
 
 	// Prekroucene Edwardsovy krivky prijdou na zacatek
     std::sort(v.begin(), v.end(), [](const ExtendedPoint& a, const ExtendedPoint & b) -> bool { return a.isMinus1 && !b.isMinus1; });
-
+	
 	usableCurves = 0;
 	strat = chooseStrategy(edwards,twisted,usableCurves);
 	if (strat == computeStrategy::csNone) goto read_finish;
@@ -161,7 +161,6 @@ computeStrategy readCurves(CurveGenerator& source,ExtendedPoint** pInit,int& edw
 
 	// Jsme hotovi
 	read_finish:
-	
 	v.clear();
 	return strat;
 }

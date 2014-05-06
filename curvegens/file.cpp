@@ -5,6 +5,7 @@ FileGenerator::FileGenerator(mpz_t n,string filename)
  : CurveGenerator(n)
 {
 	fp.open(filename);
+	s = 0;
 }
 
 FileGenerator::~FileGenerator()
@@ -14,34 +15,29 @@ FileGenerator::~FileGenerator()
 
 bool FileGenerator::next(ReducedPoint& P)
 {	
-	string ln;
-	bool ret = true;
-	
+	string ln;	
+	bool ret = false;
+
 	mpq_t qX,qY;
 	mpq_intz(qX,qY);
-	
+
 	if (!fp.is_open()) 
 	{
 		cout << "ERROR: Cannot read from file." << endl;
-		ret = false;
 		goto read_finish;
 	}
 
-	if (!getline(fp,ln))
-	{
-		ret = false;
-		goto read_finish;
-	}
-	
-	// Preskoc segment, ktery nezacina #
-	if (ln.find("#") == string::npos) next(P);
+	do { 
+		if (!getline(fp,ln))
+		  goto read_finish;
+	} // Preskoc segment, ktery nezacina #
+	while (ln.find("#") == string::npos);
 	
 	// Je to prekroucena Edwardsova krivka s a = -1 ? 
 	fp >> ln;
 	if (ln != "-1" && ln != "1")
 	{
 		cout << "ERROR: Unsupported curve type." << endl;
-		ret = false;
 		goto read_finish;
 	}
 
@@ -68,11 +64,12 @@ bool FileGenerator::next(ReducedPoint& P)
 		{
 			cout << "Factor found: " << mpz_to_string(f) << endl;
 		}
-		ret = false;
+		
 		A = 0;
 		goto read_finish;
 	}
 
+	ret = true;
 	read_finish:
 	mpq_clrs(qX,qY);
 	

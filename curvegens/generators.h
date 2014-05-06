@@ -35,7 +35,7 @@ public:
 	
 	int countEdwards() { return edwards; }
 	int countTwisted() { return twisted; }
-	int getCurrentA()  { return A; }
+	int getA()  { return A; }
 	
 	bool next_base_point(ReducedPoint& P)
 	{
