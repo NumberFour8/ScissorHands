@@ -93,46 +93,46 @@ public:
 	}
 };
 
-	inline Zint operator+(Zint R,const Zint& Y)
-	{
-		R += Y;
-		return R;
-	}
-	
-	inline Zint operator-(Zint R,const Zint& Y)
-	{
-		R -= Y;
-		return R;
-	}
-	
-	inline Zint operator*(Zint R,const Zint& Y)
-	{
-		R *= Y;
-		return R;
-	}
-	
-	inline Zint operator%(Zint R,const Zint& Y)
-	{
-		R %= Y;
-		return R;
-	}
-	
-	inline Zint operator+(Zint R,const unsigned Y)
-	{
-		R += Y;
-		return R;
-	}
-	
-	inline Zint operator-(Zint R,const unsigned Y)
-	{
-		R -= Y;
-		return R;
-	}
-	
-	inline Zint operator*(Zint R,const unsigned Y)
-	{
-		R *= Y;
-		return R;
-	}
+inline Zint operator+(Zint R,const Zint& Y)
+{
+	R += Y;
+	return R;
+}
+
+inline Zint operator-(Zint R,const Zint& Y)
+{
+	R -= Y;
+	return R;
+}
+
+inline Zint operator*(Zint R,const Zint& Y)
+{
+	R *= Y;
+	return R;
+}
+
+inline Zint operator%(Zint R,const Zint& Y)
+{
+	R %= Y;
+	return R;
+}
+
+inline Zint operator+(Zint R,const unsigned Y)
+{
+	R += Y;
+	return R;
+}
+
+inline Zint operator-(Zint R,const unsigned Y)
+{
+	R -= Y;
+	return R;
+}
+
+inline Zint operator*(Zint R,const unsigned Y)
+{
+	R *= Y;
+	return R;
+}
 
 #endif

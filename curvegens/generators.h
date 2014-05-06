@@ -16,45 +16,23 @@ private:
 protected:
 	unsigned int s;
 	int A;
+	
 	virtual bool next(ReducedPoint& P) = 0;
+	virtual void reset() = 0;
 
 public:
 	mpz_t N;
 
-	CurveGenerator(mpz_t n) : s(1), edwards(0), twisted(0), A(0) 
-	{ 
-		mpz_init_set(N,n);
-	};
+	CurveGenerator(mpz_t n);
+	~CurveGenerator();
 	
-	~CurveGenerator()
-	{
-		mpz_clear(N);
-	}
+	int getCoeff();
+	int getA();
+	int countEdwards();
+	int countTwisted();
 	
-	int getCoeff() { return s; }
-	
-	int countEdwards() { return edwards; }
-	int countTwisted() { return twisted; }
-	int getA()  { return A; }
-	
-	bool next_base_point(ReducedPoint& P)
-	{
-		if (next(P))
-		{
-			if (A == 1){
-			  edwards++;
-			  return true;
-			}
-			else if (A == -1)
-			{
-			  twisted++;
-			  return true;
-			}
-		}
-			
-		return false;
-	}
-	
+	void restart();
+	bool next_base_point(ReducedPoint& P);
 };
 	
 class FileGenerator : public CurveGenerator {
@@ -68,9 +46,10 @@ public:
 	
 protected:
 	bool next(ReducedPoint& P);
+	void reset();
 };
 
-enum Torsion { Z12,Z2xZ8,Z6,Z8,Z2xZ4 };
+enum Torsion { Z12 = 1,Z2xZ8 = 2,Z6 = 3,Z8 = 4,Z2xZ4 = 5 };
 
 class EdwardsGenerator : public CurveGenerator {
 
@@ -86,6 +65,7 @@ public:
 	
 protected:
 	bool next(ReducedPoint& P);
+	void reset();
 };
 
 class TwistedGenerator : public CurveGenerator {
@@ -102,6 +82,21 @@ public:
 	
 protected:
 	bool next(ReducedPoint& P);
+	void reset();
+};
+
+class MixedGenerator : public CurveGenerator {
+private:
+	CurveGenerator** gens;
+
+public:
+	MixedGenerator(mpz_t n);
+	~MixedGenerator();
+	
+protected:
+	bool next(ReducedPoint& P);
+	void reset();
+	
 };
 
 #endif

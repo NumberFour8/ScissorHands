@@ -13,6 +13,11 @@ FileGenerator::~FileGenerator()
 	if (fp.is_open()) fp.close();
 }
 
+void FileGenerator::reset()
+{
+	if (fp.is_open()) fp.seekg(0);
+}
+
 bool FileGenerator::next(ReducedPoint& P)
 {	
 	string ln;	
@@ -70,6 +75,7 @@ bool FileGenerator::next(ReducedPoint& P)
 	}
 
 	ret = true;
+	
 	read_finish:
 	mpq_clrs(qX,qY);
 	

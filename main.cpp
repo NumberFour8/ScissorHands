@@ -265,7 +265,7 @@ int main(int argc,char** argv)
 	int bitCountN;					 // Počet bitů N
 	computeStrategy strategy;		 // Strategie výpočtu
 	CurveGenerator* gen;			 // Generátor křivek
-
+	
 	restart_bound:
 	
 	// Pokud je N prvočíslo, není co faktorizovat
@@ -294,9 +294,9 @@ int main(int argc,char** argv)
 	strategy	= computeStrategy::csNone;
 	
 	// Načti křivky a zvol vhodnou strategii
-	gen = new FileGenerator(zN,args.curveFiles[args.curCur]);
+	gen		    = new FileGenerator(zN,args.curveFiles[args.curCur])
 	strategy	= readCurves(*gen,&PP,edwards,twisted,read_curves);
-	delete gen;
+
 	if (strategy == computeStrategy::csNone)
 	{
 		cout << "ERROR: No suitable compute strategy found." << endl;
