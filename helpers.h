@@ -73,7 +73,7 @@ bool try_invert_mod(mpz_t invx,mpz_t x,mpz_t N);
 void reduce_mod(mpz_t r,mpq_t q,mpz_t n);
 
 // Redukuje racionalni souradnice modulo N. Stejne chovani jako reduce_mod
-void reduce_rational_point(mpz_t X,mpz_t Y,mpq_t Qx,mpq_t Qy,const mpz_t N);
+void reduce_rational_point(mpz_t X,mpz_t Y,mpq_t Qx,mpq_t Qy,mpz_t N);
 
 // Vrati true, je-li n prvocislo s pravdepobnosti mensi nez 2^(-50)
 inline bool is_almost_surely_prime(mpz_t n)

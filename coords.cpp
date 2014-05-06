@@ -130,7 +130,7 @@ computeStrategy chooseStrategy(int edwardsRead,int twistedRead,int& usableCurves
 	return computeStrategy::csNone;
 }
 
-computeStrategy readCurves(BasicGenerator& source,ExtendedPoint** pInit,int& edwards,int& twisted,int &usableCurves)
+computeStrategy readCurves(CurveGenerator& source,ExtendedPoint** pInit,int& edwards,int& twisted,int &usableCurves)
 {
 	ifstream fp;
 	computeStrategy strat = computeStrategy::csNone;
@@ -141,10 +141,10 @@ computeStrategy readCurves(BasicGenerator& source,ExtendedPoint** pInit,int& edw
 	cout << "Loading curves..." << endl;
 	
 	ReducedPoint P;
-	while (source.next(P))
+	while (source.next_base_point(P))
 	{
 		// Vytvor bod v Extended souradnicích z redukovanych afinnich bodu modulo N
-		v.push_back(ExtendedPoint(P.X,P.Y,source.getN(),source.getCurrentA() == -1)); 
+		v.push_back(ExtendedPoint(P.X,P.Y,source.N,source.getCurrentA() == -1)); 
 	}
 	cout << "Curve generation finished." << endl;
 

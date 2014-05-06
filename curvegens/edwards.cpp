@@ -1,29 +1,30 @@
 #include "generators.h"
-#include "helpers.h"
+#include "../helpers.h"
 
-EdwardsGenerator::EdwardsGenerator(mpz_t n,EdwardsTorsion T)
- : CurveGenerator(n), A(1)
+EdwardsGenerator::EdwardsGenerator(mpz_t n,Torsion T)
+ : CurveGenerator(n)
  {
-	if (T == EdwardsTorsion::Z12)
+	A = 1;
+	if (T == Torsion::Z12)
 	{
-		E = new EllipticCurve("0","0","0","-12","0",n);
-		G = new ReducedPoint("6","-12");
+		C = new EllipticCurve("0","0","0","-12",n);
+		G = new ReducedPoint("6","-12",n);
 	}
-	else if (T == EdwardsTorsion::Z2xZ8)
+	else if (T == Torsion::Z2xZ8)
 	{
-		E = new EllipticCurve("0","0","0","-8","-32",n);
-		G = new ReducedPoint("12","40");
+		C = new EllipticCurve("0","0","0","-8",n);
+		G = new ReducedPoint("12","40",n);
 	}
  }
  
  EdwardsGenerator::~EdwardsGenerator()
  {
-	delete E;
+	delete C;
 	delete G;
  }
 
 
 bool EdwardsGenerator::next(ReducedPoint& P)
 {
-	
+	return false; 
 }

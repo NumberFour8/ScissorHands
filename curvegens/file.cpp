@@ -1,10 +1,10 @@
 #include "generators.h"
-#include "helpers.h"
+#include "../helpers.h"
 
 FileGenerator::FileGenerator(mpz_t n,string filename)
- : BasicGenerator(n)
+ : CurveGenerator(n)
 {
-	fp.open(file);
+	fp.open(filename);
 }
 
 FileGenerator::~FileGenerator()
@@ -20,15 +20,21 @@ bool FileGenerator::next(ReducedPoint& P)
 	mpq_t qX,qY;
 	mpq_intz(qX,qY);
 	
-	if (!fp.is_open() || !getline(fp,ln)) 
+	if (!fp.is_open()) 
 	{
 		cout << "ERROR: Cannot read from file." << endl;
 		ret = false;
 		goto read_finish;
 	}
+
+	if (!getline(fp,ln))
+	{
+		ret = false;
+		goto read_finish;
+	}
 	
 	// Preskoc segment, ktery nezacina #
-	if (ln.find("#") == string::npos) continue;
+	if (ln.find("#") == string::npos) next(P);
 	
 	// Je to prekroucena Edwardsova krivka s a = -1 ? 
 	fp >> ln;
@@ -52,7 +58,7 @@ bool FileGenerator::next(ReducedPoint& P)
 	// Pokus se X-ovou a Y-ovou souradnici rekudovat modulo N
 	try 
 	{
-		reduce_rational_point(P.X,P.Y,qX,qY,N));
+		reduce_rational_point(P.X,P.Y,qX,qY,N);
 		s++;
 	}
 	catch (mpz_t f)
@@ -63,7 +69,7 @@ bool FileGenerator::next(ReducedPoint& P)
 			cout << "Factor found: " << mpz_to_string(f) << endl;
 		}
 		ret = false;
-		currentA = 0;
+		A = 0;
 		goto read_finish;
 	}
 

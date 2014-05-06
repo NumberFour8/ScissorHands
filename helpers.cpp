@@ -133,7 +133,7 @@ void reduce_mod(mpz_t r,mpq_t q,mpz_t n)
 	mpz_clear(num);
 }
 
-void reduce_rational_point(mpz_t zX,mpz_t zY,mpq_t qX,mpq_t qY,const mpz_t N)
+void reduce_rational_point(mpz_t zX,mpz_t zY,mpq_t qX,mpq_t qY,mpz_t N)
 {
 	mpq_canonicalize(qX);	
 	mpq_canonicalize(qY);

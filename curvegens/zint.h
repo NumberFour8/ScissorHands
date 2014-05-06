@@ -2,7 +2,8 @@
 #define ZINT_H
 
 
-#include "def.h"
+#include "../def.h"
+#include "../helpers.h"
 
 class Zint {
 private:
@@ -28,16 +29,16 @@ public:
 		mpz_clear(X);
 	}
 	
-	mpz_t get()
+	void get(mpz_t x)
 	{
-		return X;
+		mpz_set(x,X);
 	}
 	
-	Zint& invert_mod(const Zint& N)
+	Zint& invert_mod(Zint& N)
 	{
 		if (!try_invert_mod(X,X,N.X))
 		{
-			throw inv;
+			throw X;
 		}
 		return *this;
 	}
@@ -45,6 +46,7 @@ public:
 	Zint& operator=(const Zint& Y)
 	{
 		mpz_set(X,Y.X);
+		return *this;
 	}	
 	
 	
@@ -89,56 +91,48 @@ public:
 		mpz_mul_ui(X,X,Y);
 		return *this;
 	}
-	
-	const Zint operator+(const Zint& Y)
+};
+
+	inline Zint operator+(Zint R,const Zint& Y)
 	{
-		Zint R = *this;
 		R += Y;
 		return R;
 	}
 	
-	const Zint operator-(const Zint& Y)
+	inline Zint operator-(Zint R,const Zint& Y)
 	{
-		Zint R = *this;
 		R -= Y;
 		return R;
 	}
 	
-	const Zint operator*(const Zint& Y)
+	inline Zint operator*(Zint R,const Zint& Y)
 	{
-		Zint R = *this;
 		R *= Y;
 		return R;
 	}
 	
-	const Zint operator%(const Zint& Y)
+	inline Zint operator%(Zint R,const Zint& Y)
 	{
-		Zint R = *this;
 		R %= Y;
 		return R;
 	}
 	
-	const Zint operator+(const unsigned Y)
+	inline Zint operator+(Zint R,const unsigned Y)
 	{
-		Zint R = *this;
 		R += Y;
 		return R;
 	}
 	
-	const Zint operator-(const unsigned Y)
+	inline Zint operator-(Zint R,const unsigned Y)
 	{
-		Zint R = *this;
 		R -= Y;
 		return R;
 	}
 	
-	const Zint operator*(const unsigned Y)
+	inline Zint operator*(Zint R,const unsigned Y)
 	{
-		Zint R = *this;
 		R *= Y;
 		return R;
 	}
-	
-};
 
 #endif

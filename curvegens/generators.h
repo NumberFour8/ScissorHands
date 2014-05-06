@@ -17,21 +17,21 @@ protected:
 	unsigned int s;
 	int A;
 	virtual bool next(ReducedPoint& P) = 0;
+
+public:
 	mpz_t N;
 
-public: 
-	BasicGenerator(mpz_t n) : s(1), edwards(0), twisted(0), A(0) 
+	CurveGenerator(mpz_t n) : s(1), edwards(0), twisted(0), A(0) 
 	{ 
 		mpz_init_set(N,n);
 	};
 	
-	~BasicGenerator()
+	~CurveGenerator()
 	{
 		mpz_clear(N);
 	}
 	
 	int getCoeff() { return s; }
-	mpz_t getN() { return N; }
 	
 	int countEdwards() { return edwards; }
 	int countTwisted() { return twisted; }
