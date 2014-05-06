@@ -27,11 +27,13 @@ struct progArgs {
 	bool noLCM;
 	bool exitOnFinish;
 	bool greedy;
+	bool onePrimeFile;
 	unsigned short whichDevice;
 	string outputFile;
 	
 	progArgs() 
-	: verbose(false), noLCM(false), greedy(false), exitOnFinish(false), curB1(0), curCur(0), windowSize(0), whichDevice(0)
+	: verbose(false), noLCM(false), onePrimeFile(false), greedy(false), 
+	  exitOnFinish(false), curB1(0), curCur(0), windowSize(0), whichDevice(0)
 	{ }
 };
 
@@ -55,6 +57,7 @@ void parseArguments(int argc,char** argv,progArgs& args)
 		("greedy,g", "If set, wait for input of another N to factor after finishing.") 
 		("window-size,W", po::value<unsigned short>(&args.windowSize)->default_value(4),
 			"Size of sliding window.")
+		("single-output,s","If set, only one output file for found prime factors will be created.")
 		("output-file,o",po::value<string>()->default_value("factors-of"),
 			"File name where to output all found prime factors.");
 	
@@ -66,6 +69,7 @@ void parseArguments(int argc,char** argv,progArgs& args)
 	args.noLCM			 = vm.count("dont-compute-bound") != 0;
 	args.exitOnFinish	 = vm.count("no-restart") != 0 || vm.count("greedy") != 0;;
 	args.greedy			 = vm.count("greedy") != 0;
+	args.onePrimeFile	 = vm.count("single-output") != 0;
 
 	if (vm.count("N-to-factor"))
 	  args.N = vm["N-to-factor"].as<string>();
@@ -192,10 +196,22 @@ int validateArguments(progArgs& args)
 }
 
 // Uloží a přepíše výstupní soubor s nalezenými faktory
-void savePrimeFactors(string fileName,int id,stringstream& primeStream)
+void savePrimeFactors(string fileName,int id,bool append,stringstream& primeStream)
 {
-	string fname = (boost::format("%s-#%d.txt") % fileName % id).str();
-	ofstream pr(fname,ofstream::out | ofstream::trunc);
+	ios_base::openmode md = ofstream::out;
+	string fname = "";
+	if (append)
+	{
+		fname = (boost::format("%s.txt") % fileName).str();
+		md |= ofstream:app;
+	}
+	else 
+	{
+		fname = (boost::format("%s-#%d.txt") % fileName % id).str();
+		md |= ofstream::trunc;
+	}
+	
+	ofstream pr(fname,md);
 	pr << primeStream.str();
 	pr.close();
 	cout << "All found prime factors have been written to file: " << fname << endl;
@@ -217,8 +233,8 @@ int main(int argc,char** argv)
 	
 	progArgs args;
 	stringstream primeStream;
-	int exitCode = 0,lastB1 = 0,runNum = 0,factorCount = 0,Ncount = 1;
-	float cudaTimeCounter = 0;
+	int exitCode = 0,lastB1 = 0,runNum = 0,factorCount = 0,Ncount = 1,totalFactors = 0;
+	float cudaTimeCounter = 0,cudaTotalTime = 0;
 	bool useMixedStrategy = false,fullFactorizationFound = false;
 	char c = 0;
 
@@ -476,10 +492,12 @@ int main(int argc,char** argv)
 	}
 	
 	// Ulož výstup a vypiš celkový čas běhu
-	primeStream << "Found prime factors: " << factorCount;
-	savePrimeFactors(args.outputFile,Ncount,primeStream);
-	cout << "Total GPU running time is : " << setprecision(3) << (cudaTimeCounter/60000) << " minutes." << endl;
-
+	primeStream << boost::format("Found prime factors: %d\n-------------------------------------\n") % factorCount;
+	savePrimeFactors(args.outputFile,args.onePrimeFile,Ncount,primeStream);
+	cout << "Total GPU running time was : " << boost::format("%.3f minutes") % (cudaTimeCounter/60000) << endl;
+	totalFactors  += factorCount;
+	cudaTotalTime += cudaTimeCounter;
+	
 	// Jsme-li v hladovém módu, chtěj další číslo k faktorizaci
 	if (args.greedy)
 	{
@@ -498,6 +516,8 @@ int main(int argc,char** argv)
 
 	end:
 	mpz_clear(zN);
+	cout << "Total prime factors found in session: " << totalFactors << endl;
+	cout << "Total GPU time in session: " << boost::format("%.4f minutes") % (cudaTotalTime/60000) << endl;
 
 	return exitCode;
 }
