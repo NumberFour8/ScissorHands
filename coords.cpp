@@ -130,75 +130,23 @@ computeStrategy chooseStrategy(int edwardsRead,int twistedRead,int& usableCurves
 	return computeStrategy::csNone;
 }
 
-computeStrategy readCurves(string file,mpz_t N,ExtendedPoint** pInit,int& edwards,int& twisted,int &usableCurves)
+computeStrategy readCurves(BasicGenerator& source,ExtendedPoint** pInit,int& edwards,int& twisted,int &usableCurves)
 {
 	ifstream fp;
-	edwards = twisted = 0;
 	computeStrategy strat = computeStrategy::csNone;
-
-	// Pokud se nepodari otevrit soubor, skonci
-	fp.open(file);
-	if (!fp.is_open())
-	{
-		cout << "ERROR: Cannot open file." << endl;
-		return strat;
-	} 
-	
-	// Inicializace racionalnich souradnic
-	mpq_t qX,qY;
-	mpq_intz(qX,qY);
-
-	// Inicializace celociselnych souradnic
-	mpz_t zX,zY;
-	mpz_init_set_ui(zX,0);
-	mpz_init_set_ui(zY,0);
 	
 	string ln;
 	vector<ExtendedPoint> v;
-	bool minus1 = true;
-	cout << "Loading curves..." << endl;
-	while (getline(fp,ln))
-	{
-		// Preskoc segment, ktery nezacina #
-		if (ln.find("#") == string::npos) continue;
-		
-		// Je to prekroucena Edwardsova krivka s a = -1 ? 
-		fp >> ln;
-		if (ln != "-1" && ln != "1")
-		{
-			cout << "ERROR: Unsupported curve type." << endl;
-			goto read_finish;
-		}
-
-		minus1 = (ln == "-1");
-		minus1 ? twisted++ : edwards++;
-
-		// Precti racionalni X-ovou souradnici 
-		fp >> ln;
-		mpq_set_str(qX,ln.c_str(),10);
-		
-		// Precti racionalni Y-ovou souradnici 
-		fp >> ln;
-		mpq_set_str(qY,ln.c_str(),10);
 	
-		// Pokus se X-ovou a Y-ovou souradnici rekudovat modulo N
-		if (!reduce_rational_point(zX,zY,qX,qY,N))
-		{
-			cout << "ERROR: Cannot reduce on curve #" << v.size() << endl;
-			if (mpz_cmp_ui(zX,0) != 0) // Byl nalezen faktor?
-			{
-				cout << "Factor found: " << mpz_to_string(zX) << endl;
-			}
-			else if (mpz_cmp_ui(zY,0) != 0)
-			{
-				cout << "Factor found: " << mpz_to_string(zY) << endl;
-			}
-			goto read_finish;
-		}
-
+	cout << "Loading curves..." << endl;
+	
+	ReducedPoint P;
+	while (source.next(P))
+	{
 		// Vytvor bod v Extended souradnicích z redukovanych afinnich bodu modulo N
-		v.push_back(ExtendedPoint(zX,zY,N,minus1)); 
+		v.push_back(ExtendedPoint(P.X,P.Y,source.getN(),source.getCurrentA() == -1)); 
 	}
+	cout << "Curve generation finished." << endl;
 
 	// Prekroucene Edwardsovy krivky prijdou na zacatek
     std::sort(v.begin(), v.end(), [](const ExtendedPoint& a, const ExtendedPoint & b) -> bool { return a.isMinus1 && !b.isMinus1; });
@@ -211,12 +159,9 @@ computeStrategy readCurves(string file,mpz_t N,ExtendedPoint** pInit,int& edward
 	*pInit = new ExtendedPoint[usableCurves];
 	std::copy((strat == computeStrategy::csEdwards ? v.begin()+twisted : v.begin()),v.begin()+usableCurves,*pInit);
 
-	// Vycisti pamet
+	// Jsme hotovi
 	read_finish:
-		v.clear();
-		fp.close();
-		mpz_clrs(zX,zY);
-		mpq_clrs(qX,qY);
-
+	
+	v.clear();
 	return strat;
 }

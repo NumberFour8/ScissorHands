@@ -5,10 +5,6 @@ FileGenerator::FileGenerator(mpz_t n,string filename)
  : BasicGenerator(n)
 {
 	fp.open(file);
-	if (!fp.is_open())
-	{
-		cout << "ERROR: Cannot open file." << endl;
-	} 
 }
 
 FileGenerator::~FileGenerator()
@@ -16,21 +12,17 @@ FileGenerator::~FileGenerator()
 	if (fp.is_open()) fp.close();
 }
 
-int FileGenerator::getCurrentA()
-{
-	return currentA;
-}
-
 bool FileGenerator::next(ReducedPoint& P)
-{
+{	
 	string ln;
 	bool ret = true;
 	
 	mpq_t qX,qY;
 	mpq_intz(qX,qY);
 	
-	if (!getline(fp,ln)) 
+	if (!fp.is_open() || !getline(fp,ln)) 
 	{
+		cout << "ERROR: Cannot read from file." << endl;
 		ret = false;
 		goto read_finish;
 	}
@@ -47,7 +39,7 @@ bool FileGenerator::next(ReducedPoint& P)
 		goto read_finish;
 	}
 
-	currentA = (ln == "-1" ? -1 : 1);
+	A = (ln == "-1" ? -1 : 1);
 
 	// Precti racionalni X-ovou souradnici 
 	fp >> ln;

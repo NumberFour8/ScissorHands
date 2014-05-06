@@ -3,6 +3,7 @@
 
 #include "def.h"
 #include "helpers.h"
+#include "curvegens/generators.h"
 
 // Třída pro bod v Extended souřadnicích v paměti počítače
 class ExtendedPoint {

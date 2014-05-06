@@ -15,11 +15,12 @@ private:
 
 protected:
 	unsigned int s;
+	int A;
 	virtual bool next(ReducedPoint& P) = 0;
 	mpz_t N;
 
 public: 
-	BasicGenerator(mpz_t n) : s(1), edwards(0), twisted(0) 
+	BasicGenerator(mpz_t n) : s(1), edwards(0), twisted(0), A(0) 
 	{ 
 		mpz_init_set(N,n);
 	};
@@ -30,20 +31,25 @@ public:
 	}
 	
 	int getCoeff() { return s; }
+	mpz_t getN() { return N; }
 	
 	int countEdwards() { return edwards; }
 	int countTwisted() { return twisted; }
-	
-	virtual int getCurrentA() = 0;
+	int getCurrentA()  { return A; }
 	
 	bool next_base_point(ReducedPoint& P)
 	{
 		if (next(P))
 		{
-			if (getCurrentA() == 1) 
+			if (A == 1){
 			  edwards++;
-			else twisted++;
-			return true;
+			  return true;
+			}
+			else if (A == -1)
+			{
+			  twisted++;
+			  return true;
+			}
 		}
 			
 		return false;
@@ -55,13 +61,10 @@ class FileGenerator : public CurveGenerator {
 
 private:
 	ifstream fp;
-	int currentA;
 	
 public:
 	FileGenerator(mpz_t n,string filename);
 	~FileGenerator();
-	
-	int getCurrentA();
 	
 protected:
 	bool next(ReducedPoint& P);
@@ -79,8 +82,6 @@ public:
 	EdwardsGenerator(mpz_t n,EdwardsTorsion T);
 	~EdwardsGenerator();
 	
-	int getCurrentA();
-	
 protected:
 	bool next(ReducedPoint& P);
 };
@@ -96,8 +97,6 @@ public:
 
 	TwistedGenerator(mpz_t n,TwistedTorsion T);
 	~TwistedGenerator();
-	
-	int getCurrentA();
 	
 protected:
 	bool next(ReducedPoint& P);
