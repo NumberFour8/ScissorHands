@@ -1,8 +1,6 @@
 #ifndef ZINT_H
 #define ZINT_H
 
-
-#include "../def.h"
 #include "../helpers.h"
 
 class Zint {
@@ -12,6 +10,11 @@ public:
 	Zint()
 	{
 		mpz_init_set_ui(X,0);
+	}
+	
+	Zint(const Zint& Y)
+	{
+		mpz_init_set(X,Y.X);
 	}
 
 	Zint(const unsigned int A)
@@ -117,8 +120,37 @@ public:
 		mpz_clear(n);
 		return ret;
 	}
+	
+	string str()
+	{
+		return mpz_to_string(X);
+	}
+	
+	friend bool operator< (const Zint& lhs, const Zint& rhs);
+	friend bool operator< (const Zint& lhs, const unsigned int rhs);
+	friend bool operator> (const Zint& lhs, const Zint& rhs);
+	friend bool operator> (const Zint& lhs, const unsigned int rhs);
 };
 
+inline bool operator< (const Zint& lhs, const Zint& rhs)
+{
+	return mpz_cmp(lhs.X,rhs.X) < 0;
+}
+
+inline bool operator< (const Zint& lhs, const unsigned int rhs)
+{
+	return mpz_cmp_ui(lhs.X,rhs) < 0;
+}
+
+inline bool operator> (const Zint& lhs, const Zint& rhs)
+{
+	return rhs < lhs;
+}
+
+inline bool operator> (const Zint& lhs, const unsigned int rhs)
+{
+	return mpz_cmp_ui(lhs.X,rhs) > 0;
+}
 
 inline Zint operator+(Zint R,const Zint& Y)
 {

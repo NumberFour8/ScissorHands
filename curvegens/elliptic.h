@@ -1,7 +1,6 @@
 #ifndef ELLIPTIC_H
 #define ELLIPTIC_H
 
-#include "../def.h"
 #include "zint.h"
 #include "../helpers.h"
 
@@ -36,10 +35,13 @@ public:
 	{
 		mpq_t qx,qy;
 		mpq_intz(qx,qy);
+		mpz_intz(X,Y);
+		
 		mpq_set_str(qx,x.c_str(),10);
 		mpq_set_str(qy,y.c_str(),10);
 		
 		reduce_rational_point(X,Y,qx,qy,N);
+		mpq_clrs(qx,qy);
 	}
 	
 	~ReducedPoint()
@@ -58,7 +60,13 @@ private:
 		Zint x3 = (L^2)+a1*L-a2-x1-Zint(Q.X);
 		Zint y3 = L*(x1-x3)-Zint(P.Y)-a1*x3-a3;
 		
-		R.set(x3 % N,y3 % N);
+		x3 %= N;
+		y3 %= N;
+		
+		if (x3 < 0) x3 += N;
+		if (y3 < 0) y3 += N;
+		
+		R.set(x3,y3);
 	}
 	
 public:
