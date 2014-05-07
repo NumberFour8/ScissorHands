@@ -42,6 +42,15 @@ public:
 		}
 		return *this;
 	}
+
+	Zint& invert_mod(mpz_t N)
+	{
+		if (!try_invert_mod(X,X,N))
+		{
+			throw X;
+		}
+		return *this;
+	}
 	
 	Zint& operator=(const Zint& Y)
 	{
@@ -97,18 +106,19 @@ public:
 		mpz_pow_ui(X,X,Y);
 		return *this;
 	}
+
+	Zint operator-()
+	{
+		mpz_t n;
+		mpz_init(n);
+		mpz_neg(n,X);
+	
+		Zint ret(n);
+		mpz_clear(n);
+		return ret;
+	}
 };
 
-inline Zint operator-(const Zint& Y)
-{
-	mpz_t n;
-	mpz_init(n);
-	mpz_neg(n,Y.X);
-	
-	Zint ret(n);
-	mpz_clear(n);
-	return ret;
-}
 
 inline Zint operator+(Zint R,const Zint& Y)
 {

@@ -294,7 +294,7 @@ int main(int argc,char** argv)
 	strategy	= computeStrategy::csNone;
 	
 	// Načti křivky a zvol vhodnou strategii
-	gen		    = new FileGenerator(zN,args.curveFiles[args.curCur])
+	gen		    = new FileGenerator(zN,args.curveFiles[args.curCur]);
 	strategy	= readCurves(*gen,&PP,edwards,twisted,read_curves);
 
 	if (strategy == computeStrategy::csNone)
