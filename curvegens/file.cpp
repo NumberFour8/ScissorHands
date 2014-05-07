@@ -2,7 +2,7 @@
 #include "../helpers.h"
 
 FileGenerator::FileGenerator(mpz_t n,string filename)
- : CurveGenerator(n)
+ : Generator(n)
 {
 	fp.open(filename);
 	s = 0;

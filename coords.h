@@ -54,7 +54,7 @@ typedef enum { csMixed, csEdwards, csTwisted, csNone } computeStrategy;
  * Parametry edwards a twisted jsou počty příslušných typů načtených křivek.
  * Vraci pocet uspesne prectenych krivek. 
 */
-computeStrategy readCurves(CurveGenerator& source,ExtendedPoint** pInit,int& edwards,int& twisted,int& usableCurves);
+computeStrategy readCurves(Generator* source,ExtendedPoint** pInit,int& edwards,int& twisted,int& usableCurves);
 
 
 #endif

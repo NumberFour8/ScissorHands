@@ -264,7 +264,7 @@ int main(int argc,char** argv)
 	int read_curves,edwards,twisted; // Počty načtených typů křivek
 	int bitCountN;					 // Počet bitů N
 	computeStrategy strategy;		 // Strategie výpočtu
-	CurveGenerator* gen;			 // Generátor křivek
+	Generator* gen;					 // Generátor křivek
 	
 	restart_bound:
 	
@@ -295,7 +295,7 @@ int main(int argc,char** argv)
 	
 	// Načti křivky a zvol vhodnou strategii
 	gen		    = new FileGenerator(zN,args.curveFiles[args.curCur]);
-	strategy	= readCurves(*gen,&PP,edwards,twisted,read_curves);
+	strategy	= readCurves(gen,&PP,edwards,twisted,read_curves);
 
 	if (strategy == computeStrategy::csNone)
 	{
