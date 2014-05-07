@@ -2,7 +2,7 @@
 #include "../helpers.h"
 
 EdwardsGenerator::EdwardsGenerator(mpz_t n,Torsion T)
- : CurveGenerator(n)
+ : CurveGenerator(n), tor(T)
  {
 	A = 1;
 	if (T == Torsion::Z12)
@@ -26,5 +26,37 @@ EdwardsGenerator::EdwardsGenerator(mpz_t n,Torsion T)
 
 bool EdwardsGenerator::next(ReducedPoint& P)
 {
-	return false; 
+	if (s > end) return false;
+	
+	if (s <= 1) C.doublePoint(Q,*G);
+	else C.addPoints(Q,Q,*G);
+	
+	if (tor == Torsion::Z12)
+	{
+		Zint u(Q.X);
+		Zint t(Q.Y);
+		
+		try {
+			Zint x = ((u-2)*(u+6)*(pow(u,2)+12*u-12));
+			x.invert_mod(N);
+			x *= 8*t*(pow(u,2)+12);
+			
+			Zint y = ((u-2)*(u+6)*(pow(u,2)-12));
+			y.invert_mod(N);
+			y *= -4*u*(pow(u,2)-12*u-12);
+			
+			P.set(x,y);
+			++s;
+		}
+		catch (mpz_t f)
+		{
+			cout << "ERROR: Cannot reduce on curve #" << s << endl;
+			if (mpz_cmp_ui(f,0) != 0) // Byl nalezen faktor?
+			{
+				cout << "Factor found: " << mpz_to_string(f) << endl;
+			}
+			return false;
+		}
+		return true;
+	}
 }

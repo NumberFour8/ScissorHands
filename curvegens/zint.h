@@ -74,24 +74,41 @@ public:
 		return *this;
 	}
 	
-	Zint& operator+=(const unsigned Y)
+	Zint& operator+=(const unsigned int Y)
 	{
 		mpz_add_ui(X,X,Y);
 		return *this;
 	}
 	
-	Zint& operator-=(const unsigned Y)
+	Zint& operator-=(const unsigned int Y)
 	{
 		mpz_sub_ui(X,X,Y);
 		return *this;
 	}
 	
-	Zint& operator*=(const unsigned Y)
+	Zint& operator*=(const unsigned int Y)
 	{
 		mpz_mul_ui(X,X,Y);
 		return *this;
 	}
+	
+	Zint& operator^=(const unsigned int Y)
+	{
+		mpz_pow_ui(X,X,Y);
+		return *this;
+	}
 };
+
+inline Zint operator-(const Zint& Y)
+{
+	mpz_t n;
+	mpz_init(n);
+	mpz_neg(n,Y.X);
+	
+	Zint ret(n);
+	mpz_clear(n);
+	return ret;
+}
 
 inline Zint operator+(Zint R,const Zint& Y)
 {
@@ -117,21 +134,27 @@ inline Zint operator%(Zint R,const Zint& Y)
 	return R;
 }
 
-inline Zint operator+(Zint R,const unsigned Y)
+inline Zint operator+(Zint R,const unsigned int Y)
 {
 	R += Y;
 	return R;
 }
 
-inline Zint operator-(Zint R,const unsigned Y)
+inline Zint operator-(Zint R,const unsigned int Y)
 {
 	R -= Y;
 	return R;
 }
 
-inline Zint operator*(Zint R,const unsigned Y)
+inline Zint operator*(Zint R,const unsigned int Y)
 {
 	R *= Y;
+	return R;
+}
+
+inline Zint operator^(Zint R,const unsigned int Y)
+{
+	R ^= Y;
 	return R;
 }
 

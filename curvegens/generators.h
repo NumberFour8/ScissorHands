@@ -55,12 +55,13 @@ class EdwardsGenerator : public CurveGenerator {
 
 private:
 	EllipticCurve* C;
-	ReducedPoint* G;
+	ReducedPoint* G,Q;
 	Torsion tor;
+	unsigned int start,end;
 	
 public:
 
-	EdwardsGenerator(mpz_t n,Torsion T);
+	EdwardsGenerator(mpz_t n,Torsion T,unsigned int from,unsigned int to);
 	~EdwardsGenerator();
 	
 protected:
@@ -72,12 +73,13 @@ class TwistedGenerator : public CurveGenerator {
 
 private:
 	EllipticCurve* C;
-	ReducedPoint* G;
+	ReducedPoint* G,Q;
 	Torsion tor;
+	unsigned int start,end;
 	
 public:
 	
-	TwistedGenerator(mpz_t n,Torsion T);
+	TwistedGenerator(mpz_t n,Torsion T,unsigned int from,unsigned int to);
 	~TwistedGenerator();
 	
 protected:
@@ -88,9 +90,10 @@ protected:
 class MixedGenerator : public CurveGenerator {
 private:
 	CurveGenerator** gens;
+	unsigned int start,end;
 
 public:
-	MixedGenerator(mpz_t n);
+	MixedGenerator(mpz_t n,unsigned int from,unsigned int to);
 	~MixedGenerator();
 	
 protected:
