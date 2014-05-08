@@ -40,7 +40,7 @@ void biguint_to_mpz (mpz_t a, biguint_t b)
   }
 }
 
-string mpz_to_string(mpz_t number)
+string mpz_to_string(const mpz_t number)
 {
 	size_t sz = mpz_sizeinbase(number,10)+3;
 	char* out = new char[sz];
@@ -105,6 +105,13 @@ bool try_invert_mod(mpz_t invx,mpz_t x,const mpz_t N)
 	return ret;
 }
 
+void throw_factor(mpz_t F)
+{
+	mpz_t f;
+	mpz_init_set(f,F);
+	throw f;
+}
+
 void reduce_mod(mpz_t r,mpq_t q,const mpz_t n)
 {
 	mpz_t den,num;
@@ -124,7 +131,7 @@ void reduce_mod(mpz_t r,mpq_t q,const mpz_t n)
 	{
 	  // Pri selhani je v r zapsan faktor cisla N nebo 0, viz try_invert_mod().
 	  mpz_clear(num);
-	  throw r;
+	  throw_factor(r);
 	}
 	
 	mpz_mul(r,r,num);

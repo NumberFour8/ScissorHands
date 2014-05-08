@@ -46,7 +46,7 @@ public:
 	{
 		if (!try_invert_mod(X,X,N.X))
 		{
-			throw X;
+			throw_factor(X);
 		}
 		return *this;
 	}
@@ -55,12 +55,12 @@ public:
 	{
 		if (!try_invert_mod(X,X,N))
 		{
-			throw X;
+			throw_factor(X);
 		}
 		return *this;
 	}
 	
-	string str()
+	string str() const 
 	{
 		return mpz_to_string(X);
 	}

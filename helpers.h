@@ -53,7 +53,7 @@ void mpz_to_biguint(biguint_t a, mpz_t b);
 void biguint_to_mpz(mpz_t a, biguint_t b);
 
 // Prevede MPZ cislo do retezce
-std::string mpz_to_string(mpz_t number);
+std::string mpz_to_string(const mpz_t number);
 
 // Vypise ci­slo v bazi 2^32
 void printBigInt(const char* tag,biguint_t B);
@@ -74,6 +74,9 @@ void reduce_mod(mpz_t r,mpq_t q,const mpz_t n);
 
 // Redukuje racionalni souradnice modulo N. Stejne chovani jako reduce_mod
 void reduce_rational_point(mpz_t X,mpz_t Y,mpq_t Qx,mpq_t Qy,const mpz_t N);
+
+// Vyhodi faktor cisla jako C++ vyjimku
+void throw_factor(mpz_t F);
 
 // Vrati true, je-li n prvocislo s pravdepobnosti mensi nez 2^(-50)
 inline bool is_almost_surely_prime(mpz_t n)
