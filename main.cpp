@@ -20,9 +20,9 @@ const unsigned int MAX_STAGE1_BOUND = 500000;
 // Struktura uchovavajici konfiguraci prectenou z parametru nebo ze vstupu
 struct progArgs {
 	string N;
-	vector<string> curveFiles;
+	string curveGen;
 	vector<unsigned int> B1;
-	unsigned int curB1,curCur;
+	unsigned int curB1;
 	unsigned short windowSize;
 	bool verbose;
 	bool noLCM;
@@ -34,7 +34,7 @@ struct progArgs {
 	
 	progArgs() 
 	: verbose(false), noLCM(false), onePrimeFile(false), greedy(false), 
-	  exitOnFinish(false), curB1(0), curCur(0), windowSize(0), whichDevice(0)
+	  exitOnFinish(false), curB1(0), windowSize(0), whichDevice(0)
 	{ }
 };
 
@@ -51,8 +51,8 @@ void parseArguments(int argc,char** argv,progArgs& args)
 			"ID of a CUDA device used for computation.")
 		("N-to-factor,N", po::value<string>(),
 			"Number to factor.")
-		("curve-files,f", po::value<vector<string>>()->multitoken(),
-			"Path to file(s) containing curves used for factoring.")
+		("curve-generator,c", po::value<string>(),
+			"Curve generator name or path to file(s) containing curves used for factoring. Valid generator names: Ed16,Ed12,Tw6,Tw8,Tw4.")
 		("stage1-bound,B", po::value<vector<unsigned int>>()->multitoken(),
 			"Bound for ECM stage 1 or range set by 'start stride end'")
 		("greedy,g", "If set, wait for input of another N to factor after finishing.") 
@@ -74,14 +74,27 @@ void parseArguments(int argc,char** argv,progArgs& args)
 
 	if (vm.count("N-to-factor"))
 	  args.N = vm["N-to-factor"].as<string>();
-	if (vm.count("curve-files"))
-	  args.curveFiles = vm["curve-files"].as<vector<string>>();
+	if (vm.count("curve-generator"))
+	  args.curveFiles = vm["curve-generator"].as<string>();
 	if (vm.count("stage1-bound"))
 	  args.B1 = vm["stage1-bound"].as<vector<unsigned int>>();
 	if (vm.count("output-file"))
 	  args.outputFile = vm["output-file"].as<string>();
 	if (vm.count("help"))
 	  cout << endl << desc << endl << "-----------------------------------------" << endl << endl;
+}
+
+Torsion getGenerator(string& genName)
+{
+	if (genName == "Ed16")
+	  return Z2xZ8;
+	else if (genName == "Ed12")
+	  return Z12;
+	else if (genName == "Tw8")
+	  return Z8;
+	else if (genName == "Tw4")
+	  return Z2xZ4;
+	else return Z6;
 }
 
 // Zkontroluje úplnost parametrů, případně požádá o doplnění
@@ -99,39 +112,42 @@ int validateArguments(progArgs& args)
 		recheck = true; 
 	}
 	
-	if (args.curveFiles.size() > 0) 
-	{
-		for (unsigned int i = 0;i < args.curveFiles.size();++i)
+	if (!args.curveGen.empty()) 
+	{	
+		// Zkontrolovat a nahradit krátké zástupce souborů
+		if (args.curveGen.length() > 4)
 		{
-		   // Zkontrolovat a nahradit krátké zástupce souborů
-		   if (args.curveFiles[i].length() <= 3)
-		   {
-			  args.curveFiles[i] =  args.curveFiles[i] == "E" ? "curves_edwards.txt" :
-									args.curveFiles[i] == "M" ? "curves_mixed.txt"   : "curves_twisted.txt";
-			  cout << "INFO: Defaulting to " << args.curveFiles[i]  << endl;	
-		   }
-	
 		   // Zkontrolovat existenci souborů
-		   fs::path p(args.curveFiles[i]);
+		   fs::path p(args.curveGen);
 		   if (!fs::exists(p) || !fs::is_regular_file(p))
 		   {
 			  // Načíst znovu název souboru s křivkami, pokud je neplatný
-			  cout << "Path to curve file " << args.curveFiles[i] << " is invalid, please re-enter path:" << endl;
-			  cin  >> args.curveFiles[i];
+			  cout << "Path to curve file " << args.curveGen << " is invalid, please re-enter valid path or generator name:" << endl;
+			  cin  >> args.curveGen;
 			  cout << endl;
 			  recheck = true;
 		   }
+		}
+		else 
+		{
+			// Ověřit jméno generátoru křivek
+			const static boost::regex genCheck("(Tw[864]{1,1})|(Ed1[62]{1,1})");
+			if (!regex_match(args.curveGen,genCheck))
+			{
+				cout << "Invalid curve generator name, please re-enter valid path or generator name:" << endl;
+				cin  >> args.curveGen;
+			    cout << endl;
+			    recheck = true;
+			}
 		}
 	}
 	else 
 	{ 
 		// Načíst soubory s křivkami, není-li žádný uveden
-		string files;
-		cout << "Enter path to at least one curve file (comma separated):" << endl;
-		cin  >>  files;
+		cout << "Enter curve generator or path to a curve file:" << endl;
+		cin  >>  args.curveGen;
 		cout << endl;
 		
-		boost::split(args.curveFiles,files,boost::is_any_of(";,"));
 		recheck = true;
 	}
 
@@ -266,6 +282,9 @@ int main(int argc,char** argv)
 	computeStrategy strategy;		 // Strategie výpočtu
 	Generator* gen;					 // Generátor křivek
 	
+	if (args.curveGen.length() > 4)
+	  gen = new FileGenerator(zN,
+	
 	restart_bound:
 	
 	// Pokud je N prvočíslo, není co faktorizovat
@@ -292,10 +311,10 @@ int main(int argc,char** argv)
 	PP = NULL;
 	read_curves = edwards = twisted = 0;
 	strategy	= computeStrategy::csNone;
+	gen->restart();
 	
 	// Načti křivky a zvol vhodnou strategii
-	gen		    = new FileGenerator(zN,args.curveFiles[args.curCur]);
-	strategy	= readCurves(gen,&PP,edwards,twisted,read_curves);
+	strategy	= readCurves(gen,zN,&PP,edwards,twisted,read_curves);
 
 	if (strategy == computeStrategy::csNone)
 	{
@@ -440,14 +459,6 @@ int main(int argc,char** argv)
 	// Vyčisti proměnné
 	mpz_clrs(zInvW,zX,zY,zChk);
 	delete[] PP;
-
-	// Kontrola,zda ještě můžeme použít nějaký soubor s křivkami
-	if (args.curCur < args.curveFiles.size()-1 && !fullFactorizationFound)
-	{
-		args.curCur += 1;
-		cout << endl << "NOTE: Trying a different curve file." << endl;
-		goto restart_bound;
-	}
 
 	// Kontrola, zda máme restartovat bez zeptání a zvýšit B1
 	if (args.B1.size() > 1 && args.curB1 <= args.B1[2]-args.B1[1] && !fullFactorizationFound)

@@ -1,8 +1,8 @@
 #include "generators.h"
 #include "../helpers.h"
 
-FileGenerator::FileGenerator(mpz_t n,string filename)
- : Generator(n)
+FileGenerator::FileGenerator(string filename)
+ : Generator()
 {
 	fp.open(filename);
 	s = 0;
@@ -15,10 +15,14 @@ FileGenerator::~FileGenerator()
 
 void FileGenerator::reset()
 {
-	if (fp.is_open()) fp.seekg(0);
+	if (fp.is_open()) 
+	{
+	  s = 0;
+	  fp.seekg(0);
+	}
 }
 
-bool FileGenerator::next(ReducedPoint& P)
+bool FileGenerator::next(ReducedPoint& P,mpz_t zN)
 {	
 	string ln;	
 	bool ret = false;
@@ -34,7 +38,7 @@ bool FileGenerator::next(ReducedPoint& P)
 
 	do { 
 		if (!getline(fp,ln))
-		  goto read_finish;
+		  goto read_finish; // Jsme na konci souboru
 	} // Preskoc segment, ktery nezacina #
 	while (ln.find("#") == string::npos);
 	
@@ -57,22 +61,7 @@ bool FileGenerator::next(ReducedPoint& P)
 	mpq_set_str(qY,ln.c_str(),10);
 
 	// Pokus se X-ovou a Y-ovou souradnici rekudovat modulo N
-	try 
-	{
-		reduce_rational_point(P.X,P.Y,qX,qY,N);
-		s++;
-	}
-	catch (mpz_t f)
-	{
-		cout << "ERROR: Cannot reduce on curve #" << s << endl;
-		if (mpz_cmp_ui(f,0) != 0) // Byl nalezen faktor?
-		{
-			cout << "Factor found: " << mpz_to_string(f) << endl;
-		}
-		
-		A = 0;
-		goto read_finish;
-	}
+	reduce_rational_point(P.X,P.Y,qX,qY,zN);
 
 	ret = true;
 	

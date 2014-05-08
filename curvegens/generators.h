@@ -17,22 +17,23 @@ protected:
 	unsigned int s;
 	int A;
 	
-	virtual bool next(ReducedPoint& P) = 0;
+	mpz_t N;
+	
+	virtual bool next(ReducedPoint& P,mpz_t zN) = 0;
 	virtual void reset() = 0;
 
 public:
-	mpz_t N;
 
-	Generator(mpz_t n);
-	~Generator();
+	Generator();
 	
 	int getCoeff();
 	int getA();
 	int countEdwards();
 	int countTwisted();
+	void getN(mpz_t r);
 	
 	void restart();
-	bool next_base_point(ReducedPoint& P);
+	bool next_base_point(ReducedPoint& P,mpz_t zN);
 };
 	
 // Generátor křivek z nekonečných rodin
@@ -43,12 +44,12 @@ protected:
 	Torsion T;
 	unsigned int start,burst;
 
-	bool next(ReducedPoint& P);
+	bool next(ReducedPoint& P,mpz_t zN);
 	void reset();
 	
-	virtual void generate_base_point(ReducedPoint& P) = 0;
+	virtual void generate_base_point(ReducedPoint& P,mpz_t zN) = 0;
 public:
-	CurveGenerator(mpz_t n,Torsion t,unsigned int from,unsigned int b);
+	CurveGenerator(Torsion t,unsigned int from,unsigned int b);
 	~CurveGenerator();
 
 };
@@ -60,7 +61,7 @@ public:
 	EdwardsGenerator(mpz_t n,Torsion T,unsigned int from,unsigned int b);
 	
 protected:
-	void generate_base_point(ReducedPoint& P);
+	void generate_base_point(ReducedPoint& P,mpz_t zN);
 };
 
 ///////////////////////////// JINÉ GENERÁTORY //////////////////////////
@@ -72,11 +73,11 @@ private:
 	ifstream fp;
 	
 public:
-	FileGenerator(mpz_t n,string filename);
+	FileGenerator(string filename);
 	~FileGenerator();
 	
 protected:
-	bool next(ReducedPoint& P);
+	bool next(ReducedPoint& P,mpz_t zN);
 	void reset();
 };
 
@@ -85,13 +86,14 @@ class MixedGenerator : public Generator {
 private:
 	CurveGenerator** gens;
 	unsigned int start,end;
+	int ctr;
 
 public:
-	MixedGenerator(mpz_t n,unsigned int from,unsigned int b);
+	MixedGenerator(unsigned int from,unsigned int b);
 	~MixedGenerator();
 	
 protected:
-	bool next(ReducedPoint& P);
+	bool next(ReducedPoint& P,mpz_t zN);
 	void reset();
 	
 };
