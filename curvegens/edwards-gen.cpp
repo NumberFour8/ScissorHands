@@ -1,6 +1,6 @@
 #include "generators.h"
 
-EdwardsGenerator::EdwardsGenerator(mpz_t n,Torsion t,unsigned int from,unsigned int b)
+EdwardsGenerator::EdwardsGenerator(const mpz_t n,Torsion t,unsigned int from,unsigned int b)
  : CurveGenerator(t,from,b)
  {
 	switch (T)
@@ -33,18 +33,18 @@ EdwardsGenerator::EdwardsGenerator(mpz_t n,Torsion t,unsigned int from,unsigned 
 	};
  }
  
-void EdwardsGenerator::generate_base_point(ReducedPoint& P,mpz_t zN)
+void EdwardsGenerator::generate_base_point(ReducedPoint& P,const mpz_t zN)
 {	
 	Zint s(Q.X),t(Q.Y),x,y;
 	
 	if (T == Z12)
 	{
 		x = (s-2)*(s+6)*((s^2)+12*s-12);
-		x.invert_mod(N);
+		x.invert_mod(zN);
 		x *= 8*t*((s^2)+12);
 		
 		y = (s-2)*(s+6)*((s^2)-12);
-		y.invert_mod(N);
+		y.invert_mod(zN);
 		y *= 4*s*((s^2)-12*s-12);
 		y  = -y;	
 	}

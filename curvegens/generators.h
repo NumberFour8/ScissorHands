@@ -14,12 +14,10 @@ private:
 	unsigned int edwards,twisted;
 
 protected:
-	unsigned int s;
+	unsigned int S;
 	int A;
-	
-	mpz_t N;
-	
-	virtual bool next(ReducedPoint& P,mpz_t zN) = 0;
+		
+	virtual bool next(ReducedPoint& P,const mpz_t zN) = 0;
 	virtual void reset() = 0;
 
 public:
@@ -33,7 +31,7 @@ public:
 	void getN(mpz_t r);
 	
 	void restart();
-	bool next_base_point(ReducedPoint& P,mpz_t zN);
+	bool next_base_point(ReducedPoint& P,const mpz_t zN);
 };
 	
 // Gener·tor k¯ivek z nekonËen˝ch rodin
@@ -44,10 +42,10 @@ protected:
 	Torsion T;
 	unsigned int start,burst;
 
-	bool next(ReducedPoint& P,mpz_t zN);
+	bool next(ReducedPoint& P,const mpz_t zN);
 	void reset();
 	
-	virtual void generate_base_point(ReducedPoint& P,mpz_t zN) = 0;
+	virtual void generate_base_point(ReducedPoint& P,const mpz_t zN) = 0;
 public:
 	CurveGenerator(Torsion t,unsigned int from,unsigned int b);
 	~CurveGenerator();
@@ -58,10 +56,10 @@ public:
 class EdwardsGenerator : public CurveGenerator {
 
 public:
-	EdwardsGenerator(mpz_t n,Torsion T,unsigned int from,unsigned int b);
+	EdwardsGenerator(const mpz_t n,Torsion T,unsigned int from,unsigned int b);
 	
 protected:
-	void generate_base_point(ReducedPoint& P,mpz_t zN);
+	void generate_base_point(ReducedPoint& P,const mpz_t zN);
 };
 
 ///////////////////////////// JIN… GENER¡ÅTORY //////////////////////////
@@ -77,7 +75,7 @@ public:
 	~FileGenerator();
 	
 protected:
-	bool next(ReducedPoint& P,mpz_t zN);
+	bool next(ReducedPoint& P,const mpz_t zN);
 	void reset();
 };
 
@@ -86,13 +84,14 @@ class MixedGenerator : public Generator {
 private:
 	CurveGenerator** gens;
 	unsigned int burst,ctr;
+	const int num_gens;
 	
 public:
-	MixedGenerator(mpz_t n,unsigned int start,unsigned int b);
+	MixedGenerator(const mpz_t n,unsigned int start,unsigned int b);
 	~MixedGenerator();
 	
 protected:
-	bool next(ReducedPoint& P,mpz_t zN);
+	bool next(ReducedPoint& P,const mpz_t zN);
 	void reset();
 	
 };

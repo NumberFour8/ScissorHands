@@ -105,7 +105,7 @@ bool try_invert_mod(mpz_t invx,mpz_t x,const mpz_t N)
 	return ret;
 }
 
-void reduce_mod(mpz_t r,mpq_t q,mpz_t n)
+void reduce_mod(mpz_t r,mpq_t q,const mpz_t n)
 {
 	mpz_t den,num;
 	mpz_init_set(den,mpq_denref(q));
@@ -133,7 +133,7 @@ void reduce_mod(mpz_t r,mpq_t q,mpz_t n)
 	mpz_clear(num);
 }
 
-void reduce_rational_point(mpz_t zX,mpz_t zY,mpq_t qX,mpq_t qY,mpz_t N)
+void reduce_rational_point(mpz_t zX,mpz_t zY,mpq_t qX,mpq_t qY,const mpz_t N)
 {
 	mpq_canonicalize(qX);	
 	mpq_canonicalize(qY);

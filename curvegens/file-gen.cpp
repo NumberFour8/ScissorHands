@@ -5,7 +5,7 @@ FileGenerator::FileGenerator(string filename)
  : Generator()
 {
 	fp.open(filename);
-	s = 0;
+	S = 0;
 }
 
 FileGenerator::~FileGenerator()
@@ -17,12 +17,13 @@ void FileGenerator::reset()
 {
 	if (fp.is_open()) 
 	{
-	  s = 0;
-	  fp.seekg(0);
+	  S = 0;
+	  fp.clear();
+	  fp.seekg(0,ios::beg);
 	}
 }
 
-bool FileGenerator::next(ReducedPoint& P,mpz_t zN)
+bool FileGenerator::next(ReducedPoint& P,const mpz_t zN)
 {	
 	string ln;	
 	bool ret = false;

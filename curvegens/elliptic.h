@@ -31,7 +31,7 @@ public:
 		set(x,y);
 	}
 	
-	ReducedPoint(string x,string y,mpz_t N)
+	ReducedPoint(string x,string y,const mpz_t N)
 	{
 		mpq_t qx,qy;
 		mpq_intz(qx,qy);
@@ -71,7 +71,7 @@ private:
 	
 public:
 
-	EllipticCurve(string A1,string A2,string A3,string A4,mpz_t n)
+	EllipticCurve(string A1,string A2,string A3,string A4,const mpz_t n)
 	 : N(n)
 	{ 
 		mpq_t T;

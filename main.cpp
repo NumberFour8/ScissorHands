@@ -11,9 +11,11 @@
 #include <boost/program_options.hpp>
 #include <boost/random/mersenne_twister.hpp>
 #include <boost/random/uniform_int_distribution.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 namespace fs = boost::filesystem;
 namespace po = boost::program_options;
+namespace pt = boost::posix_time;
 
 #include "kernel.h"
 
@@ -82,7 +84,7 @@ void parseArguments(int argc,char** argv,progArgs& args)
 		boost::random::mt19937 gen((unsigned int)std::time(0));
 		boost::random::uniform_int_distribution<> dist(1, 10000); 
 		args.genStart = dist(gen);
-		cout << "NOTE: Random generator intial coefficient: " << args.genStart << endl; 
+		cout << "NOTE: Random generator initial coefficient: " << args.genStart << endl; 
 	}
 
 	if (vm.count("N-to-factor"))
@@ -263,7 +265,7 @@ int main(int argc,char** argv)
 	progArgs args;
 	stringstream primeStream;
 	int exitCode = 0,lastB1 = 0,runNum = 0,factorCount = 0,Ncount = 1,totalFactors = 0;
-	float cudaTimeCounter = 0,cudaTotalTime = 0;
+	pt::time_duration cudaTimeCounter,cudaTotalTime;
 	bool useMixedStrategy = false,fullFactorizationFound = false;
 	char c = 0;
 
@@ -295,10 +297,10 @@ int main(int argc,char** argv)
 	Generator* gen;					 // Generátor křivek
 	
 	if (args.curveGen.length() > 4)
-		gen = new FileGenerator(args.curveGen);
+		 gen = new FileGenerator(args.curveGen);
 	else if (args.curveGen == "All")
-		gen = new MixedGenerator(zN,args.genStart,192);
-	else gen = new EdwardsGenerator(zN,getGenerator(args.curveGen),args.genStart,193);
+		 gen = new MixedGenerator(zN,args.genStart,192);
+	else gen = new EdwardsGenerator(zN,getGenerator(args.curveGen),args.genStart,192);
 	
 	restart_bound:
 	
@@ -388,7 +390,7 @@ int main(int argc,char** argv)
         goto end;
     }
 	cout << "Computation finished." << endl << endl;
-	cudaTimeCounter += ax.cudaRunTime;
+	cudaTimeCounter += pt::milliseconds((int64_t)ax.cudaRunTime);
 
 	// Inicializace pomocných proměnných
 	mpz_intz(zInvW,zX,zY,zF);
@@ -523,7 +525,8 @@ int main(int argc,char** argv)
 	// Ulož výstup a vypiš celkový čas běhu
 	primeStream << boost::format("\n# Found prime factors: %d\n# -------------------------------------\n\n") % factorCount;
 	savePrimeFactors(args.outputFile,Ncount,args.onePrimeFile,primeStream);
-	cout << "Total GPU running time was: " << boost::format("%.3f minutes") % (cudaTimeCounter/60000) << endl;
+	
+	cout << "Total GPU running time was: " << cudaTimeCounter << endl;
 	totalFactors  += factorCount;
 	cudaTotalTime += cudaTimeCounter;
 	
@@ -532,7 +535,7 @@ int main(int argc,char** argv)
 	{
 		args.N = "";
 		lastB1 = runNum = factorCount = 0;
-		cudaTimeCounter = 0;
+		cudaTimeCounter = pt::milliseconds(0);
 		primeStream.str(string(""));
 		fullFactorizationFound = false; 
 		
@@ -549,8 +552,8 @@ int main(int argc,char** argv)
 
 	end:
 	mpz_clear(zN);
-	cout << "Total prime factors found in session: " << totalFactors << endl;
-	cout << "Total GPU time in session: " << boost::format("%.4f minutes") % (cudaTotalTime/60000) << endl;
+	cout << endl << "Total prime factors found in session: " << totalFactors << endl;
+	cout << "Total GPU time in session: " << cudaTotalTime << endl;
 
 	return exitCode;
 }
