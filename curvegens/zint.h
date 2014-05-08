@@ -42,7 +42,7 @@ public:
 		mpz_set(x,X);
 	}
 	
-	Zint& invert_mod(Zint& N)
+	Zint& invert_mod(const Zint& N)
 	{
 		if (!try_invert_mod(X,X,N.X))
 		{
@@ -51,7 +51,7 @@ public:
 		return *this;
 	}
 
-	Zint& invert_mod(mpz_t N)
+	Zint& invert_mod(const mpz_t N)
 	{
 		if (!try_invert_mod(X,X,N))
 		{

@@ -54,7 +54,7 @@ class EllipticCurve {
 private:
 	Zint a1,a2,a3,a4,N;
 	
-	void add(ReducedPoint& R,Zint& L,ReducedPoint& P,ReducedPoint& Q)
+	void add(ReducedPoint& R,const Zint& L,const ReducedPoint& P,const ReducedPoint& Q) const
 	{
 		Zint x1 = Zint(P.X);
 		Zint x3 = (L^2)+a1*L-a2-x1-Zint(Q.X);
@@ -99,16 +99,16 @@ public:
 		mpz_clear(I);
 	}
 	
-	void addPoints(ReducedPoint& R,ReducedPoint& P,ReducedPoint& Q) 
+	void addPoints(ReducedPoint& R,ReducedPoint& P,ReducedPoint& Q) const
 	{
 		Zint L = Zint(P.X)-Zint(Q.X);
 		L.invert_mod(N);
 		L *= (Zint(P.Y)-Zint(Q.Y));
 		
-		add(R,L,P,Q);
+		add(R,L % N,P,Q);
 	}
 	
-	void doublePoint(ReducedPoint& R,ReducedPoint& P) 
+	void doublePoint(ReducedPoint& R,ReducedPoint& P) const
 	{
 		Zint x1(P.X),y1(P.Y);
 		
@@ -116,7 +116,7 @@ public:
 		L.invert_mod(N);
 		L *= (x1^2)*3+a2*x1*2+a4-a1*y1;
 		
-		add(R,L,P,P);
+		add(R,L % N,P,P);
 	}
 	
 };

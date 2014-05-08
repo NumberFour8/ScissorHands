@@ -75,7 +75,7 @@ void lcmToN(mpz_t res,const unsigned int n)
 	}
 }
 
-bool try_invert_mod(mpz_t invx,mpz_t x,mpz_t N)
+bool try_invert_mod(mpz_t invx,mpz_t x,const mpz_t N)
 {
 	bool ret = false;
 		 

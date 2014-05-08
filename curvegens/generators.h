@@ -85,11 +85,10 @@ protected:
 class MixedGenerator : public Generator {
 private:
 	CurveGenerator** gens;
-	unsigned int start,end;
-	int ctr;
-
+	unsigned int burst,ctr;
+	
 public:
-	MixedGenerator(mpz_t n,unsigned int from,unsigned int b);
+	MixedGenerator(mpz_t n,unsigned int start,unsigned int b);
 	~MixedGenerator();
 	
 protected:

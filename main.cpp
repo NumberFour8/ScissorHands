@@ -9,6 +9,8 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
+#include <boost/random/mersenne_twister.hpp>
+#include <boost/random/uniform_int_distribution.hpp>
 
 namespace fs = boost::filesystem;
 namespace po = boost::program_options;
@@ -22,7 +24,7 @@ struct progArgs {
 	string N;
 	string curveGen;
 	vector<unsigned int> B1;
-	unsigned int curB1;
+	unsigned int curB1,genStart;
 	unsigned short windowSize;
 	bool verbose;
 	bool noLCM;
@@ -34,7 +36,7 @@ struct progArgs {
 	
 	progArgs() 
 	: verbose(false), noLCM(false), onePrimeFile(false), greedy(false), 
-	  exitOnFinish(false), curB1(0), windowSize(0), whichDevice(0)
+	  exitOnFinish(false), curB1(0), windowSize(0), whichDevice(0), genStart(1)
 	{ }
 };
 
@@ -52,7 +54,9 @@ void parseArguments(int argc,char** argv,progArgs& args)
 		("N-to-factor,N", po::value<string>(),
 			"Number to factor.")
 		("curve-generator,c", po::value<string>(),
-			"Curve generator name or path to file(s) containing curves used for factoring. Valid generator names: Ed16,Ed12,Tw6,Tw8,Tw4.")
+			"Curve generator name or path to file(s) containing curves used for factoring. Valid generator names: Ed16,Ed12,Tw6,Tw8,Tw4,All")
+		("generator-init,i", po::value<unsigned int>(&args.genStart)->default_value(1),
+			"Generator initial point coefficient. Set 0 for random value.")
 		("stage1-bound,B", po::value<vector<unsigned int>>()->multitoken(),
 			"Bound for ECM stage 1 or range set by 'start stride end'")
 		("greedy,g", "If set, wait for input of another N to factor after finishing.") 
@@ -71,6 +75,15 @@ void parseArguments(int argc,char** argv,progArgs& args)
 	args.exitOnFinish	 = vm.count("no-restart") != 0 || vm.count("greedy") != 0;;
 	args.greedy			 = vm.count("greedy") != 0;
 	args.onePrimeFile	 = vm.count("single-output") != 0;
+
+	// Vygeneruj náhodný start pro křivkový generátor
+	if (args.genStart == 0)
+	{
+		boost::random::mt19937 gen((unsigned int)std::time(0));
+		boost::random::uniform_int_distribution<> dist(1, 10000); 
+		args.genStart = dist(gen);
+		cout << "NOTE: Random generator intial coefficient: " << args.genStart << endl; 
+	}
 
 	if (vm.count("N-to-factor"))
 	  args.N = vm["N-to-factor"].as<string>();
@@ -131,7 +144,7 @@ int validateArguments(progArgs& args)
 		else 
 		{
 			// Ověřit jméno generátoru křivek
-			const static boost::regex genCheck("(Tw[864]{1,1})|(Ed1[62]{1,1})");
+			const static boost::regex genCheck("(Tw[864]{1,1})|(Ed1[62]{1,1})|(All)");
 			if (!regex_match(args.curveGen,genCheck))
 			{
 				cout << "Invalid curve generator name, please re-enter valid path or generator name:" << endl;
@@ -283,6 +296,8 @@ int main(int argc,char** argv)
 	
 	if (args.curveGen.length() > 4)
 		gen = new FileGenerator(args.curveGen);
+	else if (args.curveGen == "All")
+		gen = new MixedGenerator(zN,1,192);
 	else gen = new EdwardsGenerator(zN,getGenerator(args.curveGen),1,193);
 	
 	restart_bound:

@@ -65,7 +65,7 @@ void lcmToN(mpz_t res,const unsigned int n);
    Pokud inverze neexistuje vraci false a v invX je faktor N.
    Je-li gcd(X,N) = N, pak vraci­ 0.
  */ 
-bool try_invert_mod(mpz_t invx,mpz_t x,mpz_t N);
+bool try_invert_mod(mpz_t invx,mpz_t x,const mpz_t N);
 
 /* Vypocita redukci racionalni­ho ci­sla q modulo n.
    Pri chybe vyhodi vyjimku­ s faktorem ci­sla N nebo 0. 
