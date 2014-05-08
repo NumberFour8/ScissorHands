@@ -297,8 +297,8 @@ int main(int argc,char** argv)
 	if (args.curveGen.length() > 4)
 		gen = new FileGenerator(args.curveGen);
 	else if (args.curveGen == "All")
-		gen = new MixedGenerator(zN,1,192);
-	else gen = new EdwardsGenerator(zN,getGenerator(args.curveGen),1,193);
+		gen = new MixedGenerator(zN,args.genStart,192);
+	else gen = new EdwardsGenerator(zN,getGenerator(args.curveGen),args.genStart,193);
 	
 	restart_bound:
 	
