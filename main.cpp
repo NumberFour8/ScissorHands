@@ -1,11 +1,8 @@
 #include <stdio.h>
 #include <iomanip>
 #include <fstream>
-#include <sstream> 
-#include <set>
 
 #include <boost/regex.hpp>
-#include <boost/format.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
@@ -226,35 +223,6 @@ int validateArguments(progArgs& args)
 	return 0;
 }
 
-// Uloží a přepíše výstupní soubor s nalezenými faktory
-void savePrimeFactors(string fileName,int id,bool append,stringstream& primeStream)
-{
-	ios_base::openmode md = ofstream::out;
-	string fname = "";
-	if (append)
-	{
-		fname = (boost::format("%s-all.txt") % fileName).str();
-		md |= ofstream::app;
-	}
-	else 
-	{
-		fname = (boost::format("%s-#%d.txt") % fileName % id).str();
-		md |= ofstream::trunc;
-	}
-	
-	ofstream pr(fname,md);
-	pr << primeStream.str();
-	pr.close();
-	cout << "All found prime factors have been written to file: " << fname << endl;
-}
-
-// Struktura obsahující informace o získaném faktoru
-struct factor {
-		string fac;
-		bool prime;
-		unsigned int curveId;
-		factor(string f,bool p,unsigned int c) : fac(f),prime(p),curveId(c) {}
-};
 
 int main(int argc,char** argv)
 {
@@ -263,26 +231,20 @@ int main(int argc,char** argv)
 	cout << endl;
 	
 	progArgs args;
-	stringstream primeStream;
-	int exitCode = 0,lastB1 = 0,runNum = 0,factorCount = 0,Ncount = 1,totalFactors = 0;
+	int exitCode = 0,lastB1 = 0,runNum = 0,factorCount = 0,Ncount = 1;
 	pt::time_duration cudaTimeCounter,cudaTotalTime;
 	bool useMixedStrategy = false,fullFactorizationFound = false;
 	char c = 0;
-
-	// Množina nalezených faktorů s vlastním uspořádnáním
-	typedef bool(*factor_comparator)(factor, factor);
-	set<factor,factor_comparator> foundFactors([](factor x, factor y){ return x.fac < y.fac; });
 
 	// Jsou-li předány parametry, použij je. Jinak se na ně zeptej.
 	parseArguments(argc,argv,args);
 	validateArguments(args);
 
+	FoundFactors  ffact(args.N,args.verbose);
+
 	// Inicializace N
 	mpz_t zN;
 	mpz_init_set_str(zN,args.N.c_str(),10);
-
-	primeStream << "# Found prime factors of " << args.N << "\n";
-	primeStream << "# FOUND FACTOR, CURVE ID\n";
 	
 	// Inicializace proměnných
 	ExtendedPoint infty;			 // Neutrální prvek
@@ -322,17 +284,36 @@ int main(int argc,char** argv)
 	}
 	cout << "NOTE: N is " << bitCountN << " bits long." << endl;
 
-	infty.infinity(zN);
-	ax.initialize(zN);
-
 	PP = NULL;
 	read_curves = edwards = twisted = 0;
 	strategy	= computeStrategy::csNone;
+
+	ffact.clearSession();
 	gen->restart();
 	
-	// Načti křivky a zvol vhodnou strategii
-	strategy	= readCurves(gen,zN,&PP,edwards,twisted,read_curves);
-
+	try {
+		// Pokus se načíst křivky a zvolit vhodnou strategii
+		strategy = readCurves(gen,zN,&PP,edwards,twisted,read_curves);
+	}
+	catch (mpz_t zF)
+	{
+		// Ošetři nalezené faktory během předpočítávací fáze
+		if (ffact.handlePotentialFactor(zF,gen->countCurves()+1))
+		{
+			cout << "Factor found during precomputation: " << ffact.getLastFactor() << endl;
+			if (ffact.reduceComposite(zN))
+			{
+				cout << "Full factorization found during precomputation." << endl;
+				exitCode = 1;
+				mpz_clear(zF);
+				goto end;
+			}
+		}
+		mpz_clear(zF);
+		goto restart_bound;
+	}
+	
+	// Pokud není strategie, skonči
 	if (strategy == computeStrategy::csNone)
 	{
 		cout << "ERROR: No suitable compute strategy found." << endl;
@@ -370,6 +351,9 @@ int main(int argc,char** argv)
 	ax.cudaRunTime = 0;
 	runNum++;
 
+	infty.infinity(zN);
+	ax.initialize(zN);
+
 	// Proveď výpočet
 	if (strategy == computeStrategy::csMixed)
 	{
@@ -400,8 +384,6 @@ int main(int argc,char** argv)
 	mpz_invert(zInvW, zInvW, zN);
 
 	// Analyzuj výsledky
-	foundFactors.clear();
-	mpz_init_set_ui(zChk,1);
 	for (int i = 0; i < read_curves;++i)
 	{
 		try {
@@ -415,71 +397,28 @@ int main(int argc,char** argv)
 		}
 		catch (mpz_t zF)
 		{
-			if (mpz_cmp_ui(zF,0) != 0) // Máme faktor!
+			bool ff = ffact.handlePotentialFactor(zF,i));
+			if (args.verbose)
 			{
-			   bool isPrime = is_almost_surely_prime(zF);
-			   string fact  = mpz_to_string(zF);
-
-			   if (args.verbose) cout << "Factor found: " << fact << endl;
-			   if (foundFactors.insert(factor(fact,isPrime,i)).second && isPrime) 
-			   {
-				 mpz_mul(zChk,zChk,zF);
-				 primeStream << fact << ", " << i;
-				 if (strategy == computeStrategy::csEdwards)
-					primeStream << "E\n";
-				 else if (strategy == computeStrategy::csTwisted)
-					primeStream << "T\n";
-				 else primeStream << "M\n";
-				 factorCount++;
-			   }
-			}
-			else if (args.verbose) cout << "Error during conversion." << endl;
-			if (args.verbose) cout << endl << "------------" << endl;
+			  if (ff) cout << "Factor found: " << ffact.getLastFactor() << endl;
+			  else cout << "Error during conversion." << endl;
+			  cout << endl << "------------" << endl;
+		    }
 			mpz_clear(zF);
 		}
 	}
 	
+	// Vyčisti proměnné
+	mpz_clrs(zInvW,zX,zY);
+	delete[] PP;
+	
 	// Vypiš všechny nalezené faktory
-	if (foundFactors.size() > 0)
-	{
-	  cout << endl << foundFactors.size() << " FACTORS FOUND IN RUN #" << runNum << ":" << endl << endl;
-	  std::for_each(foundFactors.begin(),foundFactors.end(),
-		[](const factor f)
-		{ 
-			cout << (f.prime ? "Prime:\t\t" : "Composite:\t") << f.fac << " (#" << f.curveId << ")" <<  endl; 
-		}
-	   );
-	}
-	else cout << endl << "NO FACTORS FOUND." << endl << endl;
+	ffact.printAllFactors();
 
 	// Poděl číslo N všemi nalezenými prvočíselnými faktory
 	cout << endl; 
-	if (mpz_cmp(zChk,zN) != 0)
-	{
-		mpz_divexact(zChk,zN,zChk);
-		if (is_almost_surely_prime(zChk))
-		{
-			cout << "REMAINING UNFACTORED PART " << mpz_to_string(zChk) << " IS A PRIME." << endl;
-			cout << mpz_to_string(zN) << " HAS BEEN FACTORED TOTALLY!" << endl;
-			args.exitOnFinish = true;
-			fullFactorizationFound = true;
-		}
-		else {
-			cout << "REMAINING UNFACTORED PART: " << mpz_to_string(zChk); 
-			cout << " (" << mpz_sizeinbase(zChk,2) << " bits)" << endl;
-			mpz_set(zN,zChk);
-		}
-	}
-	else 
-	{
-		cout << mpz_to_string(zN) << " HAS BEEN FACTORED TOTALLY!" << endl;
-		args.exitOnFinish = true; 
-		fullFactorizationFound = true;
-	}
-
-	// Vyčisti proměnné
-	mpz_clrs(zInvW,zX,zY,zChk);
-	delete[] PP;
+	fullFactorizationFound = ffact.reduceComposite(zN);
+	args.exitOnFinish = args.exitOnFinish || fullFactorizationFound;
 
 	// Kontrola, zda máme restartovat bez zeptání a zvýšit B1
 	if (args.B1.size() > 1 && args.curB1 <= args.B1[2]-args.B1[1] && !fullFactorizationFound)
@@ -527,8 +466,7 @@ int main(int argc,char** argv)
 	}
 	
 	// Ulož výstup a vypiš celkový čas běhu
-	primeStream << boost::format("\n# Found prime factors: %d\n# -------------------------------------\n\n") % factorCount;
-	savePrimeFactors(args.outputFile,Ncount,args.onePrimeFile,primeStream);
+	ffound.savePrimeFactors(args.outputFile,Ncount,args.onePrimeFile);
 	
 	cout << "Total GPU running time was: " << cudaTimeCounter << endl;
 	totalFactors  += factorCount;

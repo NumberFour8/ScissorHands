@@ -28,6 +28,7 @@ public:
 	int getA();
 	int countEdwards();
 	int countTwisted();
+	int countCurves();
 	void getN(mpz_t r);
 	
 	void restart();

@@ -26,6 +26,11 @@ int Generator::countTwisted()
 	return twisted;
 }
 
+int Generator::countCurves()
+{
+	return edwards+twisted;
+}
+
 void Generator::restart()
 {
 	edwards = twisted = 0;
