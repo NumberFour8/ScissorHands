@@ -3,7 +3,7 @@
 MixedGenerator::MixedGenerator(mpz_t n,unsigned int start,unsigned int b)
 	: Generator(), ctr(-1)
 {
-	gens = new CurveGenerators*[5];
+	gens = new CurveGenerator*[5];
 	unsigned int bb = b/5;
 	
 	gens[0] = new EdwardsGenerator(n,Z6,start,bb);
@@ -25,15 +25,15 @@ MixedGenerator::~MixedGenerator()
 
 void MixedGenerator::reset()
 {
-	gens[0]->reset();
-	gens[1]->reset();
-	gens[2]->reset();
-	gens[3]->reset();
-	gens[4]->reset();
+	gens[0]->restart();
+	gens[1]->restart();
+	gens[2]->restart();
+	gens[3]->restart();
+	gens[4]->restart();
 }
 
 bool MixedGenerator::next(ReducedPoint& P,mpz_t zN)
 {
 	ctr = (ctr+1) % 5;
-	return gens[ctr]->next(P,zN); 
+	return gens[ctr]->next_base_point(P,zN); 
 }

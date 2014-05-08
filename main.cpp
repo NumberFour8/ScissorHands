@@ -75,7 +75,7 @@ void parseArguments(int argc,char** argv,progArgs& args)
 	if (vm.count("N-to-factor"))
 	  args.N = vm["N-to-factor"].as<string>();
 	if (vm.count("curve-generator"))
-	  args.curveFiles = vm["curve-generator"].as<string>();
+	  args.curveGen = vm["curve-generator"].as<string>();
 	if (vm.count("stage1-bound"))
 	  args.B1 = vm["stage1-bound"].as<vector<unsigned int>>();
 	if (vm.count("output-file"))
@@ -207,7 +207,6 @@ int validateArguments(progArgs& args)
 	}
 	
 	args.curB1  = args.B1[0];
-	args.curCur = 0;
 	if (recheck) return validateArguments(args);
 	return 0;
 }
@@ -283,7 +282,8 @@ int main(int argc,char** argv)
 	Generator* gen;					 // Generátor křivek
 	
 	if (args.curveGen.length() > 4)
-	  gen = new FileGenerator(zN,
+		gen = new FileGenerator(args.curveGen);
+	else gen = new EdwardsGenerator(zN,getGenerator(args.curveGen),1,193);
 	
 	restart_bound:
 	
@@ -464,7 +464,6 @@ int main(int argc,char** argv)
 	if (args.B1.size() > 1 && args.curB1 <= args.B1[2]-args.B1[1] && !fullFactorizationFound)
 	{
 		args.curB1 += args.B1[1];
-		args.curCur = 0;
 		cout << "NOTE: B1 has been automatically incremented to: " << args.curB1 << endl;
 		goto restart_bound;
 	}
@@ -499,7 +498,7 @@ int main(int argc,char** argv)
 	   else if (c == 'r')
 	   {
 		  args.B1.clear();
-		  args.curveFiles.clear();
+		  args.curveGen.clear();
 
 		  validateArguments(args);
 		  goto restart_bound;

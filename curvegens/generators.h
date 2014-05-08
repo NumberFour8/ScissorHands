@@ -8,7 +8,7 @@
 
 typedef enum { Z12,Z2xZ8,Z6,Z8,Z2xZ4 } Torsion;
 
-// GenerickÃ½ generÃ¡tor kÅ™ivek z libovolnÃ©ho zdroje
+// Generickı generátor køivek
 class Generator {
 private:
 	unsigned int edwards,twisted;
@@ -36,7 +36,7 @@ public:
 	bool next_base_point(ReducedPoint& P,mpz_t zN);
 };
 	
-// GenerÃ¡tor kÅ™ivek z nekoneÄnÃ½ch rodin
+// Generátor køivek z nekonèenıch rodin
 class CurveGenerator: public Generator {
 protected:
 	EllipticCurve *C;
@@ -54,7 +54,7 @@ public:
 
 };
 	
-///////////////////////// KÅ˜IVKOVÃ‰ GENERÃTORY //////////////////////////
+///////////////////////// KØIVKOVÉ GENERÁTORY //////////////////////////
 class EdwardsGenerator : public CurveGenerator {
 
 public:
@@ -64,9 +64,9 @@ protected:
 	void generate_base_point(ReducedPoint& P,mpz_t zN);
 };
 
-///////////////////////////// JINÃ‰ GENERÃTORY //////////////////////////
+///////////////////////////// JINÉ GENERÁTORY //////////////////////////
 
-// GenerÃ¡tor kÅ™ivek skrz ÄtenÃ­ ze souboru
+// Generátor køivek ze souboru
 class FileGenerator : public Generator {
 
 private:
@@ -81,7 +81,7 @@ protected:
 	void reset();
 };
 
-// GenerÃ¡tor smÃ­Å¡enÃ½ch druhÅ¯ kÅ™ivek
+// Smíšenı generátor køivek
 class MixedGenerator : public Generator {
 private:
 	CurveGenerator** gens;
@@ -89,7 +89,7 @@ private:
 	int ctr;
 
 public:
-	MixedGenerator(unsigned int from,unsigned int b);
+	MixedGenerator(mpz_t n,unsigned int from,unsigned int b);
 	~MixedGenerator();
 	
 protected:
