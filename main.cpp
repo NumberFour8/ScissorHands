@@ -288,7 +288,7 @@ int main(int argc,char** argv)
 	ExtendedPoint infty;			 // Neutrální prvek
 	ComputeConfig ax;	    		 // Pomocná struktura
 	NAF S;					 		 // NAF rozvoj
-	mpz_t zS,zInvW,zX,zY,zF,zChk; 	 // Pomocné proměnné
+	mpz_t zS,zInvW,zX,zY,zChk;		 // Pomocné proměnné
 	cudaError_t cudaStatus;	 		 // Proměnná pro chybové kódy GPU
 	ExtendedPoint *PP;		 		 // Adresa všech bodů
 	int read_curves,edwards,twisted; // Počty načtených typů křivek
@@ -393,7 +393,7 @@ int main(int argc,char** argv)
 	cudaTimeCounter += pt::milliseconds((int64_t)ax.cudaRunTime);
 
 	// Inicializace pomocných proměnných
-	mpz_intz(zInvW,zX,zY,zF);
+	mpz_intz(zInvW,zX,zY);
 	
 	// Spočti 2^(-W) mod N 
 	mpz_ui_pow_ui(zInvW, 2, SIZE_DIGIT); 
@@ -404,36 +404,40 @@ int main(int argc,char** argv)
 	mpz_init_set_ui(zChk,1);
 	for (int i = 0; i < read_curves;++i)
 	{
-		if (args.verbose) cout << "Curve #" << i+1 << ":\t"; 
-		if (PP[i].toAffine(zX,zY,zN,zInvW,zF)) 
-		{
-			if (args.verbose)
-			{
+		try {
+		   if (args.verbose) cout << "Curve #" << i+1 << ":\t"; 
+		   PP[i].toAffine(zX,zY,zN,zInvW);
+		   if (args.verbose)
+		   {
 			  cout << "No factor found." << endl;
 			  cout << endl << "sP = (" << mpz_to_string(zX) << "," << mpz_to_string(zY) << ")" << endl;
-			}
-		}
-		else if (mpz_cmp_ui(zF,0) != 0) // Máme faktor!
-		{
-		   bool isPrime = is_almost_surely_prime(zF);
-		   string fact  = mpz_to_string(zF);
-
-		   if (args.verbose) cout << "Factor found: " << fact << endl;
-		   if (foundFactors.insert(factor(fact,isPrime,i)).second && isPrime) 
-		   {
-			 mpz_mul(zChk,zChk,zF);
-		     primeStream << fact << ", " << i;
-			 if (strategy == computeStrategy::csEdwards)
-				primeStream << "E\n";
-			 else if (strategy == computeStrategy::csTwisted)
-				primeStream << "T\n";
-			 else primeStream << "M\n";
-			 factorCount++;
 		   }
 		}
-		else if (args.verbose) cout << "Error during conversion." << endl;
-		if (args.verbose) cout << endl << "------------" << endl;
-    }
+		catch (mpz_t zF)
+		{
+			if (mpz_cmp_ui(zF,0) != 0) // Máme faktor!
+			{
+			   bool isPrime = is_almost_surely_prime(zF);
+			   string fact  = mpz_to_string(zF);
+
+			   if (args.verbose) cout << "Factor found: " << fact << endl;
+			   if (foundFactors.insert(factor(fact,isPrime,i)).second && isPrime) 
+			   {
+				 mpz_mul(zChk,zChk,zF);
+				 primeStream << fact << ", " << i;
+				 if (strategy == computeStrategy::csEdwards)
+					primeStream << "E\n";
+				 else if (strategy == computeStrategy::csTwisted)
+					primeStream << "T\n";
+				 else primeStream << "M\n";
+				 factorCount++;
+			   }
+			}
+			else if (args.verbose) cout << "Error during conversion." << endl;
+			if (args.verbose) cout << endl << "------------" << endl;
+			mpz_clear(zF);
+		}
+	}
 	
 	// Vypiš všechny nalezené faktory
 	if (foundFactors.size() > 0)

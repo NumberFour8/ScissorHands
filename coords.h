@@ -39,9 +39,9 @@ public:
 	
 	/*
 		Převede bod z Extended souřadnic v Montgomeryho reprezentaci zpět do afinních.
-		V případě chyby vrací false a případný nalezný faktor čísla N je zapsán do fact.
+		V případě chyby vyhazuje případný nalezný faktor čísla N jako výjimku.
 	*/
-	bool toAffine(mpz_t x,mpz_t y,mpz_t N,mpz_t invB,mpz_t fact);
+	void toAffine(mpz_t x,mpz_t y,mpz_t N,mpz_t invB);
 
 };
 

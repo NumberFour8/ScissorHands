@@ -63,10 +63,10 @@ void ExtendedPoint::fromAffine(mpz_t x,mpz_t y,mpz_t N)
 	mpz_clrs(t,z);
 }
 
-bool ExtendedPoint::toAffine(mpz_t x,mpz_t y,mpz_t N,mpz_t invB,mpz_t fact)
+void ExtendedPoint::toAffine(mpz_t x,mpz_t y,mpz_t N,mpz_t invB)
 {
-	mpz_t z;
-	mpz_init(z);
+	mpz_t z,fact;
+	mpz_intz(z,fact);
 	mpz_set_ui(fact,0);
 
 	biguint_to_mpz(x,X);
@@ -78,18 +78,15 @@ bool ExtendedPoint::toAffine(mpz_t x,mpz_t y,mpz_t N,mpz_t invB,mpz_t fact)
 	from_mont_repr(z,N,invB);
 	
 	bool ret = try_invert_mod(fact,z,N);
+	mpz_clear(z);
 	if (ret) 
 	{
 		mpz_mul(x,x,fact);
 		mpz_mul(y,y,fact);
 		mpz_mod(x,x,N);
 		mpz_mod(y,y,N);
-		
-		mpz_set_ui(fact,0);
 	}
-		
-	mpz_clear(z);
-	return ret;
+	else throw fact;
 }
 
 // Zvoli vhodnou strategii vypoctu podle poctu nactenych typu krivek 
