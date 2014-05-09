@@ -23,7 +23,7 @@ private:
 	// Množina nalezených faktorů s vlastním uspořádnáním
 	typedef bool(*factor_comparator)(factor, factor);
 	set<factor,factor_comparator> foundFactors([](factor x, factor y){ return x.fac < y.fac; });
-	int totalFound;
+	int totalPrimesFound,currentSessionId,primesFoundInSession;
 	
 	stringstream primeStream;
 	string fact;
@@ -31,28 +31,43 @@ private:
 	
 public:
 
-
-	FoundFactors(string initialN) : totalFound(0)
+	FoundFactors() : totalPrimesFound(0), currentSessionId(0), primesFoundInSession(0)
 	{
 		mpz_init(zChk);
-		primeStream << "# Found prime factors of " << initialN << "\n";
-		primeStream << "# FOUND FACTOR, CURVE ID\n";
 	}
 	
 	~FoundFactors()
 	{
 		mpz_clear(zChk);
 	}
+	
+	void startNewSession(string zN)
+	{
+		currentSessionId++;
+		
+		primeStream.str(string(""));
+		primeStream << "# Session ID: " << currentSession << "\n";
+		primeStream << "# Found prime factors of " << zN << "\n";
+		primeStream << "# FOUND FACTOR, CURVE ID\n";
+		
+		mpz_set_ui(zChk,1);
+		newFoundFactors.clear();
+		primesFoundInSession = 0;
+	}
 
 	string getLastFactor()
 	{
 		return fact;
 	}
-
-	void clearSession()
+	
+	int primesFoundInAllSessions()
 	{
-		foundFactors.clear();
-		mpz_set_ui(zChk,1);
+		return totalPrimesFound;
+	}
+	
+	int primesFoundInCurrentSession()
+	{
+		return primesFoundInSession;
 	}
 
 	// Zkontroluj a přidej nový faktor
@@ -68,20 +83,22 @@ public:
 		   {
 			 mpz_mul(zChk,zChk,zF);
 			 primeStream << fact << ", " << curveId << "\n";
-			 totalFound++;
+			 
+			 totalPrimesFound++;
+			 primesFoundInSession++;
 		   }
 		   return true;
 		}
 		else return false;
 	}
 	
-	// Vypiš všechny nalezené faktory
-	void printAllFactors()
+	// Vypiš všechny nově nalezené faktory
+	void printNewFoundFactors(int runNum)
 	{
-		if (foundFactors.size() > 0)
+		if (newFoundFactors.size() > 0)
 		{
-		  cout << endl << foundFactors.size() << " FACTORS FOUND IN RUN #" << runNum << ":" << endl << endl;
-		  std::for_each(foundFactors.begin(),foundFactors.end(),
+		  cout << endl << newFoundFactors.size() << " FACTORS FOUND IN RUN #" << runNum << ":" << endl << endl;
+		  std::for_each(newFoundFactors.begin(),newFoundFactors.end(),
 			[](const factor f)
 			{ 
 				cout << (f.prime ? "Prime:\t\t" : "Composite:\t") << f.fac << " (#" << f.curveId << ")" <<  endl; 
@@ -91,32 +108,34 @@ public:
 		else cout << endl << "NO FACTORS FOUND." << endl << endl;
 	}
 	
-	// Uloží a přepíše výstupní soubor s nalezenými faktory
-	void savePrimeFactors(string fileName,int fileId,bool append)
+	void printPrimesFromSession()
 	{
-		ios_base::openmode md = ofstream::out;
-		string fname = "";
+		cout << primeStream.str() << endl;
+	}
+	
+	// Uloží a přepíše výstupní soubor s nalezenými faktory
+	void savePrimesFromSession(string fileName,bool append)
+	{
+		ios_base md = ofstream::out | ofstream::trunc;
+		string   fn	= boost::format("%s-%d.txt") % fileName % currentSessionId).str();
 		if (append)
 		{
-			fname = (boost::format("%s-all.txt") % fileName).str();
-			md |= ofstream::app;
+		  md = ofstream::out | ofstream::app;
+		  fn = boost::format("%s.txt") % fileName).str();
 		}
-		else 
-		{
-			fname = (boost::format("%s-#%d.txt") % fileName % fileId).str();
-			md |= ofstream::trunc;
-		}
-		
-		ofstream pr(fname,md);
-		
+			
+		ofstream pr(fn,md);
 		primeStream << boost::format("\n# Found prime factors: %d\n# -------------------------------------\n\n") % totalFound;
 		pr << primeStream.str();
+		primeStream.str(string(""));
+		
 		pr.close();
 		cout << "All found prime factors have been written to file: " << fname << endl;
 	}
 	
-	bool reduceComposite(mpz_t zN)
+	bool tryFinishSession(mpz_t zN)
 	{
+		newFoundFactors.clear();
 		if (mpz_cmp(zChk,zN) != 0)
 		{
 			mpz_divexact(zChk,zN,zChk);
@@ -129,7 +148,9 @@ public:
 			else {
 				cout << "REMAINING UNFACTORED PART: " << mpz_to_string(zChk); 
 				cout << " (" << mpz_sizeinbase(zChk,2) << " bits)" << endl;
+				
 				mpz_set(zN,zChk);
+				mpz_set(zChk,1);
 				return false;
 			}
 		}

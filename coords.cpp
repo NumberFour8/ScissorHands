@@ -98,33 +98,33 @@ computeStrategy chooseStrategy(int edwardsRead,int twistedRead,int& usableCurves
 	{
 		cout << "ERROR: No curves read." << endl;
 		usableCurves = 0;
-		return computeStrategy::csNone;
+		return csNone;
 	}
 	
 	if (edwardsRead > 0 && twistedRead < edwardsRead && edwardsRead%CURVES_PER_BLOCK == 0)
 	{
 		cout << "INFO: Using " << edwardsRead << " Edwards curves." << endl;
 		usableCurves = edwardsRead;
-		return computeStrategy::csEdwards;
+		return csEdwards;
 	}
 	
 	if (twistedRead > 0 && edwardsRead < twistedRead && twistedRead%CURVES_PER_BLOCK == 0)
 	{
 		cout << "INFO: Using " << twistedRead << " twisted Edwards curves." << endl;
 		usableCurves = twistedRead;
-		return computeStrategy::csTwisted;
+		return csTwisted;
 	}
 	
 	if (twistedRead*edwardsRead > 0 && twistedRead == edwardsRead && curvesRead%(2*CURVES_PER_BLOCK) == 0)
 	{
 		cout << "INFO: Using " << edwardsRead << " Edwards curves and " << twistedRead << " twisted Edwards curves." << endl;
 		usableCurves = curvesRead;
-		return computeStrategy::csMixed; 
+		return csMixed; 
 	}
 	
 	cout << "ERROR: Inappropriate number of curves: " << edwardsRead << " Edwards curves, " << twistedRead << " twisted Edwards curves." << endl;
 	usableCurves = 0;
-	return computeStrategy::csNone;
+	return csNone;
 }
 
 computeStrategy readCurves(Generator* source,mpz_t zN,ExtendedPoint** pInit,int& edwards,int& twisted,int &usableCurves)
@@ -150,11 +150,11 @@ computeStrategy readCurves(Generator* source,mpz_t zN,ExtendedPoint** pInit,int&
 	
 	usableCurves = 0;
 	strat = chooseStrategy(edwards,twisted,usableCurves);
-	if (strat == computeStrategy::csNone) goto read_finish;
+	if (strat == csNone) goto read_finish;
 
 	// Prekopiruj body z vektoru do pameti
 	*pInit = new ExtendedPoint[usableCurves];
-	std::copy((strat == computeStrategy::csEdwards ? v.begin()+twisted : v.begin()),v.begin()+usableCurves,*pInit);
+	std::copy((strat == csEdwards ? v.begin()+twisted : v.begin()),v.begin()+usableCurves,*pInit);
 
 	// Jsme hotovi
 	read_finish:

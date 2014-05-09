@@ -245,6 +245,7 @@ int main(int argc,char** argv)
 	// Inicializace N
 	mpz_t zN;
 	mpz_init_set_str(zN,args.N.c_str(),10);
+	ffact.startNewSession();
 	
 	// Inicializace proměnných
 	ExtendedPoint infty;			 // Neutrální prvek
@@ -288,7 +289,6 @@ int main(int argc,char** argv)
 	read_curves = edwards = twisted = 0;
 	strategy	= computeStrategy::csNone;
 
-	ffact.clearSession();
 	gen->restart();
 	
 	try {
@@ -301,20 +301,22 @@ int main(int argc,char** argv)
 		if (ffact.handlePotentialFactor(zF,gen->countCurves()+1))
 		{
 			cout << "Factor found during precomputation: " << ffact.getLastFactor() << endl;
-			if (ffact.reduceComposite(zN))
+			if (ffact.tryFinishSession(zN))
 			{
 				cout << "Full factorization found during precomputation." << endl;
+				ffound.savePrimesFromSession(args.outputFile,args.onePrimeFile);
 				exitCode = 1;
 				mpz_clear(zF);
 				goto end;
 			}
 		}
 		mpz_clear(zF);
+		delete[] PP;
 		goto restart_bound;
 	}
 	
 	// Pokud není strategie, skonči
-	if (strategy == computeStrategy::csNone)
+	if (strategy == csNone)
 	{
 		cout << "ERROR: No suitable compute strategy found." << endl;
 		exitCode = 1;
@@ -355,7 +357,7 @@ int main(int argc,char** argv)
 	ax.initialize(zN);
 
 	// Proveď výpočet
-	if (strategy == computeStrategy::csMixed)
+	if (strategy == csMixed)
 	{
 		cout << "NOTE: Using mixed compute strategy." << endl;
 		cudaStatus = computeMixed(ax,&infty,PP,S);
@@ -412,12 +414,12 @@ int main(int argc,char** argv)
 	mpz_clrs(zInvW,zX,zY);
 	delete[] PP;
 	
-	// Vypiš všechny nalezené faktory
-	ffact.printAllFactors();
+	// Vypiš všechny nově nalezené faktory
+	ffact.printNewFoundFactors(runNum);
 
 	// Poděl číslo N všemi nalezenými prvočíselnými faktory
 	cout << endl; 
-	fullFactorizationFound = ffact.reduceComposite(zN);
+	fullFactorizationFound = ffact.tryFinishSession(zN);
 	args.exitOnFinish = args.exitOnFinish || fullFactorizationFound;
 
 	// Kontrola, zda máme restartovat bez zeptání a zvýšit B1
@@ -453,7 +455,8 @@ int main(int argc,char** argv)
 	   else if (c == 'p')
 	   {
 		  cout << endl;
-		  cout << primeStream.str() << endl << endl;
+		  ffact.printPrimesFromSession();
+		  cout << endl;
 	   }
 	   else if (c == 'r')
 	   {
@@ -466,7 +469,7 @@ int main(int argc,char** argv)
 	}
 	
 	// Ulož výstup a vypiš celkový čas běhu
-	ffound.savePrimeFactors(args.outputFile,Ncount,args.onePrimeFile);
+	ffound.savePrimesFromSession(args.outputFile,args.onePrimeFile);
 	
 	cout << "Total GPU running time was: " << cudaTimeCounter << endl;
 	totalFactors  += factorCount;
@@ -476,26 +479,23 @@ int main(int argc,char** argv)
 	if (args.greedy)
 	{
 		args.N = "";
-		lastB1 = runNum = factorCount = 0;
+		lastB1 = runNum = 0;
 		cudaTimeCounter = pt::milliseconds(0);
-		primeStream.str(string(""));
-		fullFactorizationFound = false; 
 		
 		cout << endl; 
 		if (validateArguments(args) != 0) goto end;
-		Ncount++;
-
 		mpz_init_set_str(zN,args.N.c_str(),10);
-		primeStream << "# Found prime factors of " << args.N << "\n";
-		primeStream << "# FOUND FACTOR, CURVE ID\n";
+		
+		ffact.startNewSession(args.N);
 		
 		goto restart_bound;
 	}
 
 	end:
+
 	mpz_clear(zN);
-	cout << endl << "Total prime factors found in session: " << totalFactors << endl;
-	cout << "Total GPU time in session: " << cudaTotalTime << endl;
+	cout << endl << "Total prime factors found in all sessions: " << ffactors.primesFoundInAllSessions() << endl;
+	cout << "Total GPU time of all sessions: " << cudaTotalTime << endl;
 
 	return exitCode;
 }
