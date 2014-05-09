@@ -39,29 +39,18 @@ void Generator::restart()
 
 bool Generator::next_base_point(ReducedPoint& P,const mpz_t zN)
 {
-	try {
-		if (next(P,zN) && A*A == 1)
-		{
-			if (A == 1) edwards++;
-			else 		twisted++;
-			
-			return true;
-		}
-		else return false;
-	}	
-	catch (mpz_t f)
+	if (next(P,zN) && A*A == 1)
 	{
-		cout << "ERROR: Cannot reduce on curve #" << (S+1) << endl;
-		if (mpz_cmp_ui(f,0) != 0) // Byl nalezen faktor?
-		{
-			cout << "Factor found: " << mpz_to_string(f) << endl;
-		}
-		return false;
+		if (A == 1) edwards++;
+		else 		twisted++;
+			
+		return true;
 	}
+	else return false;
 }
 
 CurveGenerator::CurveGenerator(Torsion t,unsigned int from,unsigned int b)
-	: Generator(), T(t), start(from), burst(b+2), C(NULL), G(NULL)
+	: Generator(), T(t), start(from), burst(b), C(NULL), G(NULL), curveCounter(0)
 {
 	
 }
@@ -77,26 +66,28 @@ CurveGenerator::~CurveGenerator()
 void CurveGenerator::reset()
 {
 	if (S > 1) S = 2;
+	curveCounter = 0;
 }
 
 bool CurveGenerator::next(ReducedPoint& P,const mpz_t zN)
 {
 	if (G == NULL || C == NULL) return false;
 	
-	if (S%burst == 0) return false;
+	if (curveCounter == burst) return false;
 	
 	if (S <= 1)
 	{
 	  C->doublePoint(Q,*G);
 	  S = 2;
 	}
-	else {
-		for (;S < start-1;S++)
-		   C->addPoints(Q,Q,*G);
-		C->addPoints(Q,Q,*G);
-	}
+	
+	for (;S < start-1;S++)
+	   C->addPoints(Q,Q,*G);
+		
+	if (S > 1) C->addPoints(Q,Q,*G);
 	
 	generate_base_point(P,zN);
 	S++;
+	curveCounter++;
 	return true;
 }

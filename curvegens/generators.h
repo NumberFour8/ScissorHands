@@ -37,6 +37,8 @@ public:
 	
 // Generátor køivek z nekonèených rodin
 class CurveGenerator: public Generator {
+private:
+	unsigned int curveCounter;
 protected:
 	EllipticCurve *C;
 	ReducedPoint* G,Q;

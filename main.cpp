@@ -15,6 +15,8 @@ namespace po = boost::program_options;
 namespace pt = boost::posix_time;
 
 #include "kernel.h"
+#include "factors.h"
+
 
 const unsigned int MAX_STAGE1_BOUND = 500000;
 
@@ -231,7 +233,7 @@ int main(int argc,char** argv)
 	cout << endl;
 	
 	progArgs args;
-	int exitCode = 0,lastB1 = 0,runNum = 0,factorCount = 0,Ncount = 1;
+	int exitCode = 0,lastB1 = 0,runNum = 0;
 	pt::time_duration cudaTimeCounter,cudaTotalTime;
 	bool useMixedStrategy = false,fullFactorizationFound = false;
 	char c = 0;
@@ -240,12 +242,12 @@ int main(int argc,char** argv)
 	parseArguments(argc,argv,args);
 	validateArguments(args);
 
-	FoundFactors  ffact(args.N,args.verbose);
+	FoundFactors  ffact;
 
 	// Inicializace N
 	mpz_t zN;
 	mpz_init_set_str(zN,args.N.c_str(),10);
-	ffact.startNewSession();
+	ffact.startNewSession(args.N);
 	
 	// Inicializace proměnných
 	ExtendedPoint infty;			 // Neutrální prvek
@@ -304,7 +306,7 @@ int main(int argc,char** argv)
 			if (ffact.tryFinishSession(zN))
 			{
 				cout << "Full factorization found during precomputation." << endl;
-				ffound.savePrimesFromSession(args.outputFile,args.onePrimeFile);
+				ffact.savePrimesFromSession(args.outputFile,args.onePrimeFile);
 				exitCode = 1;
 				mpz_clear(zF);
 				goto end;
@@ -348,7 +350,7 @@ int main(int argc,char** argv)
 	ax.windowSz  = args.windowSize;
 	ax.nafLen    = S.l;
 	ax.numCurves = read_curves;
-	ax.minus1	 = (strategy == computeStrategy::csTwisted);
+	ax.minus1	 = (strategy == csTwisted);
 	ax.deviceId	 = args.whichDevice;
 	ax.cudaRunTime = 0;
 	runNum++;
@@ -399,7 +401,7 @@ int main(int argc,char** argv)
 		}
 		catch (mpz_t zF)
 		{
-			bool ff = ffact.handlePotentialFactor(zF,i));
+			bool ff = ffact.handlePotentialFactor(zF,i);
 			if (args.verbose)
 			{
 			  if (ff) cout << "Factor found: " << ffact.getLastFactor() << endl;
@@ -469,10 +471,9 @@ int main(int argc,char** argv)
 	}
 	
 	// Ulož výstup a vypiš celkový čas běhu
-	ffound.savePrimesFromSession(args.outputFile,args.onePrimeFile);
+	ffact.savePrimesFromSession(args.outputFile,args.onePrimeFile);
 	
 	cout << "Total GPU running time was: " << cudaTimeCounter << endl;
-	totalFactors  += factorCount;
 	cudaTotalTime += cudaTimeCounter;
 	
 	// Jsme-li v hladovém módu, chtěj další číslo k faktorizaci
@@ -494,7 +495,7 @@ int main(int argc,char** argv)
 	end:
 
 	mpz_clear(zN);
-	cout << endl << "Total prime factors found in all sessions: " << ffactors.primesFoundInAllSessions() << endl;
+	cout << endl << "Total prime factors found in all sessions: " << ffact.primesFoundInAllSessions() << endl;
 	cout << "Total GPU time of all sessions: " << cudaTotalTime << endl;
 
 	return exitCode;

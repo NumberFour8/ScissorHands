@@ -16,13 +16,13 @@ struct factor {
 		factor(string f,bool p,unsigned int c) : fac(f),prime(p),curveId(c) {}
 };
 
+typedef bool(*factor_comparator)(factor, factor);
 
 class FoundFactors {
 private:
 	
 	// Množina nalezených faktorů s vlastním uspořádnáním
-	typedef bool(*factor_comparator)(factor, factor);
-	set<factor,factor_comparator> foundFactors([](factor x, factor y){ return x.fac < y.fac; });
+	set<factor,factor_comparator> newFoundFactors;
 	int totalPrimesFound,currentSessionId,primesFoundInSession;
 	
 	stringstream primeStream;
@@ -31,7 +31,8 @@ private:
 	
 public:
 
-	FoundFactors() : totalPrimesFound(0), currentSessionId(0), primesFoundInSession(0)
+	FoundFactors() : totalPrimesFound(0), currentSessionId(0), primesFoundInSession(0),
+		newFoundFactors([](factor x, factor y){ return x.fac < y.fac; })
 	{
 		mpz_init(zChk);
 	}
@@ -46,7 +47,7 @@ public:
 		currentSessionId++;
 		
 		primeStream.str(string(""));
-		primeStream << "# Session ID: " << currentSession << "\n";
+		primeStream << "# Session ID: " << currentSessionId << "\n";
 		primeStream << "# Found prime factors of " << zN << "\n";
 		primeStream << "# FOUND FACTOR, CURVE ID\n";
 		
@@ -79,7 +80,7 @@ public:
 		   bool isPrime = is_almost_surely_prime(zF);
 		   fact  = mpz_to_string(zF);
 
-		   if (foundFactors.insert(factor(fact,isPrime,curveId)).second && isPrime) 
+		   if (newFoundFactors.insert(factor(fact,isPrime,curveId)).second && isPrime) 
 		   {
 			 mpz_mul(zChk,zChk,zF);
 			 primeStream << fact << ", " << curveId << "\n";
@@ -116,21 +117,21 @@ public:
 	// Uloží a přepíše výstupní soubor s nalezenými faktory
 	void savePrimesFromSession(string fileName,bool append)
 	{
-		ios_base md = ofstream::out | ofstream::trunc;
-		string   fn	= boost::format("%s-%d.txt") % fileName % currentSessionId).str();
+		ios_base::openmode md = ofstream::out | ofstream::trunc;
+		string   fn	= (boost::format("%s-%d.txt") % fileName % currentSessionId).str();
 		if (append)
 		{
 		  md = ofstream::out | ofstream::app;
-		  fn = boost::format("%s.txt") % fileName).str();
+		  fn = (boost::format("%s.txt") % fileName).str();
 		}
 			
 		ofstream pr(fn,md);
-		primeStream << boost::format("\n# Found prime factors: %d\n# -------------------------------------\n\n") % totalFound;
+		primeStream << boost::format("\n# Found prime factors: %d\n# -------------------------------------\n\n") % primesFoundInSession;
 		pr << primeStream.str();
 		primeStream.str(string(""));
 		
 		pr.close();
-		cout << "All found prime factors have been written to file: " << fname << endl;
+		cout << "All found prime factors have been written to file: " << fn << endl;
 	}
 	
 	bool tryFinishSession(mpz_t zN)
@@ -150,7 +151,7 @@ public:
 				cout << " (" << mpz_sizeinbase(zChk,2) << " bits)" << endl;
 				
 				mpz_set(zN,zChk);
-				mpz_set(zChk,1);
+				mpz_set_ui(zChk,1);
 				return false;
 			}
 		}
