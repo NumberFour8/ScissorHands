@@ -81,7 +81,7 @@ void parseArguments(int argc,char** argv,progArgs& args)
 	if (args.genStart == 0)
 	{
 		boost::random::mt19937 gen((unsigned int)std::time(0));
-		boost::random::uniform_int_distribution<> dist(1, 10000); 
+		boost::random::uniform_int_distribution<> dist(1, 100); 
 		args.genStart = dist(gen);
 		cout << "NOTE: Random generator initial coefficient: " << args.genStart << endl; 
 	}
@@ -466,6 +466,7 @@ int main(int argc,char** argv)
 		  args.curveGen.clear();
 
 		  validateArguments(args);
+		  gen->revert();
 		  goto restart_bound;
 	   }
 	}
