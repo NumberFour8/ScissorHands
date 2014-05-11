@@ -60,6 +60,7 @@ void CurveGenerator::initialize(unsigned int from)
 	   C->addPoints(Q,Q,*G);
 	
 	R.set(Q);
+	origS = from;
 }
 
 CurveGenerator::~CurveGenerator()
@@ -78,6 +79,7 @@ void CurveGenerator::reset()
 void CurveGenerator::revert()
 {
 	R.set(Q);
+	S = origS-1;
 }
 
 int CurveGenerator::getCurveNumber()
@@ -93,8 +95,13 @@ bool CurveGenerator::next(ReducedPoint& P,const mpz_t zN)
 
 	C->addPoints(R,R,*G); 
 	
-	generate_base_point(P,zN);
-
+	RationalPoint basePoint;
+	
+	
+	generate_base_point(basePoint);
+	
+	
+	P.reduce(basePoint,zN);
 	curveCounter++;
 	S++;
 	return true;

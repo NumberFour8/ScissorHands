@@ -39,7 +39,7 @@ public:
 // Gener·tor k¯ivek z nekonËen˝ch rodin
 class CurveGenerator: public Generator {
 private:
-	unsigned int curveCounter;
+	unsigned int curveCounter,origS;
 protected:
 	EllipticCurve *C;
 	RationalPoint* G,Q,R; // G je generator, Q je startovni a R pracovni  
@@ -50,7 +50,7 @@ protected:
 	void reset();
 	void initialize(unsigned int from);
 
-	virtual void generate_base_point(ReducedPoint& P,const mpz_t zN) = 0;
+	virtual void generate_base_point(RationalPoint& P) = 0;
 public:
 	CurveGenerator(Torsion t,unsigned int b);
 	~CurveGenerator();
@@ -66,7 +66,7 @@ public:
 	EdwardsGenerator(Torsion T,unsigned int from,unsigned int b);
 	
 protected:
-	void generate_base_point(ReducedPoint& P,const mpz_t zN);
+	void generate_base_point(RationalPoint& P,const mpz_t zN);
 };
 
 ///////////////////////////// JIN… GENER¡ÅTORY //////////////////////////

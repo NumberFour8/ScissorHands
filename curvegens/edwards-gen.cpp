@@ -35,90 +35,73 @@ EdwardsGenerator::EdwardsGenerator(Torsion t,unsigned int from,unsigned int b)
 	initialize(from);
  }
  
-void EdwardsGenerator::generate_base_point(ReducedPoint& P,const mpz_t zN)
+void EdwardsGenerator::generate_base_point(RationalPoint& P)
 {	
-	ReducedPoint H(R,zN);
-	Zint s = H.X,t = H.Y,x,y;
+	Qrac s = R.X,t = R.Y,x,y;
 	
 	if (T == Z12)
 	{
-		x = (s-2)*(s+6)*((s^2)+12*s-12);
-		x.invert_mod(zN);
-		x *= 8*t*((s^2)+12);
+		x  = 8*t*((s^2)+12);
+		x /= (s-2)*(s+6)*((s^2)+12*s-12);
 		
-		y = (s-2)*(s+6)*((s^2)-12);
-		y.invert_mod(zN);
-		y *= 4*s*((s^2)-12*s-12);
+		y  = 4*s*((s^2)-12*s-12);
+		y /= (s-2)*(s+6)*((s^2)-12);
+		
 		y  = -y;	
+		
+		cout << "Z12: X = " << x.str() << endl;
+		cout << "Z12: Y = " << y.str() << endl;
 	}
 	else if (T == Z2xZ8)
 	{
-		Zint a = t+25;
-		a.invert_mod(zN);
-		a *= s-9;
-		a += 1;
-		a.invert_mod(zN);
+		Qrac a = 1/((s-9)/(t+25)+1);		
+		Qrac b = 2*a*(4*a+1)/(8*(a^2)-1);
+
+		x  = (2*b-1)*(4*b-3)/(6*b-5);
+		y  = (2*b-1)*((t^2)+50*t-2*(s^3)+27*(s^2)-104);
+		y /= ((t+3*s-2)*(t+s+16));
 		
-		Zint b = 8*(a^2)-1;
-		b.invert_mod(zN);
-		b *= 2*a*(4*a+1);
-	
-		x  = 6*b-5;
-		x.invert_mod(zN);
-		x *= (2*b-1)*(4*b-3);
-		
-		y  = (t+3*s-2)*(t+s+16);
-		y.invert_mod(zN);
-		y *= (2*b-1)*((t^2)+50*t-2*(s^3)+27*(s^2)-104);
+		cout << "Z2xZ8: X = " << x.str() << endl;
+		cout << "Z2xZ8: Y = " << y.str() << endl;
 	}
 	else if (T == Z6)
 	{
-		Zint sig = 96*s;
-		sig.invert_mod(zN);
-		sig *= (1-96*s);
+		Qrac sig = (1-96*s)/(96*s);
 		
-		Zint r  = s^2;
-		r.invert_mod(zN);
-		r *= t;
+		Qrac r   = t/(s^2);
 		
-		Zint al = (sig^2)-5;
-		Zint bt = 4*sig;
+		Qrac al = (sig^2)-5;
+		Qrac bt = 4*sig;
 
-		x = (sig-1)*(sig+5)*(sig*sig+5);
-		x.invert_mod(zN);
-		x *= 2*r*sig;
-		
-		y = (al^3)+(bt^3);
-		y.invert_mod(zN);
-		y *= (al^3)-(bt^3);
+		x = 2*r*sig/((sig-1)*(sig+5)*(sig*sig+5));
+		y = ((al^3)-(bt^3))/((al^3)+(bt^3));
+	
+		cout << "Z6: X = " << x.str() << endl;
+		cout << "Z6: Y = " << y.str() << endl;
 	}
 	else if (T == Z8)
 	{
-		Zint u = t;
-		u.invert_mod(zN);
-		u *= 2*s;
+		Qrac u = 2*s/t;
+		Qrac v = (2*(s^3)-(t^2))/(t^2);
 		
-		Zint v = t^2;
-		v.invert_mod(zN);
-		v *= 2*(s^3)-(t^2);
-	
 		x = 2*(u^2);
+		y = (4*(u^4)-1)/v;
 		
-		y = v;
-		y.invert_mod(zN);
-		y *= 4*(u^4)-1;
+		cout << "Z8: X = " << x.str() << endl;
+		cout << "Z8: Y = " << y.str() << endl;
 	}
 	else if (T == Z2xZ4)
 	{
-		x = 3;
-		x.invert_mod(zN);
+		x = 1/3;
 		
 		y = 625*(t^2);
 		y = -y + 77760*t+1250*(s^3)+24300*(s^2)-3779136;
-		y.invert_mod(zN);
-		y *= (30*s-25*t+1944)^2;
+		y = ((30*s-25*t+1944)^2)/y;
+	
+		cout << "Z2xZ4: X = " << x.str() << endl;
+		cout << "Z2xZ4: Y = " << y.str() << endl;
 	}
 	else return;
 			
-	P.set(x % zN,y % zN);
+	P.set(x,y);
 }
