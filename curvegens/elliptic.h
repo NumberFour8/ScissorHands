@@ -2,6 +2,7 @@
 #define ELLIPTIC_H
 
 #include "zint.h"
+#include "qrac.h"
 #include "../helpers.h"
 
 // Racionalni bod elipticke krivky
@@ -17,7 +18,7 @@ public:
 	  : X(x), Y(y)
 	{ }
 	
-	inline void set(mpq_t x,mpq_t y)
+	inline void set(Qrac x,Qrac y)
 	{
 		X = x;
 		Y = y;
@@ -28,45 +29,45 @@ public:
 		X = K.X;
 		Y = K.Y;
 	}	
-}
+};
 
 // Bod elipticke krivky redukovany z racionalniho bodu modulo N
 class ReducedPoint {
 public:
-	mpz_t X,Y;
+	Zint X,Y;
 	
 	ReducedPoint()
-    {
-		mpz_intz(X,Y);
-	}
-
-	void set(mpz_t x,mpz_t y)
-	{
-		mpz_init_set(X,x);
-		mpz_init_set(Y,y);
-	}
-	
-	void set(Zint x,Zint y)
-	{
-		x.get(X);
-		y.get(Y);
-	}
-
-	ReducedPoint(const RationalPoint& Q,const mpz_t N)
-	{
-		mpz_intz(X,Y);
-		reduce_rational_point(X,Y,Q.X,Q.Y,N);	
-	}
+		: X(),Y()
+	{ }
 
 	ReducedPoint(mpz_t x,mpz_t y)
+		: X(x), Y(y)
+	{ }
+	
+
+	inline void set(mpz_t x,mpz_t y)
 	{
-		set(x,y);
+		X = x;
+		Y = y;
 	}
 	
-	~ReducedPoint()
+	inline void set(Zint x,Zint y)
 	{
-		mpz_clrs(X,Y);
+		X = x;
+		Y = y;
 	}
+
+	void reduce(RationalPoint& Q,const mpz_t N)
+	{
+		reduce_mod(X.get(),Q.X.get(),N);
+		reduce_mod(Y.get(),Q.Y.get(),N);	
+	}
+
+	ReducedPoint(RationalPoint& Q,const mpz_t N)
+	{
+		reduce(Q,N);	
+	}
+
 };
 
 

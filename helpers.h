@@ -56,7 +56,7 @@ void biguint_to_mpz(mpz_t a, biguint_t b);
 std::string mpz_to_string(const mpz_t number);
 
 // Prevede MPQ cislo do retezce
-std::string mpq_to_string(const mpq_t number)
+std::string mpq_to_string(const mpq_t number);
 
 // Vypise ci­slo v bazi 2^32
 void printBigInt(const char* tag,biguint_t B);
@@ -73,10 +73,7 @@ bool try_invert_mod(mpz_t invx,mpz_t x,const mpz_t N);
 /* Vypocita redukci racionalni­ho ci­sla q modulo n.
    Pri chybe vyhodi vyjimku­ s faktorem ci­sla N nebo 0. 
 */
-void reduce_mod(mpz_t r,mpq_t q,const mpz_t n);
-
-// Redukuje racionalni souradnice modulo N. Stejne chovani jako reduce_mod
-void reduce_rational_point(mpz_t X,mpz_t Y,mpq_t Qx,mpq_t Qy,const mpz_t N);
+void reduce_mod(mpz_t r,const mpq_t q,const mpz_t n);
 
 // Vyhodi faktor cisla jako C++ vyjimku
 void throw_factor(mpz_t F);

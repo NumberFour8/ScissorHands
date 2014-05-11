@@ -61,7 +61,7 @@ public:
 class EdwardsGenerator : public CurveGenerator {
 
 public:
-	EdwardsGenerator(const mpz_t n,Torsion T,unsigned int from,unsigned int b);
+	EdwardsGenerator(Torsion T,unsigned int from,unsigned int b);
 	
 protected:
 	void generate_base_point(ReducedPoint& P,const mpz_t zN);
@@ -92,7 +92,7 @@ private:
 	const int num_gens;
 	
 public:
-	MixedGenerator(const mpz_t n,unsigned int start,unsigned int b);
+	MixedGenerator(unsigned int start,unsigned int b);
 	~MixedGenerator();
 	
 protected:

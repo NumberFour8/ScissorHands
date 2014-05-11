@@ -16,18 +16,22 @@ public:
 	
 	Qrac(const Qrac& Y)
 	{
-		mpq_init_set(X,Y.X);
+		mpq_init(X);
+		mpq_set(X,Y.X);
+		mpq_canonicalize(X);
 	}
 
 	Qrac(const string& A)
 	{
-		mpq_init_set_str(X,A);
+		mpq_init(X);
+		mpq_set_str(X,A.c_str(),10);
 		mpq_canonicalize(X);
 	}
 
 	Qrac(const mpq_t A)
 	{
-		mpq_init_set(X,A);
+		mpq_init(X);
+		mpq_set(X,A);
 		mpq_canonicalize(X);
 	}
 	
@@ -39,9 +43,9 @@ public:
 	
 	// Functions
 	
-	void get(mpq_t x)
+	mpq_ptr get()
 	{
-		mpq_set(x,X);
+		return X;
 	}
 	
 	string str() const 
@@ -126,7 +130,8 @@ public:
 	Qrac& operator+=(const unsigned int Y)
 	{
 		mpq_t B;
-		mpq_init_set_ui(B,Y,1);
+		mpq_init(B);
+		mpq_set_ui(B,Y,1);
 		
 		mpq_add(X,X,B);
 		
@@ -137,7 +142,8 @@ public:
 	Qrac& operator-=(const unsigned int Y)
 	{
 		mpq_t B;
-		mpq_init_set_ui(B,Y,1);
+		mpq_init(B);
+		mpq_set_ui(B,Y,1);
 		
 		mpq_sub(X,X,B);
 		
@@ -148,7 +154,8 @@ public:
 	Qrac& operator*=(const unsigned int Y)
 	{
 		mpq_t B;
-		mpq_init_set_ui(B,Y,1);
+		mpq_init(B);
+		mpq_set_ui(B,Y,1);
 		
 		mpq_mul(X,X,B);
 		
@@ -159,7 +166,8 @@ public:
 	Qrac& operator/=(const unsigned int Y)
 	{
 		mpq_t B;
-		mpq_init_set_ui(B,Y,1);
+		mpq_init(B);
+		mpq_set_ui(B,Y,1);
 		
 		mpq_div(X,X,B);
 		
@@ -168,12 +176,9 @@ public:
 	}
 	
 	Qrac& operator^=(const unsigned int Y)
-	{
-		mpz_t n = mpq_numref(X);
-		mpz_t d = mpq_denref(X);
-		
-		mpz_pow_ui(b,b,Y);
-		mpz_pow_ui(d,d,Y);
+	{	
+		mpz_pow_ui(mpq_numref(X),mpq_numref(X),Y);
+		mpz_pow_ui(mpq_denref(X),mpq_denref(X),Y);
 		
 		return *this;
 	}
@@ -204,7 +209,7 @@ inline bool operator< (const Qrac& lhs, const Qrac& rhs)
 
 inline bool operator< (const Qrac& lhs, const unsigned int rhs)
 {
-	return mpq_cmp_ui(lhs.X,rhs) < 0;
+	return mpq_cmp_ui(lhs.X,rhs,1) < 0;
 }
 
 inline bool operator> (const Qrac& lhs, const Qrac& rhs)
@@ -214,7 +219,7 @@ inline bool operator> (const Qrac& lhs, const Qrac& rhs)
 
 inline bool operator> (const Qrac& lhs, const unsigned int rhs)
 {
-	return mpq_cmp_ui(lhs.X,rhs) > 0;
+	return mpq_cmp_ui(lhs.X,rhs,1) > 0;
 }
 
 // Qrac operators
@@ -265,7 +270,7 @@ inline Qrac operator*(Qrac R,const mpq_t Y)
 
 inline Qrac operator/(Qrac R,const mpq_t Y)
 {
-	R %= Y;
+	R /= Y;
 	return R;
 }
 

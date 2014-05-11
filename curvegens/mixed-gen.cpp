@@ -1,14 +1,14 @@
 #include "generators.h"
 
-MixedGenerator::MixedGenerator(const mpz_t n,unsigned int start,unsigned int b)
+MixedGenerator::MixedGenerator(unsigned int start,unsigned int b)
 	: Generator(), ctr(0), burst(b), num_gens(4)
 {
 	gens = new CurveGenerator*[num_gens];
 	
-	gens[0] = new EdwardsGenerator(n,Z6,start,burst);
-	gens[1] = new EdwardsGenerator(n,Z12,start,burst);
-	gens[2] = new EdwardsGenerator(n,Z8,start,burst);
-	gens[3] = new EdwardsGenerator(n,Z2xZ8,start,burst);
+	gens[0] = new EdwardsGenerator(Z6,start,burst);
+	gens[1] = new EdwardsGenerator(Z12,start,burst);
+	gens[2] = new EdwardsGenerator(Z8,start,burst);
+	gens[3] = new EdwardsGenerator(Z2xZ8,start,burst);
 	//gens[4] = new EdwardsGenerator(n,Z2xZ4,start,burst);
 }
 

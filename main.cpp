@@ -253,7 +253,7 @@ int main(int argc,char** argv)
 	ExtendedPoint infty;			 // Neutrální prvek
 	ComputeConfig ax;	    		 // Pomocná struktura
 	NAF S;					 		 // NAF rozvoj
-	mpz_t zS,zInvW,zX,zY,zChk;		 // Pomocné proměnné
+	mpz_t zS,zInvW,zX,zY;			 // Pomocné proměnné
 	cudaError_t cudaStatus;	 		 // Proměnná pro chybové kódy GPU
 	ExtendedPoint *PP;		 		 // Adresa všech bodů
 	int read_curves,edwards,twisted; // Počty načtených typů křivek
@@ -264,8 +264,8 @@ int main(int argc,char** argv)
 	if (args.curveGen.length() > 4)
 		 gen = new FileGenerator(args.curveGen);
 	else if (args.curveGen == "All")
-		 gen = new MixedGenerator(zN,args.genStart,192);
-	else gen = new EdwardsGenerator(zN,getGenerator(args.curveGen),args.genStart,192);
+		 gen = new MixedGenerator(args.genStart,192);
+	else gen = new EdwardsGenerator(getGenerator(args.curveGen),args.genStart,192);
 	
 	restart_bound:
 	

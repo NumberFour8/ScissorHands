@@ -25,21 +25,17 @@ void FileGenerator::reset()
 
 bool FileGenerator::next(ReducedPoint& P,const mpz_t zN)
 {	
-	string ln;	
-	bool ret = false;
-
-	mpq_t qX,qY;
-	mpq_intz(qX,qY);
+	string ln,t1;	
 
 	if (!fp.is_open()) 
 	{
-		cout << "ERROR: Cannot read from file." << endl;
-		goto read_finish;
+		cout << "ERROR: Cannot open file." << endl;
+		return false;
 	}
 
 	do { 
 		if (!getline(fp,ln))
-		  goto read_finish; // Jsme na konci souboru
+		  return false;  // Jsme na konci souboru
 	} // Preskoc segment, ktery nezacina #
 	while (ln.find("#") == string::npos);
 	
@@ -48,26 +44,17 @@ bool FileGenerator::next(ReducedPoint& P,const mpz_t zN)
 	if (ln != "-1" && ln != "1")
 	{
 		cout << "ERROR: Unsupported curve type." << endl;
-		goto read_finish;
+		return false; 
 	}
 
 	A = (ln == "-1" ? -1 : 1);
 
-	// Precti racionalni X-ovou souradnici 
+	// Precti racionalni souradnice 
 	fp >> ln;
-	mpq_set_str(qX,ln.c_str(),10);
+	fp >> t1;
 	
-	// Precti racionalni Y-ovou souradnici 
-	fp >> ln;
-	mpq_set_str(qY,ln.c_str(),10);
+	// Pokus se souradnice rekudovat modulo N
+	P.reduce(RationalPoint(ln,t1),zN);
 
-	// Pokus se X-ovou a Y-ovou souradnici rekudovat modulo N
-	reduce_rational_point(P.X,P.Y,qX,qY,zN);
-
-	ret = true;
-	
-	read_finish:
-	mpq_clrs(qX,qY);
-	
-	return ret;
+	return true; 
 }

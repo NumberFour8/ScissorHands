@@ -34,12 +34,11 @@ public:
 		mpz_clear(X);
 	}
 	
-	
 	// Functions
 	
-	void get(mpz_t x)
+	mpz_ptr get()
 	{
-		mpz_set(x,X);
+		return X; 
 	}
 	
 	Zint& invert_mod(const Zint& N)
@@ -95,6 +94,8 @@ public:
 	Zint& operator%=(const Zint& Y)
 	{
 		mpz_mod(X,X,Y.X);
+		if (mpz_cmp_ui(X,0) < 0) 
+		  mpz_add(X,X,Y.X);  
 		return *this;
 	}
 	

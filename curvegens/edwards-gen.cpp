@@ -35,8 +35,8 @@ EdwardsGenerator::EdwardsGenerator(Torsion t,unsigned int from,unsigned int b)
  
 void EdwardsGenerator::generate_base_point(ReducedPoint& P,const mpz_t zN)
 {	
-	ReducedPoint T(R,zN);
-	Zint s(T.X),t(T.Y),x,y;
+	ReducedPoint H(R,zN);
+	Zint s = H.X,t = H.Y,x,y;
 	
 	if (T == Z12)
 	{
@@ -120,9 +120,6 @@ void EdwardsGenerator::generate_base_point(ReducedPoint& P,const mpz_t zN)
 	
 	y %= zN;
 	x %= zN;
-		
-	if (x < 0) x += zN;
-	if (y < 0) y += zN;
-		
+			
 	P.set(x,y);
 }

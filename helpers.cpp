@@ -120,7 +120,7 @@ void throw_factor(mpz_t F)
 	throw f;
 }
 
-void reduce_mod(mpz_t r,mpq_t q,const mpz_t n)
+void reduce_mod(mpz_t r,const mpq_t q,const mpz_t n)
 {
 	mpz_t den,num;
 	mpz_init_set(den,mpq_denref(q));
@@ -146,15 +146,6 @@ void reduce_mod(mpz_t r,mpq_t q,const mpz_t n)
 	mpz_mod(r,r,n);
 
 	mpz_clear(num);
-}
-
-void reduce_rational_point(mpz_t zX,mpz_t zY,mpq_t qX,mpq_t qY,const mpz_t N)
-{
-	mpq_canonicalize(qX);	
-	mpq_canonicalize(qY);
-		
-	reduce_mod(zX,qX,N);
-	reduce_mod(zY,qY,N);
 }
 
 void NAF::initialize(mpz_t N,unsigned char W)
