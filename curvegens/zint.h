@@ -263,13 +263,32 @@ inline Zint operator+(Zint R,const unsigned int Y)
 	return R;
 }
 
+inline Zint operator+(const unsigned int Y,Zint R)
+{
+	R += Y;
+	return R;
+}
+
+
 inline Zint operator-(Zint R,const unsigned int Y)
 {
 	R -= Y;
 	return R;
 }
 
+inline Zint operator-(const unsigned int Y,Zint R)
+{
+	R = -R + Y;
+	return R;
+}
+
 inline Zint operator*(Zint R,const unsigned int Y)
+{
+	R *= Y;
+	return R;
+}
+
+inline Zint operator*(const unsigned int Y,Zint R)
 {
 	R *= Y;
 	return R;

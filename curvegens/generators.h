@@ -66,7 +66,7 @@ public:
 	EdwardsGenerator(Torsion T,unsigned int from,unsigned int b);
 	
 protected:
-	void generate_base_point(RationalPoint& P,const mpz_t zN);
+	void generate_base_point(RationalPoint& P);
 };
 
 ///////////////////////////// JIN… GENER¡ÅTORY //////////////////////////

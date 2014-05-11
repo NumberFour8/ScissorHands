@@ -47,7 +47,12 @@ public:
 	{
 		return X;
 	}
-	
+
+	void invert()
+	{
+		mpq_inv(X,X);
+	}
+
 	string str() const 
 	{
 		return mpq_to_string(X);
@@ -61,7 +66,12 @@ public:
 		return *this;
 	}	
 	
-	
+	Qrac& operator=(const char* Y)
+	{
+		mpq_set_str(X,Y,10);
+		return *this;
+	}
+
 	Qrac& operator+=(const Qrac& Y)
 	{
 		mpq_add(X,X,Y.X);
@@ -119,19 +129,19 @@ public:
 		return *this;
 	}
 	
-	// Uint operators
+	// int operators
 	
-	Qrac& operator=(const unsigned int Y)
+	Qrac& operator=(const int Y)
 	{
-		mpq_set_ui(X,Y,1);
+		mpq_set_si(X,Y,1);
 		return *this;
 	}	
 	
-	Qrac& operator+=(const unsigned int Y)
+	Qrac& operator+=(const int Y)
 	{
 		mpq_t B;
 		mpq_init(B);
-		mpq_set_ui(B,Y,1);
+		mpq_set_si(B,Y,1);
 		
 		mpq_add(X,X,B);
 		
@@ -139,11 +149,11 @@ public:
 		return *this;
 	}
 	
-	Qrac& operator-=(const unsigned int Y)
+	Qrac& operator-=(const int Y)
 	{
 		mpq_t B;
 		mpq_init(B);
-		mpq_set_ui(B,Y,1);
+		mpq_set_si(B,Y,1);
 		
 		mpq_sub(X,X,B);
 		
@@ -151,11 +161,11 @@ public:
 		return *this;
 	}
 	
-	Qrac& operator*=(const unsigned int Y)
+	Qrac& operator*=(const int Y)
 	{
 		mpq_t B;
 		mpq_init(B);
-		mpq_set_ui(B,Y,1);
+		mpq_set_si(B,Y,1);
 		
 		mpq_mul(X,X,B);
 		
@@ -163,11 +173,11 @@ public:
 		return *this;
 	}
 	
-	Qrac& operator/=(const unsigned int Y)
+	Qrac& operator/=(const int Y)
 	{
 		mpq_t B;
 		mpq_init(B);
-		mpq_set_ui(B,Y,1);
+		mpq_set_si(B,Y,1);
 		
 		mpq_div(X,X,B);
 		
@@ -274,29 +284,53 @@ inline Qrac operator/(Qrac R,const mpq_t Y)
 	return R;
 }
 
-// Uint operators
+// Int operators
 
-inline Qrac operator+(Qrac R,const unsigned int Y)
+inline Qrac operator+(Qrac R,const int Y)
 {
 	R += Y;
 	return R;
 }
 
-inline Qrac operator-(Qrac R,const unsigned int Y)
+inline Qrac operator+(const int Y,Qrac R)
+{
+	R += Y;
+	return R;
+}
+
+inline Qrac operator-(Qrac R,const int Y)
 {
 	R -= Y;
 	return R;
 }
 
-inline Qrac operator*(Qrac R,const unsigned int Y)
+inline Qrac operator-(const int Y,Qrac R)
+{
+	R = -R + Y;
+	return R;
+}
+
+inline Qrac operator*(Qrac R,const int Y)
 {
 	R *= Y;
 	return R;
 }
 
-
-inline Qrac operator/(Qrac R,const unsigned int Y)
+inline Qrac operator*(const int Y,Qrac R)
 {
+	R *= Y;
+	return R;
+}
+
+inline Qrac operator/(Qrac R,const int Y)
+{
+	R /= Y;
+	return R;
+}
+
+inline Qrac operator/(const int Y,Qrac R)
+{
+	R.invert();
 	R *= Y;
 	return R;
 }
