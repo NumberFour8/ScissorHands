@@ -9,7 +9,7 @@ MixedGenerator::MixedGenerator(unsigned int start,unsigned int b)
 	gens[1] = new EdwardsGenerator(Z12,start,burst);
 	gens[2] = new EdwardsGenerator(Z8,start,burst);
 	gens[3] = new EdwardsGenerator(Z2xZ8,start,burst);
-	//gens[4] = new EdwardsGenerator(n,Z2xZ4,start,burst);
+	//gens[4] = new EdwardsGenerator(Z2xZ4,start,burst);
 }
 
 MixedGenerator::~MixedGenerator()
@@ -24,12 +24,20 @@ MixedGenerator::~MixedGenerator()
 
 void MixedGenerator::reset()
 {
-	gens[0]->restart();
-	gens[1]->restart();
-	gens[2]->restart();
-	gens[3]->restart();
-	//gens[4]->restart();
+	gens[0]->new_point_set();
+	gens[1]->new_point_set();
+	gens[2]->new_point_set();
+	gens[3]->new_point_set();
+	//gens[4]->new_point_set();
 	ctr = 0;
+}
+
+void MixedGenerator::revert()
+{
+	gens[0]->revert();
+	gens[1]->revert();
+	gens[2]->revert();
+	gens[3]->revert();
 }
 
 bool MixedGenerator::next(ReducedPoint& P,const mpz_t zN)

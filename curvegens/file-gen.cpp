@@ -23,6 +23,11 @@ void FileGenerator::reset()
 	}
 }
 
+void FileGenerator::revert()
+{
+	reset();
+}
+
 bool FileGenerator::next(ReducedPoint& P,const mpz_t zN)
 {	
 	string ln,t1;	

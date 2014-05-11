@@ -21,7 +21,6 @@ protected:
 	virtual void reset() = 0;
 
 public:
-
 	Generator();
 	
 	int getCoeff();
@@ -31,8 +30,10 @@ public:
 	int countCurves();
 	void getN(mpz_t r);
 	
-	void restart();
+	void new_point_set();
 	bool next_base_point(ReducedPoint& P,const mpz_t zN);
+
+	virtual void revert() = 0;
 };
 	
 // Generátor køivek z nekonèených rodin
@@ -47,10 +48,11 @@ protected:
 
 	bool next(ReducedPoint& P,const mpz_t zN);
 	void reset();
-	
+	void initialize(unsigned int from);
+
 	virtual void generate_base_point(ReducedPoint& P,const mpz_t zN) = 0;
 public:
-	CurveGenerator(Torsion t,unsigned int from,unsigned int b);
+	CurveGenerator(Torsion t,unsigned int b);
 	~CurveGenerator();
 	
 	int getCurveNumber();
@@ -79,6 +81,8 @@ public:
 	FileGenerator(string filename);
 	~FileGenerator();
 	
+	void revert();
+
 protected:
 	bool next(ReducedPoint& P,const mpz_t zN);
 	void reset();
@@ -95,6 +99,8 @@ public:
 	MixedGenerator(unsigned int start,unsigned int b);
 	~MixedGenerator();
 	
+	void revert();
+
 protected:
 	bool next(ReducedPoint& P,const mpz_t zN);
 	void reset();

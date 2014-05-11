@@ -1,13 +1,13 @@
 #include "generators.h"
 
 EdwardsGenerator::EdwardsGenerator(Torsion t,unsigned int from,unsigned int b)
- : CurveGenerator(t,from,b)
+ : CurveGenerator(t,b)
  {
 	switch (T)
 	{
 		case Z12:
 			C = new EllipticCurve("0","0","0","-12");
-			G = new RationalPoint("6","-12");
+			G = new RationalPoint("-2","-4");
 			A = 1;
 		break;
 		case Z2xZ8:
@@ -31,6 +31,8 @@ EdwardsGenerator::EdwardsGenerator(Torsion t,unsigned int from,unsigned int b)
 			A = -1;
 		break;
 	};
+
+	initialize(from);
  }
  
 void EdwardsGenerator::generate_base_point(ReducedPoint& P,const mpz_t zN)
@@ -117,9 +119,6 @@ void EdwardsGenerator::generate_base_point(ReducedPoint& P,const mpz_t zN)
 		y *= (30*s-25*t+1944)^2;
 	}
 	else return;
-	
-	y %= zN;
-	x %= zN;
 			
-	P.set(x,y);
+	P.set(x % zN,y % zN);
 }

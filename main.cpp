@@ -291,7 +291,7 @@ int main(int argc,char** argv)
 	read_curves = edwards = twisted = 0;
 	strategy	= computeStrategy::csNone;
 
-	gen->restart();
+	gen->new_point_set();
 	
 	try {
 		// Pokus se načíst křivky a zvolit vhodnou strategii
@@ -488,7 +488,8 @@ int main(int argc,char** argv)
 		mpz_init_set_str(zN,args.N.c_str(),10);
 		
 		ffact.startNewSession(args.N);
-		
+		gen->revert();
+
 		goto restart_bound;
 	}
 

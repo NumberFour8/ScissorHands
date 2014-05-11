@@ -67,7 +67,6 @@ public:
 	{
 		reduce(Q,N);	
 	}
-
 };
 
 
@@ -88,9 +87,7 @@ public:
 
 	EllipticCurve(string A1,string A2,string A3,string A4)
 	  : a1(A1),a2(A2),a3(A3),a4(A4)
-	{ 
-	
-	}
+	{ }
 	
 	void addPoints(RationalPoint& R,RationalPoint& P,RationalPoint& Q) const
 	{

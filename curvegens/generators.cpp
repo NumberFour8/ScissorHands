@@ -31,7 +31,7 @@ int Generator::countCurves()
 	return edwards+twisted;
 }
 
-void Generator::restart()
+void Generator::new_point_set()
 {
 	edwards = twisted = 0;
 	reset();
@@ -49,12 +49,16 @@ bool Generator::next_base_point(ReducedPoint& P,const mpz_t zN)
 	else return false;
 }
 
-CurveGenerator::CurveGenerator(Torsion t,unsigned int from,unsigned int b)
+CurveGenerator::CurveGenerator(Torsion t,unsigned int b)
 	: Generator(), T(t), burst(b), C(NULL), G(NULL), curveCounter(0)
+{ }
+
+void CurveGenerator::initialize(unsigned int from)
 {
 	C->doublePoint(Q,*G);
 	for (S = 2;S < from-1;S++)
 	   C->addPoints(Q,Q,*G);
+	
 	R.set(Q);
 }
 
@@ -86,10 +90,11 @@ bool CurveGenerator::next(ReducedPoint& P,const mpz_t zN)
 	if (G == NULL || C == NULL) return false;
 	
 	if (curveCounter == burst) return false;
-		
-	C->addPoints(R,R,*G);
+
+	C->addPoints(R,R,*G); 
 	
 	generate_base_point(P,zN);
+
 	curveCounter++;
 	S++;
 	return true;
