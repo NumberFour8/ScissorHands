@@ -40,6 +40,8 @@ public:
 class CurveGenerator: public Generator {
 private:
 	unsigned int curveCounter,origS;
+	bool fromCache;
+	RationalPoint** cache;
 protected:
 	EllipticCurve *C;
 	RationalPoint* G,Q,R; // G je generator, Q je startovni a R pracovni  

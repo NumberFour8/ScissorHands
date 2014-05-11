@@ -51,7 +51,10 @@ bool Generator::next_base_point(ReducedPoint& P,const mpz_t zN)
 
 CurveGenerator::CurveGenerator(Torsion t,unsigned int b)
 	: Generator(), T(t), burst(b), C(NULL), G(NULL), curveCounter(0)
-{ }
+{ 
+		cache = new RationalPoint*[burst];
+		fromCache = false;
+}
 
 void CurveGenerator::initialize(unsigned int from)
 {
@@ -60,7 +63,7 @@ void CurveGenerator::initialize(unsigned int from)
 	   C->addPoints(Q,Q,*G);
 	
 	R.set(Q);
-	origS = from;
+	origS = S;
 }
 
 CurveGenerator::~CurveGenerator()
@@ -69,17 +72,30 @@ CurveGenerator::~CurveGenerator()
 	if (G != NULL) delete G;
 	C = NULL;
 	G = NULL;
+	
+	for (int i = 0;i < burst;i++){
+	  if (cache[i] != NULL) delete cache[i];
+	}
+	delete[] cache;
+	fromCache = false;
 }
 
 void CurveGenerator::reset()
 {
 	curveCounter = 0;
+	
+	for (int i = 0;i < burst;i++){
+	  delete cache[i];
+	  cache[i] = NULL;
+	}
+	fromCache = false;
 }
 
 void CurveGenerator::revert()
 {
 	R.set(Q);
-	S = origS-1;
+	S = origS;
+	curveCounter = 0;
 }
 
 int CurveGenerator::getCurveNumber()
@@ -91,17 +107,22 @@ bool CurveGenerator::next(ReducedPoint& P,const mpz_t zN)
 {
 	if (G == NULL || C == NULL) return false;
 	
-	if (curveCounter == burst) return false;
-
-	C->addPoints(R,R,*G); 
+	if (curveCounter == burst)
+	{
+		 fromCache = true;
+		 return false;
+	}
 	
-	RationalPoint basePoint;
+	if (!fromCache) 
+	{
+	   cache[curveCounter] = new RationalPoint();
+	   
+	   C->addPoints(R,R,*G); 
+	   generate_base_point(cache[curveCounter]);
+	}
 	
+	P.reduce(cache[curveCounter],zN);
 	
-	generate_base_point(basePoint);
-	
-	
-	P.reduce(basePoint,zN);
 	curveCounter++;
 	S++;
 	return true;
