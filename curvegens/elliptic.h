@@ -4,14 +4,40 @@
 #include "zint.h"
 #include "../helpers.h"
 
+// Racionalni bod elipticke krivky
+class RationalPoint {
+public:
+	Qrac X,Y;
+	
+	RationalPoint() 
+	  : X(), Y()
+	{ }
+	
+	RationalPoint(string x,string y)
+	  : X(x), Y(y)
+	{ }
+	
+	inline void set(mpq_t x,mpq_t y)
+	{
+		X = x;
+		Y = y;
+	}
+	
+	inline void set(const RationalPoint& K)
+	{
+		X = K.X;
+		Y = K.Y;
+	}	
+}
+
+// Bod elipticke krivky redukovany z racionalniho bodu modulo N
 class ReducedPoint {
 public:
 	mpz_t X,Y;
 	
 	ReducedPoint()
     {
-		mpz_init_set_ui(X,0);
-		mpz_init_set_ui(Y,0);
+		mpz_intz(X,Y);
 	}
 
 	void set(mpz_t x,mpz_t y)
@@ -26,22 +52,15 @@ public:
 		y.get(Y);
 	}
 
+	ReducedPoint(const RationalPoint& Q,const mpz_t N)
+	{
+		mpz_intz(X,Y);
+		reduce_rational_point(X,Y,Q.X,Q.Y,N);	
+	}
+
 	ReducedPoint(mpz_t x,mpz_t y)
 	{
 		set(x,y);
-	}
-	
-	ReducedPoint(string x,string y,const mpz_t N)
-	{
-		mpq_t qx,qy;
-		mpq_intz(qx,qy);
-		mpz_intz(X,Y);
-		
-		mpq_set_str(qx,x.c_str(),10);
-		mpq_set_str(qy,y.c_str(),10);
-		
-		reduce_rational_point(X,Y,qx,qy,N);
-		mpq_clrs(qx,qy);
 	}
 	
 	~ReducedPoint()
@@ -50,73 +69,38 @@ public:
 	}
 };
 
+
+// Predstavuje obecnou eliptickou krivku nad Q
 class EllipticCurve {
 private:
-	Zint a1,a2,a3,a4,N;
+	Qrac a1,a2,a3,a4;
 	
-	void add(ReducedPoint& R,const Zint& L,const ReducedPoint& P,const ReducedPoint& Q) const
+	void add(RationalPoint& R,const Qrac& L,const RationalPoint& P,const RationalPoint& Q) const
 	{
-		Zint x1 = Zint(P.X);
-		Zint x3 = (L^2)+a1*L-a2-x1-Zint(Q.X);
-		Zint y3 = L*(x1-x3)-Zint(P.Y)-a1*x3-a3;
-		
-		x3 %= N;
-		y3 %= N;
-		
-		if (x3 < 0) x3 += N;
-		if (y3 < 0) y3 += N;
+		Qrac x3 = L*L+a1*L-a2-P.X-Q.X;
+		Qrac y3 = L*(P.X-x3)-P.Y-a1*x3-a3;
 		
 		R.set(x3,y3);
 	}
 	
 public:
 
-	EllipticCurve(string A1,string A2,string A3,string A4,const mpz_t n)
-	 : N(n)
+	EllipticCurve(string A1,string A2,string A3,string A4)
+	  : a1(A1),a2(A2),a3(A3),a4(A4)
 	{ 
-		mpq_t T;
-		mpz_t I;
-		mpq_init(T);
-		mpz_init(I);
-		
-		mpq_set_str(T,A1.c_str(),10);
-		reduce_mod(I,T,n);
-		a1 = Zint(I);
-		
-		mpq_set_str(T,A2.c_str(),10);
-		reduce_mod(I,T,n);
-		a2 = Zint(I);
-		
-		mpq_set_str(T,A3.c_str(),10);
-		reduce_mod(I,T,n);
-		a3 = Zint(I);
-		
-		mpq_set_str(T,A4.c_str(),10);
-		reduce_mod(I,T,n);
-		a4 = Zint(I);
-		
-		mpq_clear(T);
-		mpz_clear(I);
+	
 	}
 	
-	void addPoints(ReducedPoint& R,ReducedPoint& P,ReducedPoint& Q) const
+	void addPoints(RationalPoint& R,RationalPoint& P,RationalPoint& Q) const
 	{
-		Zint L = Zint(P.X)-Zint(Q.X);
-		L.invert_mod(N);
-		L *= (Zint(P.Y)-Zint(Q.Y));
-		
-		add(R,L % N,P,Q);
+		Qrac L = (P.Y-Q.Y)/(P.X-Q.X);
+		add(R,L,P,Q);
 	}
 	
-	void doublePoint(ReducedPoint& R,ReducedPoint& P) const
+	void doublePoint(RationalPoint& R,RationalPoint& P) const
 	{
-		Zint x1(P.X),y1(P.Y);
-		
-		Zint L = y1*2+a1*x1+a3;
-		L.invert_mod(N);
-		L *= (x1^2)*3+a2*x1*2+a4-a1*y1;
-		
-		add(R,L % N,P,P);
+		Qrac L = (P.X*P.X*3+a2*P.X*2+a4-a1*P.Y)/(P.Y*2+a1*P.X+a3);
+		add(R,L,P,P);
 	}
 	
 };

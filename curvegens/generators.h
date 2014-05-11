@@ -41,9 +41,9 @@ private:
 	unsigned int curveCounter;
 protected:
 	EllipticCurve *C;
-	ReducedPoint* G,Q;
+	RationalPoint* G,Q,R; // G je generator, Q je startovni a R pracovni  
 	Torsion T;
-	unsigned int start,burst;
+	unsigned int burst;
 
 	bool next(ReducedPoint& P,const mpz_t zN);
 	void reset();
@@ -52,7 +52,9 @@ protected:
 public:
 	CurveGenerator(Torsion t,unsigned int from,unsigned int b);
 	~CurveGenerator();
-
+	
+	int getCurveNumber();
+	void revert();
 };
 	
 ///////////////////////// KÿIVKOV… GENER¡ÅTORY //////////////////////////

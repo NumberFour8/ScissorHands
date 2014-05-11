@@ -55,6 +55,9 @@ void biguint_to_mpz(mpz_t a, biguint_t b);
 // Prevede MPZ cislo do retezce
 std::string mpz_to_string(const mpz_t number);
 
+// Prevede MPQ cislo do retezce
+std::string mpq_to_string(const mpq_t number)
+
 // Vypise ci­slo v bazi 2^32
 void printBigInt(const char* tag,biguint_t B);
 

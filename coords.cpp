@@ -137,7 +137,7 @@ computeStrategy readCurves(Generator* source,mpz_t zN,ExtendedPoint** pInit,int&
 	ReducedPoint P;
 	while (source->next_base_point(P,zN))
 	{
-		// Vytvor bod v Extended souradnicích z redukovanych afinnich bodu modulo N
+		// Vytvor bod v Extended souradnicich z redukovanych afinnich bodu modulo N
 		v.push_back(ExtendedPoint(P.X,P.Y,zN,source->getA() == -1)); 
 	}
 

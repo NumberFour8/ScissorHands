@@ -50,9 +50,12 @@ bool Generator::next_base_point(ReducedPoint& P,const mpz_t zN)
 }
 
 CurveGenerator::CurveGenerator(Torsion t,unsigned int from,unsigned int b)
-	: Generator(), T(t), start(from), burst(b), C(NULL), G(NULL), curveCounter(0)
+	: Generator(), T(t), burst(b), C(NULL), G(NULL), curveCounter(0)
 {
-	
+	C->doublePoint(Q,*G);
+	for (S = 2;S < from-1;S++)
+	   C->addPoints(Q,Q,*G);
+	R.set(Q);
 }
 
 CurveGenerator::~CurveGenerator()
@@ -65,8 +68,17 @@ CurveGenerator::~CurveGenerator()
 
 void CurveGenerator::reset()
 {
-	if (S > 1) S = 2;
 	curveCounter = 0;
+}
+
+void CurveGenerator::revert()
+{
+	R.set(Q);
+}
+
+int CurveGenerator::getCurveNumber()
+{
+	return curveCounter;
 }
 
 bool CurveGenerator::next(ReducedPoint& P,const mpz_t zN)
@@ -74,20 +86,11 @@ bool CurveGenerator::next(ReducedPoint& P,const mpz_t zN)
 	if (G == NULL || C == NULL) return false;
 	
 	if (curveCounter == burst) return false;
-	
-	if (S <= 1)
-	{
-	  C->doublePoint(Q,*G);
-	  S = 2;
-	}
-	
-	for (;S < start-1;S++)
-	   C->addPoints(Q,Q,*G);
 		
-	if (S > 1) C->addPoints(Q,Q,*G);
+	C->addPoints(R,R,*G);
 	
 	generate_base_point(P,zN);
-	S++;
 	curveCounter++;
+	S++;
 	return true;
 }

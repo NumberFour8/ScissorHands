@@ -54,6 +54,14 @@ string mpz_to_string(const mpz_t number)
 	return ret;
 }
 
+string mpq_to_string(const mpq_t number)
+{
+	string num = mpz_to_string(mpq_numref(number));
+	string den = mpz_to_string(mpq_denref(number));
+
+	return num+"/"+den;
+}
+
 void printBigInt(const char* tag,biguint_t B)
 {
 	printf("%s: {",tag);

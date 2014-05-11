@@ -1,33 +1,33 @@
 #include "generators.h"
 
-EdwardsGenerator::EdwardsGenerator(const mpz_t n,Torsion t,unsigned int from,unsigned int b)
+EdwardsGenerator::EdwardsGenerator(Torsion t,unsigned int from,unsigned int b)
  : CurveGenerator(t,from,b)
  {
 	switch (T)
 	{
 		case Z12:
-			C = new EllipticCurve("0","0","0","-12",n);
-			G = new ReducedPoint("6","-12",n);
+			C = new EllipticCurve("0","0","0","-12");
+			G = new RationalPoint("6","-12");
 			A = 1;
 		break;
 		case Z2xZ8:
-			C = new EllipticCurve("0","0","0","-8",n);
-			G = new ReducedPoint("12","40",n);
+			C = new EllipticCurve("0","0","0","-8");
+			G = new RationalPoint("12","40");
 			A = 1;
 		break;
 		case Z6:
-			C = new EllipticCurve("0","-1/2304","0","-5/221184",n);
-			G = new ReducedPoint("1/192","1/4608",n);
+			C = new EllipticCurve("0","-1/2304","0","-5/221184");
+			G = new RationalPoint("1/192","1/4608");
 			A = -1;
 		break;
 		case Z8:
-			C = new EllipticCurve("0","0","0","48",n);
-			G = new ReducedPoint("4","-16",n);
+			C = new EllipticCurve("0","0","0","48");
+			G = new RationalPoint("4","-16");
 			A = -1;
 		break;
 		case Z2xZ4:
-			C = new EllipticCurve("0","0","0","-11664/25",n);
-			G = new ReducedPoint("36","-864/5",n);
+			C = new EllipticCurve("0","0","0","-11664/25");
+			G = new RationalPoint("36","-864/5");
 			A = -1;
 		break;
 	};
@@ -35,7 +35,8 @@ EdwardsGenerator::EdwardsGenerator(const mpz_t n,Torsion t,unsigned int from,uns
  
 void EdwardsGenerator::generate_base_point(ReducedPoint& P,const mpz_t zN)
 {	
-	Zint s(Q.X),t(Q.Y),x,y;
+	ReducedPoint T(R,zN);
+	Zint s(T.X),t(T.Y),x,y;
 	
 	if (T == Z12)
 	{
