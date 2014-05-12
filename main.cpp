@@ -34,6 +34,7 @@ struct progArgs {
 	bool greedy;
 	bool onePrimeFile;
 	bool saveHistogram;
+	bool saveSummary;
 	unsigned short whichDevice;
 	string outputFile;
 	
@@ -51,6 +52,7 @@ void parseArguments(int argc,char** argv,progArgs& args)
 		("help,h", "Print usage information.")
 		("verbose,v", "More verbose output.")
 		("histogram,H", "Save curve histogram.")
+		("save-summary,S", "Save all sessions summary to a file at the end.")
 		("dont-compute-bound,x", "Coefficient s = B1 when set, otherwise s = lcm(1,2...B1).")
 		("no-restart,e", "When set, program terminates automatically after finishing.")
 		("device-id,D", po::value<unsigned short>(&args.whichDevice)->default_value(0),
@@ -58,7 +60,7 @@ void parseArguments(int argc,char** argv,progArgs& args)
 		("N-to-factor,N", po::value<string>(),
 			"Number to factor.")
 		("curve-generator,c", po::value<string>(),
-			"Curve generator name or path to file(s) containing curves used for factoring. Valid generator names: Ed16,Ed12,Tw6,Tw8,Tw4,All")
+			"Curve generator name or path to a file containing curves used for factoring. Valid generator names: Ed16,Ed12,Tw6,Tw8,Tw4,All")
 		("generator-init,i", po::value<unsigned int>(&args.genStart)->default_value(1),
 			"Generator initial point coefficient. Set 0 for random value.")
 		("stage1-bound,B", po::value<vector<unsigned int>>()->multitoken(),
@@ -80,6 +82,7 @@ void parseArguments(int argc,char** argv,progArgs& args)
 	args.greedy			 = vm.count("greedy") != 0;
 	args.onePrimeFile	 = vm.count("single-output") != 0;
 	args.saveHistogram	 = vm.count("histogram") != 0;
+	args.saveSummary	 = vm.count("save-summary") != 0;
 
 	// Vygeneruj náhodný start pro křivkový generátor
 	if (args.genStart == 0)
@@ -101,6 +104,18 @@ void parseArguments(int argc,char** argv,progArgs& args)
 	if (vm.count("help"))
 	  cout << endl << desc << endl << "-----------------------------------------" << endl << endl;
 }
+
+
+string formatTime(pt::ptime now)
+{
+	static std::locale loc(cout.getloc(),new pt::time_facet("%Y%m%d_%H%M%S"));
+
+	stringstream ss;
+	ss.imbue(loc);
+	ss << now;
+	return ss.str();
+}
+
 
 Torsion getGenerator(string& genName)
 {
@@ -270,7 +285,7 @@ int main(int argc,char** argv)
 	if (args.curveGen.length() > 4)
 		 gen = new FileGenerator(args.curveGen,192);
 	else if (args.curveGen == "All")
-		 gen = new MixedGenerator(args.genStart,192);
+		 gen = new MixedGenerator(args.genStart,192,{GeneratorSetup(Z6,80),GeneratorSetup(Z12,80),GeneratorSetup(Z8,16),GeneratorSetup(Z2xZ4,16)});
 	else gen = new EdwardsGenerator(getGenerator(args.curveGen),args.genStart,192);
 	
 	gen->new_point_set();
@@ -508,17 +523,31 @@ int main(int argc,char** argv)
 	end:
 
 	mpz_clear(zN);
-	cout << endl << "Total prime factors found in all sessions: " << ffact.primesFoundInAllSessions() << endl;
-	cout << "Total GPU time of all sessions: " << cudaTotalTime << endl;
-	cout << "Average time per factor: " << cudaTotalTime/ffact.primesFoundInAllSessions() << endl;
-	cout << "Total factorizations/sessions: "; 
-	cout << boost::format("%d/%d (%.2f %%)") % ffact.totalFactorizationsInAllSessions() % ffact.sessionCount() % (100*ffact.totalSuccessRate()) << endl;
+	
+	string ts = formatTime(pt::second_clock::local_time());
+	stringstream summary;
+	
+	summary << "Total prime factors found in all sessions: " << ffact.primesFoundInAllSessions() << endl;
+	summary << "Total GPU time of all sessions: " << cudaTotalTime << endl;
+	summary << "Average time per factor: " << cudaTotalTime/ffact.primesFoundInAllSessions() << endl;
+	summary << "Total factorizations/sessions: "; 
+	summary << boost::format("%d/%d (%.2f %%)") % ffact.totalFactorizationsInAllSessions() % ffact.sessionCount() % (100*ffact.totalSuccessRate()) << endl;
 
 	pt::ptime totalEnd = pt::microsec_clock::local_time();
+	summary << "Total time spent: " << totalEnd-totalStart << endl;
 
-	cout << "Total time spent: " << totalEnd-totalStart << endl;
+	cout << endl << summary.str();
 
-	if (args.saveHistogram) ffact.saveCurveHistogram("histogram.txt",args.genStart);
+	string ts = formatTime(pt::second_clock::local_time());
+	if (args.saveSummary)
+	{
+	   ofstream f((boost::format("summary-%s.txt") % ts).str(),ofstream::out | ofstream::trunc);
+	   f << summary.str();
+	   f.close();
+	}
+
+	if (args.saveHistogram) 
+	   ffact.saveCurveHistogram((boost::format("histogram-%s.txt") % ts).str(),args.genStart);
 
 	return exitCode;
 }

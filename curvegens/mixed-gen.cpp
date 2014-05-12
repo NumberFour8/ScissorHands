@@ -1,52 +1,55 @@
 #include "generators.h"
 
-MixedGenerator::MixedGenerator(unsigned int start,unsigned int b)
-	: Generator(b), ctr(0), num_gens(4)
+MixedGenerator::MixedGenerator(unsigned int start,vector<GeneratorSetup> s)
+	: Generator(b), ctr(0), setup(s)
 {
-	gens = new CurveGenerator*[num_gens];
 	
-	gens[0] = new EdwardsGenerator(Z6,start,burst);
-	gens[1] = new EdwardsGenerator(Z12,start,burst);
-	gens[2] = new EdwardsGenerator(Z8,start,burst);
-	gens[3] = new EdwardsGenerator(Z2xZ8,start,burst);
-	//gens[4] = new EdwardsGenerator(Z2xZ4,start,burst);
+	burst = std::accumulate(s.begin(),s.end(),[](const pair<GeneratorSetup> p){ return p.first; }));
+	
+	gens = new CurveGenerator*[setup.size()];
+	for (unsigned int i = 0; i < setup.size();i++){
+	  gens[i] = new EdwardsGenerator(setup[i].second,start,setup[i].first+1);
+	  origSetup.push_back(setup[i].first);
+	}
+	
 }
 
 MixedGenerator::~MixedGenerator()
 {
-	delete gens[0];
-	delete gens[1];
-	delete gens[2];
-	delete gens[3];
-	//delete gens[4];
+	for (unsigned int i = 0;i < setup.size();i++)
+	  delete gens[i];
+	
 	delete[] gens;
 }
 
 void MixedGenerator::reset()
 {
-	gens[0]->new_point_set();
-	gens[1]->new_point_set();
-	gens[2]->new_point_set();
-	gens[3]->new_point_set();
-	//gens[4]->new_point_set();
-	ctr = 0;
+	for (unsigned int i = 0; i < setup.size();i++){
+	  gens[i]->reset();
+	  setup[i].first = origSetup[i];
+	}
 }
 
 void MixedGenerator::revert()
 {
-	gens[0]->revert();
-	gens[1]->revert();
-	gens[2]->revert();
-	gens[3]->revert();
+	for (unsigned int i = 0; i < setup.size();i++){
+	  gens[i]->revert();
+	  setup[i].first = origSetup[i];
+	}
 	Generator::revert();
 }
 
 bool MixedGenerator::next(RationalPoint& P)
 {
-	if (ctr == burst) return false; 
-
-	bool r =  gens[ctr % num_gens]->next(P); 
-	A = gens[ctr % num_gens]->getA();
-	ctr++;
-	return r; 
+	for (unsigned int i = 0;i < setup.size();i++)
+	{
+	   if (setup[i].first > 0)
+	   {
+			bool r =  gens[i]->next(P); 
+			A = gens[i]->getA();
+		    setup[i].first -= 1;
+			return r;
+	   }
+	} 
+	return false;
 }

@@ -95,15 +95,17 @@ protected:
 	void reset();
 };
 
+typedef std::pair<unsigned int,Torsion> GeneratorSetup;
+
 // Smíšený generátor køivek
 class MixedGenerator : public Generator {
 private:
 	CurveGenerator** gens;
-	unsigned int ctr;
-	const int num_gens;
+	vector<GeneratorSetup> setup;
+	vector<unsigned int> origSetup;
 	
 public:
-	MixedGenerator(unsigned int start,unsigned int b);
+	MixedGenerator(unsigned int start,unsigned int b,vector<GeneratorSetup> s);
 	~MixedGenerator();
 	
 	void revert();
