@@ -262,7 +262,7 @@ int main(int argc,char** argv)
 	Generator* gen;					 // Generátor křivek
 	
 	if (args.curveGen.length() > 4)
-		 gen = new FileGenerator(args.curveGen);
+		 gen = new FileGenerator(args.curveGen,192);
 	else if (args.curveGen == "All")
 		 gen = new MixedGenerator(args.genStart,192);
 	else gen = new EdwardsGenerator(getGenerator(args.curveGen),args.genStart,192);

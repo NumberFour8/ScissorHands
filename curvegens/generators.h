@@ -11,13 +11,17 @@ typedef enum { Z12,Z2xZ8,Z6,Z8,Z2xZ4 } Torsion;
 // Generick˝ gener·tor k¯ivek
 class Generator {
 private:
-	unsigned int edwards,twisted;
-
+	unsigned int edwards,twisted,curveCounter;
+	bool fromCache;
+	RationalPoint** cache;
+	
 protected:
+	const unsigned int burst;
+		
 	unsigned int S;
 	int A;
 		
-	virtual bool next(ReducedPoint& P,const mpz_t zN) = 0;
+	virtual bool next(RationalPoint& P) = 0;
 	virtual void reset() = 0;
 
 public:
@@ -39,16 +43,14 @@ public:
 // Gener·tor k¯ivek z nekonËen˝ch rodin
 class CurveGenerator: public Generator {
 private:
-	unsigned int curveCounter,origS;
-	bool fromCache;
-	RationalPoint** cache;
+	unsigned int origS;
+	
 protected:
 	EllipticCurve *C;
 	RationalPoint* G,Q,R; // G je generator, Q je startovni a R pracovni  
 	Torsion T;
-	unsigned int burst;
 
-	bool next(ReducedPoint& P,const mpz_t zN);
+	bool next(RationalPoint& P);
 	void reset();
 	void initialize(unsigned int from);
 
@@ -59,6 +61,8 @@ public:
 	
 	int getCurveNumber();
 	void revert();
+	
+	friend MixedGenerator;
 };
 	
 ///////////////////////// KÿIVKOV… GENER¡ÅTORY //////////////////////////
@@ -80,13 +84,13 @@ private:
 	ifstream fp;
 	
 public:
-	FileGenerator(string filename);
+	FileGenerator(string filename,unsigned int cacheSize);
 	~FileGenerator();
 	
 	void revert();
 
 protected:
-	bool next(ReducedPoint& P,const mpz_t zN);
+	bool next(RationalPoint& P);
 	void reset();
 };
 
@@ -94,7 +98,7 @@ protected:
 class MixedGenerator : public Generator {
 private:
 	CurveGenerator** gens;
-	unsigned int burst,ctr;
+	unsigned int ctr;
 	const int num_gens;
 	
 public:
@@ -104,7 +108,7 @@ public:
 	void revert();
 
 protected:
-	bool next(ReducedPoint& P,const mpz_t zN);
+	bool next(RationalPoint& P);
 	void reset();
 	
 };

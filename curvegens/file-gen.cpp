@@ -1,8 +1,8 @@
 #include "generators.h"
 #include "../helpers.h"
 
-FileGenerator::FileGenerator(string filename)
- : Generator()
+FileGenerator::FileGenerator(string filename,unsigned int cacheSize)
+ : Generator(cacheSize)
 {
 	fp.open(filename);
 	S = 0;
@@ -28,7 +28,7 @@ void FileGenerator::revert()
 	reset();
 }
 
-bool FileGenerator::next(ReducedPoint& P,const mpz_t zN)
+bool FileGenerator::next(RationalPoint& P)
 {	
 	string ln,t1;	
 
@@ -57,9 +57,8 @@ bool FileGenerator::next(ReducedPoint& P,const mpz_t zN)
 	// Precti racionalni souradnice 
 	fp >> ln;
 	fp >> t1;
-	
-	// Pokus se souradnice rekudovat modulo N
-	P.reduce(RationalPoint(ln,t1),zN);
 
+	P.set(ln,t1);
+	
 	return true; 
 }

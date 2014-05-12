@@ -1,7 +1,7 @@
 #include "generators.h"
 
 MixedGenerator::MixedGenerator(unsigned int start,unsigned int b)
-	: Generator(), ctr(0), burst(b), num_gens(4)
+	: Generator(b), ctr(0), num_gens(4)
 {
 	gens = new CurveGenerator*[num_gens];
 	
@@ -40,11 +40,11 @@ void MixedGenerator::revert()
 	gens[3]->revert();
 }
 
-bool MixedGenerator::next(ReducedPoint& P,const mpz_t zN)
+bool MixedGenerator::next(ReducedPoint& P)
 {
 	if (ctr == burst) return false; 
 
-	bool r =  gens[ctr % num_gens]->next_base_point(P,zN); 
+	bool r =  gens[ctr % num_gens]->next(P); 
 	A = gens[ctr % num_gens]->getA();
 	ctr++;
 	return r; 
