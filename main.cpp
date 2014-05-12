@@ -267,6 +267,8 @@ int main(int argc,char** argv)
 		 gen = new MixedGenerator(args.genStart,192);
 	else gen = new EdwardsGenerator(getGenerator(args.curveGen),args.genStart,192);
 	
+	gen->new_point_set();
+
 	restart_bound:
 	
 	// Pokud je N prvočíslo, není co faktorizovat
@@ -290,8 +292,6 @@ int main(int argc,char** argv)
 	PP = NULL;
 	read_curves = edwards = twisted = 0;
 	strategy	= computeStrategy::csNone;
-
-	gen->new_point_set();
 	
 	try {
 		// Pokus se načíst křivky a zvolit vhodnou strategii
@@ -314,6 +314,7 @@ int main(int argc,char** argv)
 		}
 		mpz_clear(zF);
 		delete[] PP;
+		gen->revert();
 		goto restart_bound;
 	}
 	
@@ -429,6 +430,7 @@ int main(int argc,char** argv)
 	{
 		args.curB1 += args.B1[1];
 		cout << "NOTE: B1 has been automatically incremented to: " << args.curB1 << endl;
+		gen->new_point_set();
 		goto restart_bound;
 	}
 
@@ -452,6 +454,7 @@ int main(int argc,char** argv)
 		  validateArguments(args);
 
 		  cout << "B1 has been incremented to: " << args.curB1 << endl;
+		  gen->revert();
 		  goto restart_bound;
 	   }
 	   else if (c == 'p')

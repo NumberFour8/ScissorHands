@@ -33,7 +33,7 @@ public:
 	void new_point_set();
 	bool next_base_point(ReducedPoint& P,const mpz_t zN);
 
-	virtual void revert() = 0;
+	virtual void revert();
 };
 	
 // Generátor køivek z nekonèených rodin
