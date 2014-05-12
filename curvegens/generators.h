@@ -25,7 +25,8 @@ protected:
 	virtual void reset() = 0;
 
 public:
-	Generator();
+	Generator(unsigned int b);
+	~Generator();
 	
 	int getCoeff();
 	int getA();
@@ -62,7 +63,7 @@ public:
 	int getCurveNumber();
 	void revert();
 	
-	friend MixedGenerator;
+	friend class MixedGenerator;
 };
 	
 ///////////////////////// KÿIVKOV… GENER¡ÅTORY //////////////////////////

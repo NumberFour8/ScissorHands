@@ -3,6 +3,7 @@
 
 #include <sstream> 
 #include <set>
+#include <map>
 
 #include <boost/format.hpp>
 
@@ -21,9 +22,11 @@ typedef bool(*factor_comparator)(factor, factor);
 class FoundFactors {
 private:
 	
+	map<int,int> curveHistogram;
+
 	// Množina nalezených faktorů s vlastním uspořádnáním
 	set<factor,factor_comparator> newFoundFactors;
-	int totalPrimesFound,currentSessionId,primesFoundInSession;
+	int totalPrimesFound,currentSessionId,primesFoundInSession,totalFactorizations;
 	
 	stringstream primeStream;
 	string fact;
@@ -32,7 +35,7 @@ private:
 public:
 
 	FoundFactors() : totalPrimesFound(0), currentSessionId(0), primesFoundInSession(0),
-		newFoundFactors([](factor x, factor y){ return x.fac < y.fac; })
+		newFoundFactors([](factor x, factor y){ return x.fac < y.fac; }), totalFactorizations(0)
 	{
 		mpz_init(zChk);
 	}
@@ -71,6 +74,21 @@ public:
 		return primesFoundInSession;
 	}
 
+	int sessionCount()
+	{
+		return currentSessionId;
+	}
+
+	int totalFactorizationsInAllSessions()
+	{
+		return totalFactorizations;
+	}
+
+	float totalSuccessRate()
+	{
+		return (float)totalFactorizations/currentSessionId;
+	}
+
 	// Zkontroluj a přidej nový faktor
 	bool handlePotentialFactor(mpz_t zF,int curveId)
 	{
@@ -80,11 +98,13 @@ public:
 		   bool isPrime = is_almost_surely_prime(zF);
 		   fact  = mpz_to_string(zF);
 
+		   if (isPrime) curveHistogram[curveId] += 1;
+
 		   if (newFoundFactors.insert(factor(fact,isPrime,curveId)).second && isPrime) 
 		   {
 			 mpz_mul(zChk,zChk,zF);
-			 primeStream << fact << ", " << curveId << "\n";
 			 
+			 primeStream << fact << ", " << curveId << "\n";
 			 totalPrimesFound++;
 			 primesFoundInSession++;
 		   }
@@ -144,6 +164,9 @@ public:
 			{
 				cout << "REMAINING UNFACTORED PART " << mpz_to_string(zChk) << " IS A PRIME." << endl;
 				cout << mpz_to_string(zN) << " HAS BEEN FACTORED TOTALLY!" << endl;
+				totalFactorizations++;
+				totalPrimesFound++;
+				primesFoundInSession++;
 				return true;
 			}
 			else {
@@ -158,10 +181,24 @@ public:
 		else 
 		{
 			cout << mpz_to_string(zN) << " HAS BEEN FACTORED TOTALLY!" << endl;
+			totalFactorizations++;
 			return true;
 		}
 	}
 	
+	void saveCurveHistogram(string file,int offset)
+	{
+		ofstream hist(file,ofstream::out | ofstream::trunc);
+		hist << boost::format("# S = %d\n") % offset;
+		std::for_each(curveHistogram.begin(),curveHistogram.end(),
+			[&hist](const pair<int,int> c)
+			{ 
+				hist << boost::format("%d\t%d\n") % c.first % c.second;
+			}
+		   );
+		hist.close();
+	}
+
 };
 
 

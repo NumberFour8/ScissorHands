@@ -5,6 +5,7 @@
 #include <boost/regex.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/format.hpp>
 #include <boost/program_options.hpp>
 #include <boost/random/mersenne_twister.hpp>
 #include <boost/random/uniform_int_distribution.hpp>
@@ -32,6 +33,7 @@ struct progArgs {
 	bool exitOnFinish;
 	bool greedy;
 	bool onePrimeFile;
+	bool saveHistogram;
 	unsigned short whichDevice;
 	string outputFile;
 	
@@ -48,6 +50,7 @@ void parseArguments(int argc,char** argv,progArgs& args)
 	desc.add_options()
 		("help,h", "Print usage information.")
 		("verbose,v", "More verbose output.")
+		("histogram,H", "Save curve histogram.")
 		("dont-compute-bound,x", "Coefficient s = B1 when set, otherwise s = lcm(1,2...B1).")
 		("no-restart,e", "When set, program terminates automatically after finishing.")
 		("device-id,D", po::value<unsigned short>(&args.whichDevice)->default_value(0),
@@ -76,6 +79,7 @@ void parseArguments(int argc,char** argv,progArgs& args)
 	args.exitOnFinish	 = vm.count("no-restart") != 0 || vm.count("greedy") != 0;;
 	args.greedy			 = vm.count("greedy") != 0;
 	args.onePrimeFile	 = vm.count("single-output") != 0;
+	args.saveHistogram	 = vm.count("histogram") != 0;
 
 	// Vygeneruj náhodný start pro křivkový generátor
 	if (args.genStart == 0)
@@ -261,6 +265,8 @@ int main(int argc,char** argv)
 	computeStrategy strategy;		 // Strategie výpočtu
 	Generator* gen;					 // Generátor křivek
 	
+	pt::ptime totalStart = pt::microsec_clock::local_time(); 
+
 	if (args.curveGen.length() > 4)
 		 gen = new FileGenerator(args.curveGen,192);
 	else if (args.curveGen == "All")
@@ -337,7 +343,9 @@ int main(int argc,char** argv)
 		  cout << "NOTE: Using bound B1 as a coefficient directly." << endl; 
 		  mpz_set_ui(zS,args.curB1);
 		}
-		else lcmToN(zS,args.curB1);
+		else //lcmToN(zS,args.curB1);
+			mpz_primorial_ui(zS,args.curB1);
+
 		lastB1 = args.curB1;
 
 		S.initialize(zS,2);
@@ -484,7 +492,7 @@ int main(int argc,char** argv)
 	if (args.greedy)
 	{
 		args.N = "";
-		lastB1 = runNum = 0;
+		runNum = 0;
 		cudaTimeCounter = pt::milliseconds(0);
 		
 		cout << endl; 
@@ -502,6 +510,15 @@ int main(int argc,char** argv)
 	mpz_clear(zN);
 	cout << endl << "Total prime factors found in all sessions: " << ffact.primesFoundInAllSessions() << endl;
 	cout << "Total GPU time of all sessions: " << cudaTotalTime << endl;
+	cout << "Average time per factor: " << cudaTotalTime/ffact.primesFoundInAllSessions() << endl;
+	cout << "Total factorizations/sessions: "; 
+	cout << boost::format("%d/%d (%.2f %%)") % ffact.totalFactorizationsInAllSessions() % ffact.sessionCount() % (100*ffact.totalSuccessRate()) << endl;
+
+	pt::ptime totalEnd = pt::microsec_clock::local_time();
+
+	cout << "Total time spent: " << totalEnd-totalStart << endl;
+
+	if (args.saveHistogram) ffact.saveCurveHistogram("histogram.txt",args.genStart);
 
 	return exitCode;
 }

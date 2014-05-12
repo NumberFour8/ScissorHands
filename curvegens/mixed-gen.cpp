@@ -38,9 +38,10 @@ void MixedGenerator::revert()
 	gens[1]->revert();
 	gens[2]->revert();
 	gens[3]->revert();
+	Generator::revert();
 }
 
-bool MixedGenerator::next(ReducedPoint& P)
+bool MixedGenerator::next(RationalPoint& P)
 {
 	if (ctr == burst) return false; 
 

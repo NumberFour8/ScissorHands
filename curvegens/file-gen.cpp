@@ -25,7 +25,7 @@ void FileGenerator::reset()
 
 void FileGenerator::revert()
 {
-	reset();
+	Generator::revert();	
 }
 
 bool FileGenerator::next(RationalPoint& P)
