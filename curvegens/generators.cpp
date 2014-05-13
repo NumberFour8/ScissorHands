@@ -64,7 +64,7 @@ void Generator::revert()
 	curveCounter = 0;
 }
 
-bool Generator::next_base_point(ReducedPoint& P,const mpz_t zN)
+bool Generator::next_base_point(RationalPoint& P)
 {	
 	if (curveCounter == burst)
 	{
@@ -77,14 +77,23 @@ bool Generator::next_base_point(ReducedPoint& P,const mpz_t zN)
 	   cache[curveCounter] = new RationalPoint();
 	   next(*(cache[curveCounter]));
 	}
-	P.reduce(*cache[curveCounter],zN);
-	
-	curveCounter++;
-		
+
+	P.set(*(cache[curveCounter]));
+	A = cache[curveCounter]->minus1 ? -1 : 1;
+	curveCounter++;		
+
 	if (A == 1) edwards++;
 	else 		twisted++;
 		
 	return true;
+}
+
+bool Generator::next_base_point(ReducedPoint& P,const mpz_t n)
+{
+	RationalPoint pt; 
+	bool r = next_base_point(pt);
+	P.reduce(pt,n);
+	return r;
 }
 
 CurveGenerator::CurveGenerator(Torsion t,unsigned int b)

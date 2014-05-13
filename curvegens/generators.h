@@ -2,6 +2,7 @@
 #define GENERATORS_H
 
 #include <fstream>
+#include <numeric>
 
 #include "elliptic.h"
 #include "../helpers.h"
@@ -14,12 +15,12 @@ private:
 	unsigned int edwards,twisted,curveCounter;
 	bool fromCache;
 	RationalPoint** cache;
-	
+	int A;
+
 protected:
 	const unsigned int burst;
 		
 	unsigned int S;
-	int A;
 		
 	virtual bool next(RationalPoint& P) = 0;
 	virtual void reset() = 0;
@@ -36,6 +37,7 @@ public:
 	void getN(mpz_t r);
 	
 	void new_point_set();
+	bool next_base_point(RationalPoint& P);
 	bool next_base_point(ReducedPoint& P,const mpz_t zN);
 
 	virtual void revert();
@@ -102,7 +104,6 @@ class MixedGenerator : public Generator {
 private:
 	CurveGenerator** gens;
 	vector<GeneratorSetup> setup;
-	vector<unsigned int> origSetup;
 	
 public:
 	MixedGenerator(unsigned int start,unsigned int b,vector<GeneratorSetup> s);

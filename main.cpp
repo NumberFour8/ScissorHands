@@ -285,7 +285,14 @@ int main(int argc,char** argv)
 	if (args.curveGen.length() > 4)
 		 gen = new FileGenerator(args.curveGen,192);
 	else if (args.curveGen == "All")
-		 gen = new MixedGenerator(args.genStart,192,{GeneratorSetup(Z6,80),GeneratorSetup(Z12,80),GeneratorSetup(Z8,16),GeneratorSetup(Z2xZ4,16)});
+	{	
+		vector<GeneratorSetup> gs;
+		gs.push_back(GeneratorSetup(24,Z6));gs.push_back(GeneratorSetup(86,Z12));
+		gs.push_back(GeneratorSetup(48,Z8));gs.push_back(GeneratorSetup(10,Z2xZ8));
+		gs.push_back(GeneratorSetup(24,Z2xZ4));
+
+		gen = new MixedGenerator(args.genStart,192,gs);
+	}
 	else gen = new EdwardsGenerator(getGenerator(args.curveGen),args.genStart,192);
 	
 	gen->new_point_set();
@@ -453,7 +460,7 @@ int main(int argc,char** argv)
 	{
 		args.curB1 += args.B1[1];
 		cout << "NOTE: B1 has been automatically incremented to: " << args.curB1 << endl;
-		gen->new_point_set();
+		gen->revert();
 		goto restart_bound;
 	}
 
@@ -538,16 +545,16 @@ int main(int argc,char** argv)
 
 	cout << endl << summary.str();
 
-	string ts = formatTime(pt::second_clock::local_time());
+	string timest = formatTime(pt::second_clock::local_time());
 	if (args.saveSummary)
 	{
-	   ofstream f((boost::format("summary-%s.txt") % ts).str(),ofstream::out | ofstream::trunc);
+	   ofstream f((boost::format("summary-%s.txt") % timest).str(),ofstream::out | ofstream::trunc);
 	   f << summary.str();
 	   f.close();
 	}
 
 	if (args.saveHistogram) 
-	   ffact.saveCurveHistogram((boost::format("histogram-%s.txt") % ts).str(),args.genStart);
+	   ffact.saveCurveHistogram((boost::format("histogram-%s.txt") % timest).str(),args.genStart);
 
 	return exitCode;
 }

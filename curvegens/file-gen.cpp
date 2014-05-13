@@ -52,7 +52,7 @@ bool FileGenerator::next(RationalPoint& P)
 		return false; 
 	}
 
-	A = (ln == "-1" ? -1 : 1);
+	P.minus1 = (ln == "-1");
 
 	// Precti racionalni souradnice 
 	fp >> ln;

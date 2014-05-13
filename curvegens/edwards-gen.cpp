@@ -8,27 +8,22 @@ EdwardsGenerator::EdwardsGenerator(Torsion t,unsigned int from,unsigned int b)
 		case Z12:
 			C = new EllipticCurve("0","0","0","-12");
 			G = new RationalPoint("-2","-4");
-			A = 1;
 		break;
 		case Z2xZ8:
 			C = new EllipticCurve("0","0","0","-8");
 			G = new RationalPoint("12","40");
-			A = 1;
 		break;
 		case Z6:
 			C = new EllipticCurve("0","-1/2304","0","-5/221184");
 			G = new RationalPoint("1/192","1/4608");
-			A = -1;
 		break;
 		case Z8:
 			C = new EllipticCurve("0","0","0","48");
 			G = new RationalPoint("4","-16");
-			A = -1;
 		break;
 		case Z2xZ4:
 			C = new EllipticCurve("0","0","0","-11664/25");
 			G = new RationalPoint("36","-864/5");
-			A = -1;
 		break;
 	};
 
@@ -48,7 +43,8 @@ void EdwardsGenerator::generate_base_point(RationalPoint& P)
 		y /= (s-2)*(s+6)*((s^2)-12);
 		
 		y  = -y;	
-		
+		P.minus1 = false;
+		//cout << "12:" << endl;
 	}
 	else if (T == Z2xZ8)
 	{
@@ -58,12 +54,12 @@ void EdwardsGenerator::generate_base_point(RationalPoint& P)
 		x  = (2*b-1)*(4*b-3)/(6*b-5);
 		y  = (2*b-1)*((t^2)+50*t-2*(s^3)+27*(s^2)-104);
 		y /= ((t+3*s-2)*(t+s+16));
-		
+		P.minus1 = false;	
+		//cout << "2x8:" << endl;
 	}
 	else if (T == Z6)
 	{
 		Qrac sig = (1-96*s)/(96*s);
-		
 		Qrac r   = t/(s^2);
 		
 		Qrac al = (sig^2)-5;
@@ -71,7 +67,8 @@ void EdwardsGenerator::generate_base_point(RationalPoint& P)
 
 		x = 2*r*sig/((sig-1)*(sig+5)*(sig*sig+5));
 		y = ((al^3)-(bt^3))/((al^3)+(bt^3));
-	
+		P.minus1 = true;
+		//cout << "6:" << endl;
 	}
 	else if (T == Z8)
 	{
@@ -80,7 +77,8 @@ void EdwardsGenerator::generate_base_point(RationalPoint& P)
 		
 		x = 2*(u^2);
 		y = (4*(u^4)-1)/v;
-		
+		P.minus1 = true;
+		//cout << "8:" << endl;
 	}
 	else if (T == Z2xZ4)
 	{
@@ -89,9 +87,12 @@ void EdwardsGenerator::generate_base_point(RationalPoint& P)
 		y = 625*(t^2);
 		y = -y + 77760*t+1250*(s^3)+24300*(s^2)-3779136;
 		y = ((30*s-25*t+1944)^2)/y;
-	
+		P.minus1 = true;
+		//cout << "2x4:" << endl;
 	}
 	else return;
 			
 	P.set(x,y);
+	//P.print();
+	//cout << endl; 
 }

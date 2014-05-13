@@ -9,13 +9,14 @@
 class RationalPoint {
 public:
 	Qrac X,Y;
-	
+	bool minus1;
+
 	RationalPoint() 
-	  : X(), Y()
+	  : X(), Y(), minus1(false)
 	{ }
 	
 	RationalPoint(string x,string y)
-	  : X(x), Y(y)
+	  : X(x), Y(y), minus1(false)
 	{ }
 	
 	inline void set(Qrac x,Qrac y)
@@ -28,7 +29,14 @@ public:
 	{
 		X = K.X;
 		Y = K.Y;
+		minus1 = K.minus1;
 	}	
+
+	void print()
+	{
+		cout << "X = " << X.str() << endl;
+		cout << "Y = " << Y.str() << endl;
+	}
 };
 
 // Bod elipticke krivky redukovany z racionalniho bodu modulo N
