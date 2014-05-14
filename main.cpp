@@ -35,6 +35,7 @@ struct progArgs {
 	bool onePrimeFile;
 	bool saveHistogram;
 	bool saveSummary;
+	bool meta;
 	unsigned short whichDevice;
 	string outputFile;
 	
@@ -52,6 +53,7 @@ void parseArguments(int argc,char** argv,progArgs& args)
 		("help,h", "Print usage information.")
 		("verbose,v", "More verbose output.")
 		("histogram,H", "Save curve histogram.")
+		("no-meta-info,M", "Do not print extended information into prime factors file.")
 		("save-summary,S", "Save all sessions summary to a file at the end.")
 		("dont-compute-bound,x", "Coefficient s = B1 when set, otherwise s = lcm(1,2...B1).")
 		("no-restart,e", "When set, program terminates automatically after finishing.")
@@ -83,6 +85,7 @@ void parseArguments(int argc,char** argv,progArgs& args)
 	args.onePrimeFile	 = vm.count("single-output") != 0;
 	args.saveHistogram	 = vm.count("histogram") != 0;
 	args.saveSummary	 = vm.count("save-summary") != 0;
+	args.meta			 = vm.count("no-meta-info") == 0;
 
 	// Vygeneruj náhodný start pro křivkový generátor
 	if (args.genStart == 0)
@@ -261,7 +264,7 @@ int main(int argc,char** argv)
 	parseArguments(argc,argv,args);
 	validateArguments(args);
 
-	FoundFactors  ffact;
+	FoundFactors  ffact(args.meta);
 
 	// Inicializace N
 	mpz_t zN;
@@ -287,9 +290,12 @@ int main(int argc,char** argv)
 	else if (args.curveGen == "All")
 	{	
 		vector<GeneratorSetup> gs;
-		gs.push_back(GeneratorSetup(24,Z6));gs.push_back(GeneratorSetup(86,Z12));
-		gs.push_back(GeneratorSetup(48,Z8));gs.push_back(GeneratorSetup(10,Z2xZ8));
-		gs.push_back(GeneratorSetup(24,Z2xZ4));
+		gs.push_back(GeneratorSetup(16,Z6));
+		gs.push_back(GeneratorSetup(48,Z8));
+		gs.push_back(GeneratorSetup(32,Z2xZ4));
+		
+		gs.push_back(GeneratorSetup(86,Z12));
+		gs.push_back(GeneratorSetup(10,Z2xZ8));
 
 		gen = new MixedGenerator(args.genStart,192,gs);
 	}
@@ -536,7 +542,9 @@ int main(int argc,char** argv)
 	
 	summary << "Total prime factors found in all sessions: " << ffact.primesFoundInAllSessions() << endl;
 	summary << "Total GPU time of all sessions: " << cudaTotalTime << endl;
-	summary << "Average time per factor: " << cudaTotalTime/ffact.primesFoundInAllSessions() << endl;
+	if (ffact.primesFoundInAllSessions() > 0)
+	  summary << "Average time per factor: " << cudaTotalTime/ffact.primesFoundInAllSessions() << endl;
+	
 	summary << "Total factorizations/sessions: "; 
 	summary << boost::format("%d/%d (%.2f %%)") % ffact.totalFactorizationsInAllSessions() % ffact.sessionCount() % (100*ffact.totalSuccessRate()) << endl;
 

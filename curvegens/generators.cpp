@@ -104,7 +104,7 @@ CurveGenerator::CurveGenerator(Torsion t,unsigned int b)
 void CurveGenerator::initialize(unsigned int from)
 {
 	C->doublePoint(Q,*G);
-	for (S = 2;S < from-1;S++)
+	for (S = 2;S < from;S++)
 	   C->addPoints(Q,Q,*G);
 	
 	R.set(Q);
@@ -135,8 +135,9 @@ bool CurveGenerator::next(RationalPoint& P)
 {
 	if (G == NULL || C == NULL) return false;
 	
-	C->addPoints(R,R,*G);
 	generate_base_point(P);
+	C->addPoints(R,R,*G);
+
 	S++;
 	return true;
 }

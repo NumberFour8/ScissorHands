@@ -32,10 +32,11 @@ private:
 	string fact;
 	mpz_t zChk;
 	
+	bool printMeta;
 public:
 
-	FoundFactors() : totalPrimesFound(0), currentSessionId(0), primesFoundInSession(0),
-		newFoundFactors([](factor x, factor y){ return x.fac < y.fac; }), totalFactorizations(0)
+	FoundFactors(bool outMeta = true) : totalPrimesFound(0), currentSessionId(0), primesFoundInSession(0),
+		newFoundFactors([](factor x, factor y){ return x.fac < y.fac; }), totalFactorizations(0), printMeta(outMeta)
 	{
 		mpz_init(zChk);
 	}
@@ -50,10 +51,11 @@ public:
 		currentSessionId++;
 		
 		primeStream.str(string(""));
-		primeStream << "# Session ID: " << currentSessionId << "\n";
-		primeStream << "# Found prime factors of " << zN << "\n";
-		primeStream << "# FOUND FACTOR, CURVE ID\n";
-		
+		if (printMeta){
+			primeStream << "# Session ID: " << currentSessionId << "\n";
+			primeStream << "# Found prime factors of " << zN << "\n";
+			primeStream << "# FOUND FACTOR, CURVE ID\n";
+		}	
 		mpz_set_ui(zChk,1);
 		newFoundFactors.clear();
 		primesFoundInSession = 0;
@@ -146,7 +148,9 @@ public:
 		}
 			
 		ofstream pr(fn,md);
-		primeStream << boost::format("\n# Found prime factors: %d\n# -------------------------------------\n\n") % primesFoundInSession;
+		if (printMeta)
+		  primeStream << boost::format("\n# Found prime factors: %d\n# -------------------------------------\n\n") % primesFoundInSession;
+		
 		pr << primeStream.str();
 		primeStream.str(string(""));
 		
