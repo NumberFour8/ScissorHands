@@ -421,7 +421,7 @@ int main(int argc,char** argv)
 	mpz_intz(zInvW,zX,zY);
 	
 	// Spočti 2^(-W) mod N 
-	mpz_ui_pow_ui(zInvW, 2, SIZE_DIGIT); 
+	mpz_ui_pow_ui(zInvW, 2, MAX_BITS); 
 	mpz_invert(zInvW, zInvW, zN);
 
 	// Analyzuj výsledky
