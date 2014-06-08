@@ -19,7 +19,7 @@ namespace pt = boost::posix_time;
 #include "factors.h"
 
 
-const unsigned int MAX_STAGE1_BOUND = 500000;
+const unsigned int MAX_STAGE1_BOUND = 5000000;
 
 // Struktura uchovavajici konfiguraci prectenou z parametru nebo ze vstupu
 struct progArgs {
